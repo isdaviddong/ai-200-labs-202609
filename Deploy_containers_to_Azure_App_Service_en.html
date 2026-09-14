@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Deploy a container to Azure App Service |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="deploy-a-container-to-azure-app-service">Deploy a container to Azure App Service</h1>
+<p>In this exercise, you deploy a Linux container image from Azure Container Registry (ACR) to Azure App Service. You configure the web app to use a system-assigned managed identity and the <strong>AcrPull</strong> role so App Service can pull images from your private registry without storing registry credentials in app settings.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Deploy Azure Container Registry and build a container image using ACR Tasks</li>
+<li>Deploy an App Service plan for Linux containers</li>
+<li>Create and configure a Web App for Containers to pull from ACR using managed identity</li>
+<li>Configure runtime settings and enable container logging</li>
+<li>Verify the deployment and test the document processing endpoint</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<blockquote>
+<p><strong>Important:</strong> Azure Container Registry task runs are temporarily paused from Azure free credits. This exercise requires a Pay-As-You-Go, or another paid plan.</p>
+</blockquote>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the project starter files and use a script to deploy the necessary services to your Azure subscription. The Azure Container Registry and App Service plan deployment takes a few minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/app-svc-container-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers for Azure Container Registry (ACR) and Azure App Service.</p>
+<pre><code>az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.Web
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">Create resources in Azure</h3>
+<p>In this section you run the deployment script to deploy the necessary services to your Azure subscription.</p>
+<ol>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command in the terminal to launch the deployment script. The deployment script deploys ACR and creates the environment variable files needed for the exercise.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script is running, enter <strong>1</strong> to launch the <strong>1. Create Azure Container Registry and build container image</strong> option. This option creates the ACR service and uses ACR Tasks to build and push the image to the registry.</p>
+</li>
+<li>
+<p>When the previous operation is finished, enter <strong>2</strong> to launch the <strong>Create App Service Plan</strong> options. This option creates the App Service plan needed for web app.</p>
+<blockquote>
+<p><strong>Note:</strong> A file containing environment variables is created after the App Service plan is created. You use these variables throughout the exercise.</p>
+</blockquote>
+</li>
+<li>
+<p>When the previous operation is finished, enter <strong>4</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the appropriate command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you might need to run the command to create the environment variable again.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="create-the-web-app">Create the web app</h2>
+<p>In this section you create the web app with CLI commands. You then configure the web app with a system-assigned managed identity to give the app access to the image in ACR.</p>
+<ol>
+<li>
+<p>Run the following command to create a Web App for Containers configured to pull from your container registry.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp create <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--plan</span> <span class="nv">$APP_PLAN</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--container-image-name</span> <span class="nv">$ACR_NAME</span>.azurecr.io/docprocessor:v1
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--plan</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_PLAN</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--container-image-name</span><span class="w"> </span><span class="s2">"</span><span class="si">$(</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="si">)</span><span class="s2">.azurecr.io/docprocessor:v1"</span><span class="w">
+</span></code></pre></div></div>
+<p>By default, your Azure Container Registry is private. App Service needs a way to authenticate to ACR before it can pull the image.</p>
+<p>You configure that authentication using a system-assigned managed identity (recommended) instead of storing registry credentials in your app settings.</p>
+</li>
+<li>
+<p>Run the following command to enable a system-assigned managed identity on the web app.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp identity assign <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">identity</span><span class="w"> </span><span class="nx">assign</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<h3 id="assign-the-acrpull-role-to-the-web-app">Assign the AcrPull role to the web app</h3>
+<p>In this section, you grant the web app permission to pull images from your private registry. Managed identities are Microsoft Entra-backed identities that Azure creates and manages for you. When you enable a system-assigned identity on the web app, App Service can request tokens as that identity.</p>
+<p>To enable the web app use that identity to pull images, you assign the built-in <strong>AcrPull</strong> role scoped to your registry. This follows least-privilege access: the web app can download images, but it cannot push or administer the registry.</p>
+<ol>
+<li>
+<p>Run the following command to retrieve the principal ID of the web app.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">PRINCIPAL_ID</span><span class="o">=</span><span class="si">$(</span>az webapp identity show <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--query</span> principalId <span class="se">\</span>
+    <span class="nt">--output</span> tsv<span class="si">)</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$PRINCIPAL_ID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">identity</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="nx">principalId</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">tsv</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to retrieve the ID of the ACR.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">ACR_ID</span><span class="o">=</span><span class="si">$(</span>az acr show <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--query</span> <span class="nb">id</span> <span class="se">\</span>
+    <span class="nt">--output</span> tsv<span class="si">)</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ACR_ID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">tsv</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to assign the AcrPull role to the web app.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az role assignment create <span class="se">\</span>
+    <span class="nt">--assignee</span> <span class="nv">$PRINCIPAL_ID</span> <span class="se">\</span>
+    <span class="nt">--scope</span> <span class="nv">$ACR_ID</span> <span class="se">\</span>
+    <span class="nt">--role</span> AcrPull
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">role</span><span class="w"> </span><span class="nx">assignment</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--assignee</span><span class="w"> </span><span class="nv">$PRINCIPAL_ID</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--scope</span><span class="w"> </span><span class="nv">$ACR_ID</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--role</span><span class="w"> </span><span class="nx">AcrPull</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Role assignments can take a minute or two to propagate. If the app still can’t pull the image immediately after this step, wait briefly and try again.</p>
+</blockquote>
+</li>
+<li>
+<p>Run the following command to configure the web app to use managed identity for registry authentication. This setting tells App Service to use the web app’s managed identity (instead of registry admin credentials) when accessing the container registry.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp config <span class="nb">set</span> <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--acr-use-identity</span> <span class="nb">true</span> <span class="se">\</span>
+    <span class="nt">--acr-identity</span> <span class="o">[</span>system]
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--acr-use-identity</span><span class="w"> </span><span class="nx">true</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--acr-identity</span><span class="w"> </span><span class="p">[</span><span class="n">system</span><span class="p">]</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to update the container settings to use the registry with managed identity. This step explicitly sets the image and registry URL that the web app should use. If you later update the image tag, this is where you point the web app to the new version.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp config container <span class="nb">set</span> <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--container-image-name</span> <span class="nv">$ACR_NAME</span>.azurecr.io/docprocessor:v1 <span class="se">\</span>
+    <span class="nt">--container-registry-url</span> https://<span class="nv">$ACR_NAME</span>.azurecr.io
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="nx">container</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--container-image-name</span><span class="w"> </span><span class="s2">"</span><span class="si">$(</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="si">)</span><span class="s2">.azurecr.io/docprocessor:v1"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--container-registry-url</span><span class="w"> </span><span class="s2">"https://</span><span class="si">$(</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="si">)</span><span class="s2">.azurecr.io"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<h2 id="configure-runtime-settings-and-enable-container-logging">Configure runtime settings and enable container logging</h2>
+<p>In this section you configure runtime settings and enable logging to make the container run more reliably, and help troubleshoot issues.</p>
+<ol>
+<li>
+<p>Run the following command to configure the container port. The sample image listens on port 80 (the default), so this step demonstrates the setting without changing behavior.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp config appsettings <span class="nb">set</span> <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--settings</span> <span class="nv">WEBSITES_PORT</span><span class="o">=</span>80
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="nx">appsettings</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--settings</span><span class="w"> </span><span class="nx">WEBSITES_PORT</span><span class="o">=</span><span class="mi">80</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to enable persistent storage for processed documents. This setting enables the App Service storage mount (for example, the <strong>/home</strong> path in Linux containers).</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp config appsettings <span class="nb">set</span> <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--settings</span> <span class="nv">WEBSITES_ENABLE_APP_SERVICE_STORAGE</span><span class="o">=</span><span class="nb">true</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="nx">appsettings</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--settings</span><span class="w"> </span><span class="nx">WEBSITES_ENABLE_APP_SERVICE_STORAGE</span><span class="o">=</span><span class="n">true</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to enable always-on. Always-on helps reduce cold start latency by keeping the app warm.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp config <span class="nb">set</span> <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--always-on</span> <span class="nb">true</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--always-on</span><span class="w"> </span><span class="nx">true</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to enable container logging. This captures stdout/stderr from your container so you can view logs from the CLI.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp log config <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--docker-container-logging</span> filesystem
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">log</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--docker-container-logging</span><span class="w"> </span><span class="nx">filesystem</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<h2 id="verify-the-deployment">Verify the deployment</h2>
+<p>In this section you verify the web app is running and responding.</p>
+<ol>
+<li>
+<p>Run the following command to retrieve the web app host name.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">APP_URL</span><span class="o">=</span><span class="si">$(</span>az webapp show <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--query</span> defaultHostName <span class="se">\</span>
+    <span class="nt">--output</span> tsv<span class="si">)</span>
+
+<span class="nb">echo</span> <span class="s2">"Application URL: https://</span><span class="nv">$APP_URL</span><span class="s2">"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$APP_URL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="nx">defaultHostName</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">tsv</span><span class="w">
+
+</span><span class="n">Write-Host</span><span class="w"> </span><span class="s2">"Application URL: https://</span><span class="nv">$APP_URL</span><span class="s2">"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Open the URL in a browser to verify the application responds. Leave the browser open, you use it later in the exercise. The application should return a response indicating it is running. The first request may take longer as App Service pulls the container image and starts the application.</p>
+</li>
+</ol>
+<h2 id="test-document-processing">Test document processing</h2>
+<p>In this section you send a request to the API so you can confirm the app is working and that results are being written to persistent storage.</p>
+<ol>
+<li>
+<p>Run the following command to submit the <em>document.txt</em> file included in the project to the processing endpoint.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-X</span> POST <span class="s2">"https://</span><span class="nv">$APP_URL</span><span class="s2">/process"</span> <span class="se">\</span>
+    <span class="nt">-H</span> <span class="s2">"Content-Type: text/plain"</span> <span class="se">\</span>
+    <span class="nt">--data-binary</span> @document.txt
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$body</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Get-Content</span><span class="w"> </span><span class="nt">-Raw</span><span class="w"> </span><span class="nt">-Path</span><span class="w"> </span><span class="s2">"document.txt"</span><span class="w">
+</span><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Method</span><span class="w"> </span><span class="nx">Post</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$APP_URL</span><span class="s2">/process"</span><span class="w"> </span><span class="nt">-ContentType</span><span class="w"> </span><span class="s2">"text/plain"</span><span class="w"> </span><span class="nt">-Body</span><span class="w"> </span><span class="nv">$body</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">ConvertTo-Json</span><span class="w"> </span><span class="nt">-Depth</span><span class="w"> </span><span class="nx">10</span><span class="w">
+</span></code></pre></div></div>
+<p>The API returns mock analysis results including extracted entities, key phrases, and sentiment analysis. Notice that the response indicates whether the result was saved to persistent storage.</p>
+</li>
+<li>
+<p>Run the following command to list all processed documents.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl https://<span class="nv">$APP_URL</span>/documents
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$APP_URL</span><span class="s2">/documents"</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">ConvertTo-Json</span><span class="w"> </span><span class="nt">-Depth</span><span class="w"> </span><span class="nx">10</span><span class="w">
+</span></code></pre></div></div>
+<p>If persistent storage is enabled correctly, you should see the document you just processed in the list.</p>
+</li>
+</ol>
+<h2 id="stream-container-logs">Stream container logs</h2>
+<p>In this section you stream container logs to help troubleshoot startup and request processing.</p>
+<ol>
+<li>
+<p>Run the following command to view real-time logs from the container.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp log <span class="nb">tail</span> <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">log</span><span class="w"> </span><span class="nx">tail</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Generate more requests to the application by refreshing the browser. You should see log entries appear in the stream. Press Ctrl+C to stop streaming.</p>
+</li>
+</ol>
+<h2 id="inspect-the-diagnostic-console">Inspect the diagnostic console</h2>
+<p>In this section you open the SCM (Kudu) site to inspect configuration views and common log locations.</p>
+<ol>
+<li>
+<p>Run the following command to print the SCM (Kudu) URL.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo</span> <span class="s2">"Kudu URL: https://</span><span class="nv">$APP_NAME</span><span class="s2">.scm.azurewebsites.net"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Write-Host</span><span class="w"> </span><span class="s2">"Kudu URL: https://</span><span class="si">$(</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="si">)</span><span class="s2">.scm.azurewebsites.net"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Open this URL in a browser. In the left nagivation pane, navigate to:</p>
+<ol>
+<li><strong>Environment</strong> to view environment variables and verify your app settings are present.</li>
+<li>Expand <strong>SSH</strong>, then select <strong>Kudu</strong> to open a browser-based shell.</li>
+<li><strong>File Manager</strong> and then navigate to <strong>/home/LogFiles/</strong> to view log files.</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> In the left navigation pane, you can also expand Logs and select Log Stream to view logs in the browser, or use the Application entry under SSH to connect to the app container.</p>
+</blockquote>
+<p>The SCM site is separate from your app container, so it doesn't provide a complete view of the container's file system or running processes.</p>
+</li>
+</ol>
+<h2 id="view-application-settings">View application settings</h2>
+<p>In this section you confirm the app settings you configured are present.</p>
+<ol>
+<li>
+<p>Run the following command to list application settings.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az webapp config appsettings list <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$APP_NAME</span> <span class="se">\</span>
+    <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">webapp</span><span class="w"> </span><span class="nx">config</span><span class="w"> </span><span class="nx">appsettings</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>Confirm that your settings appear in the list along with system-provided settings.</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Verify Azure authentication and environment variables</strong></p>
+<ul>
+<li>Run <strong>az account show</strong> to confirm you're logged in to the correct Azure subscription.</li>
+<li>Verify your environment variables are set by running <strong>echo $ACR_NAME</strong> (Bash) or <strong>$env:ACR_NAME</strong> (PowerShell).</li>
+<li>If variables are empty, re-run <strong>source .env</strong> (Bash) or <strong>. ..env.ps1</strong> (PowerShell).</li>
+</ul>
+<p><strong>Verify ACR deployment</strong></p>
+<ul>
+<li>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your resource group.</li>
+<li>Confirm that the Azure Container Registry exists and shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong>.</li>
+<li>Run <strong>az acr list --output table</strong> to verify your registry is accessible.</li>
+</ul>
+<p><strong>Troubleshoot build failures</strong></p>
+<ul>
+<li>The deployment script suppresses verbose <strong>az acr build</strong> output. To troubleshoot failures, check the status and logs of the most recent ACR Task run.</li>
+<li>Verify you're running the deployment script from the project root directory (where the <em>api</em> folder is located).</li>
+<li>List recent ACR Task runs:
+<ul>
+<li><strong>Bash:</strong> <strong>az acr task list-runs --registry $ACR_NAME --output table</strong></li>
+<li><strong>PowerShell:</strong> <strong>az acr task list-runs --registry $env:ACR_NAME --output table</strong></li>
+</ul>
+</li>
+<li>View logs for a specific run (replace <strong><run-id></strong> with a value from the previous command):
+<ul>
+<li><strong>Bash:</strong> <strong>az acr task logs --registry $ACR_NAME --run-id <run-id></strong></li>
+<li><strong>PowerShell:</strong> <strong>az acr task logs --registry $env:ACR_NAME --run-id <run-id></strong></li>
+</ul>
+</li>
+</ul>
+<p><strong>Troubleshoot container pull failures (ImagePullBackOff / unauthorized / 403)</strong></p>
+<ul>
+<li>Confirm the web app has a system-assigned managed identity enabled by running <strong>az webapp identity show</strong>.</li>
+<li>Confirm the web app has the <strong>AcrPull</strong> role assignment scoped to the registry. Role assignments can take a minute or two to propagate after creation.</li>
+<li>Re-run the container configuration step to ensure the image name and registry URL are correct.</li>
+</ul>
+<p><strong>Troubleshoot container startup and application errors</strong></p>
+<ul>
+<li>Ensure container logging is enabled, then stream logs:
+<ul>
+<li><strong>Bash:</strong> <strong>az webapp log tail --resource-group $RESOURCE_GROUP --name $APP_NAME</strong></li>
+<li><strong>PowerShell:</strong> <strong>az webapp log tail --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME</strong></li>
+</ul>
+</li>
+<li>If the app returns a 502/503 shortly after deployment, wait a minute and try again. The first start can take longer while App Service pulls and starts the container.</li>
+</ul>
+<p><strong>Verify persistent storage is enabled</strong></p>
+<ul>
+<li>Confirm the <strong>WEBSITES_ENABLE_APP_SERVICE_STORAGE</strong> setting is present and set to <strong>true</strong>.</li>
+<li>Call the <strong>/documents</strong> endpoint after submitting a document to confirm results are being written to persistent storage.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

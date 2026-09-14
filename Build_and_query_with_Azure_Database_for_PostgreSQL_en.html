@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Build an agent tool backend on Azure Database for PostgreSQL |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="build-an-agent-tool-backend-on-azure-database-for-postgresql">Build an agent tool backend on Azure Database for PostgreSQL</h1>
+<p>In this exercise, you create an Azure Database for PostgreSQL instance that serves as a tool backend for an AI agent. The database stores conversation context and task state that an agent can read and write during operation. You design a schema for agent memory, build Python functions that serve as agent tools, and test the complete workflow. This pattern provides a foundation for building AI agents that maintain persistent memory across sessions and can resume interrupted tasks.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download project starter files and configure the deployment script</li>
+<li>Deploy an Azure Database for PostgreSQL Flexible Server with Microsoft Entra authentication</li>
+<li>Build Python tool functions for conversation and task state management</li>
+<li>Create a database schema for agent memory with tables for conversations, messages, and task checkpoints</li>
+<li>Test the agent memory workflow using a provided test script</li>
+<li>Query conversation context using SQL</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+<li><a href="https://www.postgresql.org/download/">PostgreSQL command-line tools</a> (<strong>psql</strong>)</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the project starter files and use a script to deploy the necessary services to your Azure subscription. The PostgreSQL server deployment takes a few minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/postgresql-build-agent-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following command to ensure your subscription has the necessary resource provider for the exercise.</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DBforPostgreSQL
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">Create resources in Azure</h3>
+<p>In this section you run the deployment script to deploy the PostgreSQL.</p>
+<ol>
+<li>
+<p>Run the following command in the terminal to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script menu appears, enter <strong>1</strong> to launch the <strong>Create PostgreSQL server with Entra authentication</strong> option. This creates the server with Entra-only authentication enabled. <strong>Note:</strong> Deployment can take 5-10 minutes to complete.</p>
+<blockquote>
+<p><strong>IMPORTANT:</strong> Leave the terminal running the deployment open for the duration of the exercise. You can move on to the next section of the exercise while the deployment continues in the terminal.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-tool-function-app">Complete the tool function app</h2>
+<p>In this section you complete the <em>agent_tools.py</em> file by adding functions that an AI agent can call to persist and retrieve state. These functions serve as the agent's interface to the database. The <em>test_workflow.py</em> script, which you run later in this exercise, imports these functions to demonstrate how an agent would use them.</p>
+<ol>
+<li>Open the <em>agent-backend/agent_tools.py</em> file in VS Code.</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> To maintain proper code indentation, paste the code flush with the left margin (column 1), select all of the pasted lines, and press <strong>Tab</strong> to align the block with the <strong>BEGIN / END</strong> markers. Press <strong>Shift+Tab</strong> to outdent if needed.</p>
+</blockquote>
+<ol>
+<li>
+<p>Search for the <strong>BEGIN CREATE CONVERSATION FUNCTION</strong> comment and add the following code directly after the comment. This function creates a new conversation record with a unique session ID and stores optional metadata as JSONB.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">create_conversation</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Create a new conversation and return its details."""</span>
+    <span class="n">session_id</span> <span class="o">=</span> <span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+            <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s">"""
+                INSERT INTO conversations (session_id, user_id, metadata)
+                VALUES (%s, %s, %s)
+                RETURNING id, session_id, started_at
+                """</span><span class="p">,</span>
+                <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">session_id</span><span class="p">),</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">psycopg</span><span class="p">.</span><span class="n">types</span><span class="p">.</span><span class="n">json</span><span class="p">.</span><span class="n">Json</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{}))</span>
+            <span class="p">)</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="n">conn</span><span class="p">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s">"conversation_id"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s">"session_id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="s">"started_at"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Search for the <strong>BEGIN RETRIEVE CONVERSATION HISTORY FUNCTION</strong> comment and add the following code directly after the comment. This function retrieves messages from a conversation, ordered chronologically.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_conversation_history</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""Retrieve recent messages from a conversation."""</span>
+    <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+            <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s">"""
+                SELECT id, role, content, created_at, metadata
+                FROM messages
+                WHERE conversation_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+                """</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">conversation_id</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s">"id"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s">"role"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="s">"content"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="s">"created_at"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">].</span><span class="n">isoformat</span><span class="p">(),</span>
+                    <span class="s">"metadata"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>  <span class="c1"># Return in chronological order
+</span>            <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Search for the <strong>BEGIN TASK CHECKPOINT FUNCTIONS</strong> comment and add the following code directly after the comment. This function uses an upsert pattern to save or update task state, allowing the agent to resume interrupted tasks.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">save_task_state</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">task_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">checkpoint_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Save or update a task checkpoint."""</span>
+    <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+            <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s">"""
+                INSERT INTO task_checkpoints (conversation_id, task_name, status, checkpoint_data)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (conversation_id, task_name)
+                DO UPDATE SET
+                    status = EXCLUDED.status,
+                    checkpoint_data = EXCLUDED.checkpoint_data,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING id, updated_at
+                """</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">conversation_id</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">psycopg</span><span class="p">.</span><span class="n">types</span><span class="p">.</span><span class="n">json</span><span class="p">.</span><span class="n">Json</span><span class="p">(</span><span class="n">checkpoint_data</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="c1"># Note: The ON CONFLICT requires a unique constraint we need to add
+</span>            <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="n">conn</span><span class="p">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s">"checkpoint_id"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s">"updated_at"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes to the <em>agent_tools.py</em> file.</p>
+</li>
+<li>
+<p>Take a few minutes to review all of the code in the app.</p>
+</li>
+</ol>
+<p>Next, you finalize the Azure resource deployment.</p>
+<h2 id="complete-the-azure-resource-deployment">Complete the Azure resource deployment</h2>
+<p>In this section you return to the deployment script to retrieve the connection information for the PostgreSQL server.</p>
+<ol>
+<li>
+<p>When the <strong>Create PostgreSQL server with Entra authentication</strong> operation has completed, enter <strong>2</strong> to launch the <strong>Check deployment status</strong> option. This verifies the server is ready.</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to launch the <strong>Retrieve connection info and access token</strong> option. This creates a file with the necessary environment variables.</p>
+</li>
+<li>
+<p>Enter <strong>4</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the following command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you might need to run the command to create the environment variable again.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> The access token expires after approximately one hour. If you need to reconnect later, run the script again and select option <strong>3</strong> to generate a new token, then export the variables again.</p>
+</blockquote>
+</li>
+</ol>
+<p>Next, you create the schema to support the agent.</p>
+<h2 id="create-the-agent-memory-schema-with-strongpsqlstrong">Create the agent memory schema with <strong>psql</strong></h2>
+<p>In this section you connect to the PostgreSQL server using the <strong>psql</strong> command-line tool and create the database schema for agent memory. The schema includes three tables: one for conversations (agent sessions), one for messages within those conversations, and one for task checkpoints that enable the agent to resume interrupted work.</p>
+<ol>
+<li>
+<p>Run the following command to connect to the server using the environment variables. The <strong>PGPASSWORD</strong> environment variable is automatically used for authentication.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>psql <span class="s2">"host=</span><span class="nv">$DB_HOST</span><span class="s2"> port=5432 dbname=</span><span class="nv">$DB_NAME</span><span class="s2"> user=</span><span class="nv">$DB_USER</span><span class="s2"> sslmode=require"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">psql</span><span class="w"> </span><span class="s2">"host=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_HOST</span><span class="s2"> port=5432 dbname=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_NAME</span><span class="s2"> user=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_USER</span><span class="s2"> sslmode=require"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to verify the connection by checking the PostgreSQL version.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">version</span><span class="p">();</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to create a database for the agent backend. The <strong>\c</strong> command connects to the new database.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">DATABASE</span> <span class="n">agent_memory</span><span class="p">;</span>
+<span class="err">\</span><span class="k">c</span> <span class="n">agent_memory</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to create a table for conversations (agent sessions). This table stores session metadata and links messages to a specific conversation.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">conversations</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="n">BIGSERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">session_id</span> <span class="n">UUID</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">UNIQUE</span><span class="p">,</span>
+    <span class="n">user_id</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">started_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span><span class="p">,</span>
+    <span class="n">ended_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span><span class="p">,</span>
+    <span class="n">metadata</span> <span class="n">JSONB</span> <span class="k">DEFAULT</span> <span class="s1">'{}'</span><span class="p">::</span><span class="n">jsonb</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to create a table for messages within conversations. This table stores the role (user, assistant, system, or tool) and content for each message.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">messages</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="n">BIGSERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">conversation_id</span> <span class="nb">BIGINT</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">REFERENCES</span> <span class="n">conversations</span><span class="p">(</span><span class="n">id</span><span class="p">)</span> <span class="k">ON</span> <span class="k">DELETE</span> <span class="k">CASCADE</span><span class="p">,</span>
+    <span class="k">role</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">CHECK</span> <span class="p">(</span><span class="k">role</span> <span class="k">IN</span> <span class="p">(</span><span class="s1">'user'</span><span class="p">,</span> <span class="s1">'assistant'</span><span class="p">,</span> <span class="s1">'system'</span><span class="p">,</span> <span class="s1">'tool'</span><span class="p">)),</span>
+    <span class="n">content</span> <span class="nb">TEXT</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">created_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span><span class="p">,</span>
+    <span class="n">metadata</span> <span class="n">JSONB</span> <span class="k">DEFAULT</span> <span class="s1">'{}'</span><span class="p">::</span><span class="n">jsonb</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to create a table for task checkpoints. This table enables agent state persistence so the agent can resume interrupted tasks.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">task_checkpoints</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="n">BIGSERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">conversation_id</span> <span class="nb">BIGINT</span> <span class="k">REFERENCES</span> <span class="n">conversations</span><span class="p">(</span><span class="n">id</span><span class="p">)</span> <span class="k">ON</span> <span class="k">DELETE</span> <span class="k">CASCADE</span><span class="p">,</span>
+    <span class="n">task_name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">status</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">CHECK</span> <span class="p">(</span><span class="n">status</span> <span class="k">IN</span> <span class="p">(</span><span class="s1">'pending'</span><span class="p">,</span> <span class="s1">'in_progress'</span><span class="p">,</span> <span class="s1">'completed'</span><span class="p">,</span> <span class="s1">'failed'</span><span class="p">)),</span>
+    <span class="n">checkpoint_data</span> <span class="n">JSONB</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">DEFAULT</span> <span class="s1">'{}'</span><span class="p">::</span><span class="n">jsonb</span><span class="p">,</span>
+    <span class="n">created_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span><span class="p">,</span>
+    <span class="n">updated_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to create indexes that optimize common queries. These indexes improve performance when retrieving messages by conversation or timestamp.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_messages_conversation_id</span> <span class="k">ON</span> <span class="n">messages</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_messages_created_at</span> <span class="k">ON</span> <span class="n">messages</span><span class="p">(</span><span class="n">created_at</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_task_checkpoints_conversation_id</span> <span class="k">ON</span> <span class="n">task_checkpoints</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_conversations_session_id</span> <span class="k">ON</span> <span class="n">conversations</span><span class="p">(</span><span class="n">session_id</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>The app you completed earlier in the exercise uses <strong>ON CONFLICT</strong>, which requires a unique constraint. Run the following command in your <strong>psql</strong> session in the terminal to add it.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">ALTER</span> <span class="k">TABLE</span> <span class="n">task_checkpoints</span>
+<span class="k">ADD</span> <span class="k">CONSTRAINT</span> <span class="n">unique_conversation_task</span>
+<span class="k">UNIQUE</span> <span class="p">(</span><span class="n">conversation_id</span><span class="p">,</span> <span class="n">task_name</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to verify the schema was created correctly.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">\</span><span class="n">dt</span>
+</code></pre></div></div>
+<p>You should see the three tables listed.</p>
+</li>
+<li>
+<p>Enter <code>exit</code> to close the <strong>psql</strong> session and return to the terminal.</p>
+</li>
+</ol>
+<h2 id="test-the-agent-memory-workflow">Test the agent memory workflow</h2>
+<p>In this section you run a test script to verify the tool functions work correctly. The <em>test_workflow.py</em> script is included in the project files and demonstrates creating conversations, storing messages, and managing task checkpoints.</p>
+<ol>
+<li>
+<p>Run the following command to navigate to the <em>agent-backend</em> directory.</p>
+<pre><code>cd agent-backend
+</code></pre></li>
+<li>
+<p>Run the following command to create a virtual environment for the <em>test_workflow.py</em>  app. Depending on your environment the command might be <strong>python</strong> or <strong>python3</strong>.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to install the Python dependencies for the app. This installs the <strong>psycopg</strong> library for PostgreSQL connectivity and <strong>azure-identity</strong> for Microsoft Entra authentication.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-r</span> requirements.txt
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to execute the test script. This script exercises all the agent tool functions you created.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python test_workflow.py
+</code></pre></div></div>
+</li>
+<li>
+<p>You should see output showing each step completing successfully, demonstrating that the agent can create conversations, store messages, save task state, and retrieve history.</p>
+</li>
+<li>
+<p>Optional: Open the <em>test_workflow.py</em> file and review the code.</p>
+</li>
+</ol>
+<h2 id="query-conversation-context">Query conversation context</h2>
+<p>In this section you practice querying the data an agent would use to make decisions.</p>
+<ol>
+<li>
+<p>Run the following command to connect to the <strong>agent_memory</strong> database using the environment variables.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>psql <span class="s2">"host=</span><span class="nv">$DB_HOST</span><span class="s2"> port=5432 dbname=agent_memory user=</span><span class="nv">$DB_USER</span><span class="s2"> sslmode=require"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">psql</span><span class="w"> </span><span class="s2">"host=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_HOST</span><span class="s2"> port=5432 dbname=agent_memory user=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_USER</span><span class="s2"> sslmode=require"</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Tip:</strong> When query results are displayed, psql uses a pager if it can't fit the results in the current terminal window. If it does, press <strong>q</strong> to exit the pager and return to the psql prompt. Maximizing the terminal window will reduce this from happening, and make it easier to review the results from the commands.</p>
+</blockquote>
+</li>
+<li>
+<p>Run the following query to find all conversations for a specific user. The test script created a conversation with <strong>user_id</strong> set to <strong>user_123</strong>.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">started_at</span><span class="p">,</span> <span class="n">metadata</span>
+<span class="k">FROM</span> <span class="n">conversations</span>
+<span class="k">WHERE</span> <span class="n">user_id</span> <span class="o">=</span> <span class="s1">'user_123'</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">started_at</span> <span class="k">DESC</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following query to get recent messages across all conversations. This returns the messages stored by the test script.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">session_id</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="k">role</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="n">created_at</span>
+<span class="k">FROM</span> <span class="n">messages</span> <span class="n">m</span>
+<span class="k">JOIN</span> <span class="n">conversations</span> <span class="k">c</span> <span class="k">ON</span> <span class="n">m</span><span class="p">.</span><span class="n">conversation_id</span> <span class="o">=</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">m</span><span class="p">.</span><span class="n">created_at</span> <span class="k">DESC</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following query to find completed tasks. The test script updated the task status to <strong>completed</strong> at the end of the workflow.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span>
+    <span class="k">c</span><span class="p">.</span><span class="n">session_id</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">task_name</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">status</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">checkpoint_data</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">updated_at</span>
+<span class="k">FROM</span> <span class="n">task_checkpoints</span> <span class="n">t</span>
+<span class="k">JOIN</span> <span class="n">conversations</span> <span class="k">c</span> <span class="k">ON</span> <span class="n">t</span><span class="p">.</span><span class="n">conversation_id</span> <span class="o">=</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span>
+<span class="k">WHERE</span> <span class="n">t</span><span class="p">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">'completed'</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following query to count messages by role in each conversation. This helps understand the distribution of user, assistant, system, and tool messages.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span>
+    <span class="k">c</span><span class="p">.</span><span class="n">id</span> <span class="k">AS</span> <span class="n">conversation_id</span><span class="p">,</span>
+    <span class="n">m</span><span class="p">.</span><span class="k">role</span><span class="p">,</span>
+    <span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="k">AS</span> <span class="n">message_count</span>
+<span class="k">FROM</span> <span class="n">conversations</span> <span class="k">c</span>
+<span class="k">JOIN</span> <span class="n">messages</span> <span class="n">m</span> <span class="k">ON</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">m</span><span class="p">.</span><span class="n">conversation_id</span>
+<span class="k">GROUP</span> <span class="k">BY</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="k">role</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="k">role</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Enter <strong>quit</strong> in the psql prompt to exit.</p>
+</li>
+</ol>
+<h2 id="summary">Summary</h2>
+<p>In this exercise, you built a PostgreSQL-based tool backend for AI agents. You deployed an Azure Database for PostgreSQL Flexible Server with Microsoft Entra authentication, created Python functions that agents can call to manage conversations and task state, and designed a database schema with tables for conversations, messages, and task checkpoints. You tested the workflow by running a script that simulated agent operations, then queried the stored data using SQL. This pattern enables AI agents to maintain persistent memory across sessions and resume interrupted tasks.</p>
+<h1 id="clean-up-resources">Clean up resources</h1>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues during this exercise, try these steps:</p>
+<p><strong>Deployment fails</strong></p>
+<ul>
+<li>Run the deployment script again and select option <strong>1</strong>.</li>
+<li>If the script detects an existing PostgreSQL server, it warns that redeployment permanently deletes the server and all of its data. Enter <code>yes</code> to confirm that you want to delete and redeploy the server.</li>
+<li>If Azure does not release the PostgreSQL server name within five minutes, exit the deployment script, wait five minutes, then run the script and select option <strong>1</strong> again.</li>
+</ul>
+<p><strong>psql connection fails</strong></p>
+<ul>
+<li>Ensure both the <em>.env</em> and <em>.env.ps1</em> files were created by running the deployment script option <strong>3</strong></li>
+<li>Ensure you ran <strong>source .env</strong> (Bash) or <strong>. ..env.ps1</strong> (PowerShell) to load environment variables</li>
+<li>The access token expires after approximately one hour; run the deployment script option <strong>3</strong> again to generate a new token</li>
+<li>Verify the server is ready by running the deployment script option <strong>2</strong></li>
+</ul>
+<p><strong>Access denied or authentication errors</strong></p>
+<ul>
+<li>The Microsoft Entra administrator is configured automatically when option <strong>1</strong> creates the server. If access is still denied, verify the administrator by running option <strong>2</strong>. If it is missing, run option <strong>1</strong> and confirm that you want to delete and redeploy the server.</li>
+<li>Verify <strong>PGPASSWORD</strong> is set correctly in your terminal session</li>
+<li>Ensure you're using the correct <strong>DB_USER</strong> value (your Azure account email)</li>
+</ul>
+<p><strong>Python test script fails</strong></p>
+<ul>
+<li>Ensure Python virtual environment is activated (you should see <strong>(.venv)</strong> in your terminal prompt)</li>
+<li>Ensure dependencies are installed: <strong>pip install -r requirements.txt</strong></li>
+<li>Ensure you created the <strong>agent_memory</strong> database and all tables in <strong>psql</strong></li>
+<li>Ensure you added the unique constraint on <strong>task_checkpoints</strong> table</li>
+</ul>
+<p><strong>Database or table not found errors</strong></p>
+<ul>
+<li>Ensure you connected to the <strong>agent_memory</strong> database using <strong>\c agent_memory</strong> in <strong>psql</strong></li>
+<li>Verify tables exist by running <strong>\dt</strong> in <strong>psql</strong></li>
+<li>Re-run the CREATE TABLE statements if tables are missing</li>
+</ul>
+<p><strong>Python venv activation issues</strong></p>
+<ul>
+<li>On Linux/macOS, use: <strong>source .venv/bin/activate</strong></li>
+<li>On Windows PowerShell, use: <strong>..venv\Scripts\Activate.ps1</strong></li>
+<li>If <strong>activate</strong> script is missing, reinstall <strong>python3-venv</strong> package and recreate the venv</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

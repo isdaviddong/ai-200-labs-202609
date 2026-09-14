@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Diagnose and fix a failing deployment |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="diagnose-and-fix-a-failing-deployment">Diagnose and fix a failing deployment</h1>
+<p>In this exercise, you troubleshoot a failing container app and apply targeted fixes. You use revision status, logs, and the Azure CLI to isolate deployment issues. This workflow is common in AI solutions because startup behavior changes frequently when you update models and dependencies.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Deploy a mock AI document processing API as a container app</li>
+<li>Introduce and diagnose a missing environment variable error</li>
+<li>Introduce and diagnose an ingress configuration issue</li>
+<li>Query Log Analytics for historical troubleshooting data</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<blockquote>
+<p><strong>Important:</strong> Azure Container Registry task runs are temporarily paused from Azure free credits. This exercise requires a Pay-As-You-Go, or another paid plan.</p>
+</blockquote>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the project starter files and use a script to deploy the necessary services to your Azure subscription. The Azure Container Registry and Container Apps environment deployment takes a few minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/aca-manage-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following command to ensure you have the <strong>containerapp</strong> extension for Azure CLI.</p>
+<pre><code class="language-azurecli">az extension add --name containerapp
+az extension add --name log-analytics
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers for the exercise.</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.OperationalInsights
+az provider register --namespace Microsoft.ContainerRegistry
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">Create resources in Azure</h3>
+<p>In this section you run the deployment script to deploy the necessary services to your Azure subscription.</p>
+<ol>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command in the terminal to launch the deployment script. The deployment script deploys ACR and creates the environment variable files needed for the exercise.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script is running, enter <strong>1</strong> to launch the <strong>Create Azure Container Registry and build container image</strong> option. This option creates the ACR service and uses ACR Tasks to build and push the image to the registry.</p>
+</li>
+<li>
+<p>When the previous operation is finished, enter <strong>2</strong> to launch the <strong>Create Container Apps environment</strong> options. Creating the environment is necessary before deploying the container.</p>
+</li>
+<li>
+<p>When the previous operation is finished, enter <strong>3</strong> to launch the <strong>Deploy the container app and configure secrets</strong> option.</p>
+<blockquote>
+<p><strong>Note:</strong> A file containing environment variables is created after the container app is created. You use these variables throughout the exercise.</p>
+</blockquote>
+</li>
+<li>
+<p>When the previous operation is finished, enter <strong>5</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the appropriate command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you might need to run the command to create the environment variable again.</p>
+</blockquote>
+</li>
+<li>
+<p>Run the following command to retrieve the app FQDN and store the result to a variable.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">FQDN</span><span class="o">=</span><span class="si">$(</span>az containerapp show <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--query</span> properties.configuration.ingress.fqdn <span class="nt">-o</span> tsv<span class="si">)</span>
+
+<span class="nb">echo</span> <span class="s2">"</span><span class="nv">$FQDN</span><span class="s2">"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$FQDN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="nx">properties.configuration.ingress.fqdn</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">tsv</span><span class="w">
+
+</span><span class="n">Write-Output</span><span class="w"> </span><span class="nv">$FQDN</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to call the default endpoint to verify the app is running. The command should return some JSON. Look for the <strong>model.name</strong> field, it should be set to <strong>gpt-5.4-mini</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<h2 id="diagnose-a-missing-environment-variable">Diagnose a missing environment variable</h2>
+<p>When a container app depends on an environment variable that isn't set, the app may fail to start or behave unexpectedly. In this section, you remove a required environment variable and observe the symptoms.</p>
+<ol>
+<li>
+<p>Run the following command to update the container app to remove the <code>MODEL_NAME</code> environment variable.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp update <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--remove-env-vars</span> MODEL_NAME
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--remove-env-vars</span><span class="w"> </span><span class="nx">MODEL_NAME</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to list revisions to confirm a new revision was created. Look for a new revision with a higher suffix number (for example, <strong>ai-api--0000002</strong>) and <strong>TrafficWeight</strong> of <strong>100</strong>, indicating it's now receiving all traffic.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp revision list <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="nt">-o</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">revision</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to check the root endpoint to observe the symptom from the API consumer's perspective. The <strong>model.name</strong> field now shows the default value of <strong>not-configured</strong> instead of the configured value.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span> | jq .model
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">(</span><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span><span class="p">)</span><span class="o">.</span><span class="nf">model</span><span class="w">
+
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to diagnose the root cause by viewing the container app's configuration. Run the following command to confirm the <strong>MODEL_NAME</strong> environment variable is missing.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp show <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--query</span> <span class="s2">"properties.template.containers[0].env"</span> <span class="nt">-o</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="s2">"properties.template.containers[0].env"</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to fix the issue by adding the <code>MODEL_NAME</code> environment variable back.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp update <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--set-env-vars</span> <span class="nv">MODEL_NAME</span><span class="o">=</span><span class="nv">$MODEL_NAME</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--set-env-vars</span><span class="w"> </span><span class="nx">MODEL_NAME</span><span class="o">=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">MODEL_NAME</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to verify the fix by checking the root endpoint again. This confirms the application now behaves correctly from an API consumer's perspective. The response should now show the configured model name.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span> | jq .model
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">(</span><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span><span class="p">)</span><span class="o">.</span><span class="nf">model</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<p>You diagnosed and fixed a missing environment variable. Next, you diagnose a secret an ingress issue.</p>
+<h2 id="diagnose-an-ingress-configuration-issue">Diagnose an ingress configuration issue</h2>
+<p>Container Apps uses the <strong>target-port</strong> setting to route traffic to your container. If the port doesn't match what your application listens on, requests fail. In this section, you introduce a port mismatch.</p>
+<ol>
+<li>
+<p>Run the following command to update the container app to use the wrong target port.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp ingress update <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--target-port</span> 3000
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">ingress</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--target-port</span><span class="w"> </span><span class="nx">3000</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to try to access the health endpoint to observe the symptom from an API consumer's perspective.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span><span class="w">
+</span></code></pre></div></div>
+<p>The request fails or times out because Container Apps is routing traffic to port 3000, but the application listens on port 8000.</p>
+</li>
+<li>
+<p>Run the following command to diagnose the root cause by checking the current ingress configuration. Notice the <strong>targetPort</strong> is set to 3000.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp show <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--query</span> <span class="s2">"properties.configuration.ingress"</span> <span class="nt">-o</span> yaml
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="s2">"properties.configuration.ingress"</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">yaml</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to check the container logs to see if the application is running. You should see gunicorn startup messages indicating the app is listening on port 8000, confirming the mismatch.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp logs show <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">logs</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to fix the ingress configuration by setting the correct target port.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az containerapp ingress update <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--target-port</span> 8000
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">ingress</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--target-port</span><span class="w"> </span><span class="nx">8000</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to verify the fix by calling the health endpoint. This confirms the application is accessible from an API consumer's perspective. You should see <strong>{&quot;status&quot;:&quot;healthy&quot;}</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<p>You diagnosed and fixed an ingress configuration issue. Next, you learn how to query historical logs.</p>
+<h2 id="query-log-analytics-for-historical-troubleshooting">Query Log Analytics for historical troubleshooting</h2>
+<p>Console logs shown by <strong>az containerapp logs show</strong> are recent only. For historical troubleshooting, logs persist in the Log Analytics workspace associated with your Container Apps environment.</p>
+<ol>
+<li>
+<p>Run the following command to get the Log Analytics workspace ID from the Container Apps environment.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">WORKSPACE_ID</span><span class="o">=</span><span class="si">$(</span>az containerapp <span class="nb">env </span>show <span class="nt">-n</span> <span class="nv">$ACA_ENVIRONMENT</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--query</span> properties.appLogsConfiguration.logAnalyticsConfiguration.customerId <span class="nt">-o</span> tsv<span class="si">)</span>
+
+<span class="nb">echo</span> <span class="s2">"Workspace ID: </span><span class="nv">$WORKSPACE_ID</span><span class="s2">"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$WORKSPACE_ID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">env</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACA_ENVIRONMENT</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="nx">properties.appLogsConfiguration.logAnalyticsConfiguration.customerId</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">tsv</span><span class="w">
+
+</span><span class="n">Write-Output</span><span class="w"> </span><span class="s2">"Workspace ID: </span><span class="nv">$WORKSPACE_ID</span><span class="s2">"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to query the console logs for your container app. This returns the last 20 log entries showing timestamp and message.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az monitor log-analytics query <span class="nt">-w</span> <span class="nv">$WORKSPACE_ID</span> <span class="se">\</span>
+    <span class="nt">--analytics-query</span> <span class="s2">"ContainerAppConsoleLogs_CL | where ContainerAppName_s == '</span><span class="nv">$CONTAINER_APP_NAME</span><span class="s2">' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20"</span> <span class="se">\</span>
+    <span class="nt">-o</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">monitor</span><span class="w"> </span><span class="nx">log-analytics</span><span class="w"> </span><span class="nx">query</span><span class="w"> </span><span class="nt">-w</span><span class="w"> </span><span class="nv">$WORKSPACE_ID</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--analytics-query</span><span class="w"> </span><span class="s2">"ContainerAppConsoleLogs_CL | where ContainerAppName_s == '</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="s2">' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-o</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p>[!NOTE]
+Log Analytics data may take a few minutes to appear after events occur. If you don't see recent logs, wait a few minutes and try again.</p>
+</blockquote>
+</li>
+<li>
+<p>Run the following command to query for error-level logs specifically.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az monitor log-analytics query <span class="nt">-w</span> <span class="nv">$WORKSPACE_ID</span> <span class="se">\</span>
+    <span class="nt">--analytics-query</span> <span class="s2">"ContainerAppConsoleLogs_CL | where ContainerAppName_s == '</span><span class="nv">$CONTAINER_APP_NAME</span><span class="s2">' and Log_s contains 'error' | order by TimeGenerated desc | take 20"</span> <span class="se">\</span>
+    <span class="nt">-o</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">monitor</span><span class="w"> </span><span class="nx">log-analytics</span><span class="w"> </span><span class="nx">query</span><span class="w"> </span><span class="nt">-w</span><span class="w"> </span><span class="nv">$WORKSPACE_ID</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--analytics-query</span><span class="w"> </span><span class="s2">"ContainerAppConsoleLogs_CL | where ContainerAppName_s == '</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="s2">' and Log_s contains 'error' | order by TimeGenerated desc | take 20"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-o</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<p>These queries help you investigate issues that occurred in the past, even after container restarts or revision changes.</p>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues during this exercise, try these steps:</p>
+<p><strong>Container app not responding</strong></p>
+<ul>
+<li>Check if the revision is active using <strong>az containerapp revision list</strong></li>
+<li>Verify ingress is configured using <strong>az containerapp show</strong></li>
+</ul>
+<p><strong>Cannot see logs</strong></p>
+<ul>
+<li>Console logs are recent only. Use Log Analytics for historical data.</li>
+<li>Log Analytics data may take 2-5 minutes to appear.</li>
+</ul>
+<p><strong>Environment variables not taking effect</strong></p>
+<ul>
+<li>Container Apps creates a new revision when you change environment variables. Verify the new revision is active.</li>
+<li>Use <strong>--replace-env-vars</strong> carefully—it replaces all environment variables, not just the ones you specify.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

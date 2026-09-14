@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        在 Azure Cosmos DB for NoSQL 上建置語意搜尋應用程式 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-door-fill" viewbox="0 0 16 16">
+                        <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"></path>
+                    </svg>
+                     首頁
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color->
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="">
+            <article class="col-sm-10 mb-5">
+                <h1 id="build-a-semantic-search-application-with-azure-cosmos-db-for-nosql">在 Azure Cosmos DB for NoSQL 上建置語意搜尋應用程式</h1>
+<p>在本練習中，您將使用以下方法實現向量相似度搜索 Azure Cosmos DB for NoSQL。向量搜尋透過比較文字的高維向量表示來實現語義匹配，即使在確切術語不匹配的情況下也能找到相關結果。您可以使用向量嵌入和索引策略設定容器，使用預先計算的負載支援票證 embeddings，並使用執行相似性查詢 <strong>VectorDistance</strong> 功能。該模式為構建提供了基礎 AI 執行語義搜尋的應用程序，例如查找類似的支援案例以幫助更快地解決客戶問題。</p>
+<p>本練習執行的工作：</p>
+<ul>
+<li>下載專案啟動檔案並設定部署腳本</li>
+<li>部署一個 Azure Cosmos DB for NoSQL 帳戶 具有向量搜尋功能</li>
+<li>建造 Python 向量相似度搜尋函數</li>
+<li>建立具有向量嵌入和索引策略的容器</li>
+<li>使用測試向量搜尋 Flask Web 應用程式</li>
+</ul>
+<p>本練習大約需要 <strong>30</strong> 分鐘即可完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>要完成練習，您需要：</p>
+<ul>
+<li>具有部署必要 Azure 服務權限的 Azure 訂閱。如果您還沒有，您可以 <a href="https://azure.microsoft.com/">註冊一個</a>.</li>
+<li>
+<a href="https://code.visualstudio.com/">Visual Studio Code</a> 在其支援的平台之一上 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>.</li>
+<li>最新版本的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>
+<a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案啟動檔案並部署 Azure 服務</h2>
+<p>在本部分中，您將下載專案入門檔案並使用腳本將必要的服務部署至 Azure 訂閱。宇宙 DB 帳戶 部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入以下內容 URL 下載啟動檔。該文件將保存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/cosmosdb-implement-vector-python.zip
+</code></pre>
+</li>
+<li>
+<p>將文件複製或移動到您的位置 system 您想在哪裡從事該專案。然後將檔案解壓縮到一個資料夾中。</p>
+</li>
+<li>
+<p>發射 Visual Studio Code (VS Code）並選擇 <strong>File &gt; Open Folder...</strong> 在選單中，然後選擇包含項目文件的資料夾。</p>
+</li>
+<li>
+<p>打開 <em>azdeploy.py</em> 部署腳本並依您的需求變更腳本頂端的兩個值，然後儲存變更。 <strong>注意：</strong> 不要更改腳本中的任何其他內容。</p>
+<pre><code>"&lt;your-resource-group-name&gt;" # Resource Group name
+"&lt;your-azure-region&gt;" # Azure region for the resources
+</code></pre>
+</li>
+<li>
+<p>在功能表列中選擇 <strong>終端機 &gt; 新增終端機</strong> 打開終端機視窗 VS Code.</p>
+</li>
+<li>
+<p>執行以下命令登入您的 Azure account。回答提示以選擇您的 Azure 帳戶 並訂閱該練習。</p>
+<pre><code>az login
+</code></pre>
+</li>
+<li>
+<p>執行以下命令以確保您的訂閱具有練習所需的資源提供者。</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DocumentDB
+</code></pre>
+</li>
+</ol>
+<h3 id="create-resources-in-azure">在 Azure 中建立資源</h3>
+<p>在本部分中，您將執行部署腳本來部署 Cosmos DB 帳戶 具有向量搜尋功能。</p>
+<ol>
+<li>
+<p>請確定您位於專案的根目錄中，並在終端機執行下列命令以啟動部署腳本。</p>
+<pre><code>python azdeploy.py
+</code></pre>
+</li>
+<li>
+<p>當腳本選單出現時，輸入 <strong>1</strong> 啟動 <strong>Create Cosmos DB account</strong> 選項。這創造了宇宙 DB 為了 NoSQL 帳戶 與 <strong>EnableNoSQLVectorSearch</strong> 能力和資料庫。 <strong>注意：</strong> 部署可能需要 5-10 分鐘才能完成。</p>
+<blockquote>
+<p><strong>重要：</strong> 在練習期間，使運行部署的終端保持開啟狀態。您可以繼續練習的下一部分，同時在終端機中繼續部署。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-apps">完成應用程式</h2>
+<p>在本節中，您將完成 Python 向量搜尋功能和容器設定腳本的程式碼。向量函數使用以下函數執行相似性搜尋 <strong>VectorDistance</strong> 函數，而安裝腳本則建立具有必要向量策略的容器。</p>
+<h3 id="complete-the-vector-search-functions">完成向量搜尋功能</h3>
+<p>在本節中，您將完成 <em>vector_functions.py</em> 文件中加入執行向量相似性搜尋的函數。這些函數使用 <strong>VectorDistance</strong> 計算查詢向量和票證之間相似度的函數 embeddings。當報告新問題時，支援應用程式可以使用這些功能來尋找類似的票證。</p>
+<ol>
+<li>打開 <em>client/vector_functions.py</em> 文件輸入 VS Code.</li>
+</ol>
+<blockquote>
+<p><strong>提示：</strong> 若要維持正確的程式碼縮排，請從左邊界（第 1 欄）開始貼上程式碼，選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 取消縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>搜尋 <strong>BEGIN STORE VECTOR DOCUMENT FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數儲存支援票及其向量嵌入以進行相似性搜尋。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">store_vector_document</span><span class="p">(</span>
+    <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">chunk_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Store a document with its vector embedding for similarity search."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># Build the document structure with embedding for vector search
+</span>    <span class="c1"># The 'id' field is required by Cosmos DB and must be unique within the partition
+</span>    <span class="c1"># The 'documentId' field is our partition key - chunks from the same source document
+</span>    <span class="c1"># are stored together for efficient retrieval
+</span>    <span class="c1"># The 'embedding' field contains the vector that will be used for similarity search
+</span>    <span class="n">document</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"id"</span><span class="p">:</span> <span class="n">chunk_id</span><span class="p">,</span>
+        <span class="s">"documentId"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">,</span>
+        <span class="s">"content"</span><span class="p">:</span> <span class="n">content</span><span class="p">,</span>
+        <span class="s">"embedding"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">,</span>  <span class="c1"># 256-dimensional vector for similarity search
+</span>        <span class="s">"metadata"</span><span class="p">:</span> <span class="n">metadata</span> <span class="ow">or</span> <span class="p">{},</span>
+        <span class="s">"createdAt"</span><span class="p">:</span> <span class="n">datetime</span><span class="p">.</span><span class="n">utcnow</span><span class="p">().</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s">"chunkIndex"</span><span class="p">:</span> <span class="n">metadata</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"chunkIndex"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">metadata</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="p">}</span>
+
+    <span class="c1"># upsert_item inserts if new, updates if exists (based on id + partition key)
+</span>    <span class="c1"># This is idempotent - safe to call multiple times with the same data
+</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">upsert_item</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="n">document</span><span class="p">)</span>
+
+    <span class="c1"># Request Units (RUs) measure the cost of database operations in Cosmos DB
+</span>    <span class="c1"># Tracking RU consumption helps optimize queries and estimate costs
+</span>    <span class="n">ru_charge</span> <span class="o">=</span> <span class="n">response</span><span class="p">.</span><span class="n">get_response_headers</span><span class="p">()[</span><span class="s">'x-ms-request-charge'</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">chunk_id</span><span class="p">,</span>
+        <span class="s">"document_id"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">,</span>
+        <span class="s">"ru_charge"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">ru_charge</span><span class="p">)</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN VECTOR SIMILARITY SEARCH FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數使用向量距離找出與查詢最相似的票證。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">vector_similarity_search</span><span class="p">(</span>
+    <span class="n">query_embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">top_n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""
+    Find documents most similar to the query using vector distance.
+
+    Uses the VectorDistance function to calculate cosine similarity between
+    the query embedding and document embeddings stored in Cosmos DB.
+    Results are ordered by similarity (lowest distance = most similar).
+    """</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># The VectorDistance function calculates the distance between two vectors
+</span>    <span class="c1"># Using cosine distance: 0 = identical, 2 = opposite
+</span>    <span class="c1"># We order by distance ascending so most similar results come first
+</span>    <span class="c1"># The @queryVector parameter contains our 256-dimensional query embedding
+</span>    <span class="n">query</span> <span class="o">=</span> <span class="s">"""
+        SELECT TOP @topN
+            c.id,
+            c.documentId,
+            c.content,
+            c.metadata,
+            VectorDistance(c.embedding, @queryVector) AS similarityScore
+        FROM c
+        ORDER BY VectorDistance(c.embedding, @queryVector)
+    """</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">query_items</span><span class="p">(</span>
+        <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@topN"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">top_n</span><span class="p">},</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@queryVector"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">query_embedding</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="n">enable_cross_partition_query</span><span class="o">=</span><span class="bp">True</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"document_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"documentId"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"similarity_score"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"similarityScore"</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN FILTERED VECTOR SEARCH FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此功能將向量相似度搜尋與 metadata 混合查詢的過濾。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">filtered_vector_search</span><span class="p">(</span>
+    <span class="n">query_embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="n">top_n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""
+    Combine vector similarity search with metadata filtering.
+
+    This hybrid approach first filters documents by category (or other metadata),
+    then ranks the filtered results by vector similarity. This is useful for
+    narrowing results to a specific domain before applying semantic search.
+    """</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># Build WHERE clause for metadata filtering
+</span>    <span class="c1"># The filter is applied BEFORE vector ranking, reducing the search space
+</span>    <span class="n">where_clause</span> <span class="o">=</span> <span class="s">""</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@topN"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">top_n</span><span class="p">},</span>
+        <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@queryVector"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">query_embedding</span><span class="p">}</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">category</span><span class="p">:</span>
+        <span class="n">where_clause</span> <span class="o">=</span> <span class="s">"WHERE c.metadata.category = @category"</span>
+        <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@category"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">category</span><span class="p">})</span>
+
+    <span class="c1"># Filtered vector search: apply metadata filter, then rank by similarity
+</span>    <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s">"""
+        SELECT TOP @topN
+            c.id,
+            c.documentId,
+            c.content,
+            c.metadata,
+            VectorDistance(c.embedding, @queryVector) AS similarityScore
+        FROM c
+        </span><span class="si">{</span><span class="n">where_clause</span><span class="si">}</span><span class="s">
+        ORDER BY VectorDistance(c.embedding, @queryVector)
+    """</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">query_items</span><span class="p">(</span>
+        <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">enable_cross_partition_query</span><span class="o">=</span><span class="bp">True</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"document_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"documentId"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"similarity_score"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"similarityScore"</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>將您的變更儲存到 <em>vector_functions.py</em> file.</p>
+</li>
+<li>
+<p>花幾分鐘時間查看文件中的所有程式碼。</p>
+</li>
+</ol>
+<h3 id="review-the-setup-container-code">查看設定容器代碼</h3>
+<p>在本節中，您將回顧 <em>setup_container.py</em> 用於創建 Cosmos 的腳本 DB 具有向量嵌入和索引策略的容器。部署腳本已經使用這些策略建立了容器，但是查看程式碼可以幫助您了解設定。</p>
+<ol>
+<li>
+<p>打開 <em>client/setup_container.py</em> 文件輸入 VS Code.</p>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN CREATE VECTOR CONTAINER FUNCTION</strong> 評論並審查程式碼。請注意兩個關鍵的策略設定：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">create_vector_container</span><span class="p">():</span>
+    <span class="s">"""
+    Create a container with vector embedding and indexing policies.
+    """</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">get_database</span><span class="p">()</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"COSMOS_CONTAINER"</span><span class="p">,</span> <span class="s">"vectors"</span><span class="p">)</span>
+
+    <span class="c1"># Define the vector embedding policy
+</span>    <span class="c1"># This tells Cosmos DB how to handle vector data at the /embedding path
+</span>    <span class="n">vector_embedding_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"vectorEmbeddings"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"dataType"</span><span class="p">:</span> <span class="s">"float32"</span><span class="p">,</span>
+                <span class="s">"distanceFunction"</span><span class="p">:</span> <span class="s">"cosine"</span><span class="p">,</span>
+                <span class="s">"dimensions"</span><span class="p">:</span> <span class="mi">256</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Define the indexing policy with vector index
+</span>    <span class="c1"># - DiskANN provides efficient approximate nearest neighbor search
+</span>    <span class="c1"># - Exclude /embedding/* from standard indexing (vectors use their own index)
+</span>    <span class="n">indexing_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"indexingMode"</span><span class="p">:</span> <span class="s">"consistent"</span><span class="p">,</span>
+        <span class="s">"automatic"</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+        <span class="s">"includedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"excludedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"vectorIndexes"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"diskANN"</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Create the container with vector policies
+</span>    <span class="c1"># partition_key determines how data is distributed across physical partitions
+</span>    <span class="n">container</span> <span class="o">=</span> <span class="n">database</span><span class="p">.</span><span class="n">create_container_if_not_exists</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="n">container_name</span><span class="p">,</span>
+        <span class="n">partition_key</span><span class="o">=</span><span class="n">PartitionKey</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s">"/documentId"</span><span class="p">),</span>
+        <span class="n">indexing_policy</span><span class="o">=</span><span class="n">indexing_policy</span><span class="p">,</span>
+        <span class="n">vector_embedding_policy</span><span class="o">=</span><span class="n">vector_embedding_policy</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">container</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>花點時間了解關鍵設定元素：</p>
+<table>
+<thead>
+<tr>
+<th>政策</th>
+<th>環境</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>vectorEmbeddings</strong></td>
+<td>路徑：/嵌入</td>
+<td>向量資料的儲存位置</td>
+</tr>
+<tr>
+<td><strong>vectorEmbeddings</strong></td>
+<td>尺寸：256</td>
+<td>必須與您的嵌入模型輸出相符</td>
+</tr>
+<tr>
+<td><strong>vectorEmbeddings</strong></td>
+<td>距離函數：餘弦</td>
+<td>相似度量 VectorDistance</td>
+</tr>
+<tr>
+<td><strong>vectorIndexes</strong></td>
+<td>類型： diskANN</td>
+<td>高效的近似最近鄰演算法</td>
+</tr>
+<tr>
+<td><strong>excludedPaths</strong></td>
+<td>/嵌入/*</td>
+<td>向量使用專門的索引，而不是標準的</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ol>
+<p>接下來，完成 Azure 資源部署。</p>
+<h2 id="complete-the-azure-resource-deployment">完成 Azure 資源部署</h2>
+<p>在本節中，您將返回部署腳本以建立容器、設定 Entra ID 存取並擷取連線資訊。</p>
+<ol>
+<li>
+<p>當 <strong>Create Cosmos DB account</strong> 操作有 completed， 輸入 <strong>2</strong> 啟動 <strong>Create container</strong> 選項。這將建立具有相似性搜尋所需的嵌入和索引策略的向量容器。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 啟動 <strong>Configure Entra ID access</strong> 選項。這將分配您的 user 帳戶 訪問 Cosmos 的必要角色 DB 資料平面。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 啟動 <strong>Check deployment status</strong> 選項。驗證宇宙 DB 帳戶 顯示為已啟用向量搜尋功能。</p>
+</li>
+<li>
+<p>輸入 <strong>5</strong> 啟動 <strong>Retrieve connection info</strong> 選項。這將建立一個包含必要環境變數的檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>6</strong> 結束部署腳本。</p>
+</li>
+<li>
+<p>執行以下命令將環境變數從上一個步驟建立的檔案載入到終端會話中。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 保持終端打開。如果關閉它並建立新終端，則可能需要執行命令來再次建立環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<p>接下來，您設定 Python 環境並運行應用程式。</p>
+<h2 id="set-up-the-python-environment">設定 Python 環境</h2>
+<p>在本節中，您將建立一個 Python 虛擬環境並安裝容器設定腳本和 Flask 應用。</p>
+<ol>
+<li>
+<p>運行以下命令導航到 <em>client</em> 目錄。</p>
+<pre><code>cd client
+</code></pre>
+</li>
+<li>
+<p>執行以下命令建立虛擬環境 Python 腳本。根據您的環境，命令可能是 <strong>python</strong> or <strong>python3</strong>.</p>
+<pre><code>python -m venv .venv
+</code></pre>
+</li>
+<li>
+<p>運行以下命令來激活 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，使用 Bash 命令。在 Windows 上，使用 PowerShell 命令。如果使用 Git Bash 在 Windows 上，使用 <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令來安裝 Python 依賴關係。這將安裝 <strong>flask</strong>, <strong>azure-cosmos</strong>， 和 <strong>azure-identity</strong> libraries.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-r</span> requirements.txt
+</code></pre></div></div>
+</li>
+</ol>
+<p>接下來，您使用以下命令測試向量搜尋功能 Flask 應用。</p>
+<h2 id="test-the-vector-search-functions-with-the-flask-app">使用以下指令測試向量搜尋功能 Flask 應用程式</h2>
+<p>在本節中，您將開始 Flask Web 應用程式並使用其介面來測試您建立的向量搜尋功能。該應用程式提供了一種可視化的方式來載入範例支援票證並執行向量相似性搜尋。</p>
+<ol>
+<li>
+<p>確保您仍在 <em>client</em> 激活虛擬環境的目錄。你應該看到 <strong>(.venv)</strong> 在你的終端機提示符中。</p>
+</li>
+<li>
+<p>執行以下命令來啟動 Flask 應用。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python app.py
+</code></pre></div></div>
+</li>
+<li>
+<p>打開瀏覽器並導航至 <code>http://127.0.0.1:5000</code> 查看應用程式。</p>
+</li>
+</ol>
+<h3 id="load-sample-data">載入範例資料</h3>
+<p>在本部分中，您將使用該應用程式載入帶有預先計算的範例支援票證 embeddings 輸入宇宙 DB 容器。範例資料包括 12 個不同類別的支援票證 (billing, technical, account, shipping），每个都有一个 256 维的嵌入向量。該應用程式調用 <strong>store_vector_document()</strong> 您建立的函數 <em>vector_functions.py</em>.</p>
+<ol>
+<li>
+<p>在 <strong>Load Sample Data</strong> 部分，選擇 <strong>Load Vector Data</strong>。這將插入帶有預先計算的票證 embeddings 從 <em>sample_vectors.json</em> file.</p>
+</li>
+<li>
+<p>驗證成功訊息是否出現在 <strong>Results</strong> 顯示載入的票數和總數的部分 RU (Request Unit） 收費。</p>
+</li>
+</ol>
+<h3 id="vector-similarity-search">向量相似度搜尋</h3>
+<p>在本節中，您將使用預先計算的查詢向量執行語意搜尋。該應用程式調用 <strong>vector_similarity_search()</strong> 您建立的函數 <em>vector_functions.py</em>.</p>
+<ol>
+<li>
+<p>在 <strong>Vector Similarity Search</strong> 部分，選擇 <strong>I can't login to my account</strong> 從 <strong>Select Query</strong> dropdown.</p>
+</li>
+<li>
+<p>保持預設即可 <strong>Top 5</strong> 結果並選擇 <strong>Search</strong>.</p>
+</li>
+<li>
+<p>查看顯示按相似性得分排名的票證的結果。請注意，有關身份驗證和 帳戶 訪問首先出現，即使它們可能使用與查詢不同的術語。</p>
+</li>
+<li>
+<p>嘗試選擇不同的查詢，例如 <strong>My payment was charged twice</strong> or <strong>Package hasn't arrived yet</strong> 查看語意搜尋如何找到相關支援案例。</p>
+</li>
+</ol>
+<h3 id="filtered-vector-search">過濾向量搜尋</h3>
+<p>在本節中，您將結合 metadata 使用向量相似度排序進行篩選。該應用程式調用 <strong>filtered_vector_search()</strong> 您建立的函數 <em>vector_functions.py</em>。您会观察过滤如何将结果缩小到特定类别。</p>
+<ol>
+<li>
+<p>在 <strong>Filtered Vector Search</strong> 部分，選擇 <strong>I can't login to my account</strong> 從 <strong>Select Query</strong> dropdown.</p>
+</li>
+<li>
+<p>選擇 <strong>technical</strong> 從 <strong>Filter by Category</strong> dropdown.</p>
+</li>
+<li>
+<p>選擇 <strong>Search with Filter</strong> 執行過濾後的搜尋。</p>
+</li>
+<li>
+<p>查看結果。請注意，只有帶有 <strong>technical</strong> 傳回類別，並依與查詢的相似度進行排名。</p>
+</li>
+<li>
+<p>嘗試使用相同的查詢 <strong>account</strong> 類別以查看在語義上仍然相關但僅限於的不同結果 account相關問題。</p>
+</li>
+<li>
+<p>返回終端並按 <strong>Ctrl+C</strong> 停止 Flask 應用。</p>
+</li>
+</ol>
+<h2 id="summary">摘要</h2>
+<p>在本練習中，您使用以下方法實現了向量相似度搜索 Azure Cosmos DB for NoSQL。您部署了一個 Azure Cosmos DB 帳戶 與 <strong>EnableNoSQLVectorSearch</strong> 能力和設定 Entra ID 驗證。您使用以下命令建立了一个容器 Python SDK 具有向量嵌入和索引策略，使 <strong>VectorDistance</strong> 功能。你建造了 Python 儲存支援票證的功能 embeddings，執行向量相似度搜索，並將向量搜索與 metadata 過濾器。您使用以下命令測試了工作流程 Flask Web 應用程式。此模式使應用程式能夠對支援資料執行語義搜索，根據含義而不是精確的關鍵字來匹配查找類似的票證。</p>
+<h2 id="clean-up-resources">清理資源</h2>
+<p>現在您已完成練習，您應該刪除您建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在中運行以下命令 VS Code 終端刪除資源組以及該組中的所有資源。代替 <strong>&lt;rg-name&gt;</strong> 使用您之前在練習中選擇的名稱。該命令將在 Azure 中啟動背景任務以刪除資源組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre>
+</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源組會刪除其中包含的所有資源。如果您為此練習選擇了現有資源組，則本練習範圍之外的任何現有資源也將被刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在此練習中遇到問題，請嘗試以下步驟：</p>
+<p><strong>Flask app fails to start</strong></p>
+<ul>
+<li>確保 Python 虛擬環境已啟動（您應該看到 <strong>(.venv)</strong> 在你的終端機提示中）</li>
+<li>確保安裝了依賴項： <strong>pip install -r requirements.txt</strong>
+</li>
+<li>確保透過運行載入環境變量 <strong>source .env</strong> (Bash） 或者 <strong>. ..env.ps1</strong> (PowerShell)</li>
+<li>確保您在 <em>client</em> 運行時目錄 <strong>python app.py</strong>
+</li>
+</ul>
+<p><strong>Authentication or access denied errors</strong></p>
+<ul>
+<li>確保 Entra ID 透過執行部署腳本選項設定存取權限 <strong>3</strong>
+</li>
+<li>驗證您的 user 兩者都有 <strong>Contributor</strong> 角色和 <strong>Cosmos DB Built-in Data Contributor</strong> 角色</li>
+<li>確保 <strong>COSMOS_ENDPOINT</strong> 在您的終端會話中設定正確</li>
+</ul>
+<p><strong>Vector search returns no results or errors</strong></p>
+<ul>
+<li>驗證向量容器是透過執行部署腳本選項建立的 <strong>2</strong>
+</li>
+<li>確保容器已設定向量嵌入策略（使用部署腳本選項檢查狀態 <strong>4</strong>)</li>
+<li>在運行搜尋之前驗證樣本票證是否已加載</li>
+</ul>
+<p><strong>setup_container.py fails</strong></p>
+<ul>
+<li>確保 Python 虛擬環境已激活</li>
+<li>確保環境變數已設定（<strong>COSMOS_ENDPOINT</strong>, <strong>COSMOS_DATABASE</strong>, <strong>COSMOS_CONTAINER</strong>)</li>
+<li>如果容器已存在，腳本將使用現有容器</li>
+</ul>
+<p><strong>Cosmos DB operations fail</strong></p>
+<ul>
+<li>驗證宇宙 DB 帳戶 透過執行部署腳本選項已準備就緒 <strong>4</strong>
+</li>
+<li>確保資料庫是在部署期間建立的</li>
+<li>檢查是否 帳戶 有 <strong>EnableNoSQLVectorSearch</strong> 能力</li>
+</ul>
+<p><strong>Environment variable issues</strong></p>
+<ul>
+<li>確保 <em>.env</em> 文件是透過運行部署腳本選項創建的 <strong>5</strong>
+</li>
+<li>跑步 <strong>source .env</strong> (Bash） 或者 <strong>. ..env.ps1</strong> (PowerShell）建立新終端後</li>
+<li>透過運行驗證變數是否已設定 <strong>echo $COSMOS_ENDPOINT</strong> (Bash） 或者 <strong>$env:COSMOS_ENDPOINT</strong> (PowerShell)</li>
+</ul>
+<p><strong>Python venv activation issues</strong></p>
+<ul>
+<li>在 Linux/macOS 上，使用： <strong>source .venv/bin/activate</strong>
+</li>
+<li>在 Windows 上 PowerShell， 使用： <strong>..venv\Scripts\Activate.ps1</strong>
+</li>
+<li>如果 <strong>activate</strong> 腳本遺失，重新安裝 <strong>python3-venv</strong> 打包並重新建立 venv</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 微軟| 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">隱私權 </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">消費者健康隱私權 </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">使用條款 </a> | 
+                  <a href="https://www.microsoft.com/trademarks">商標 </a> | 
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    原始碼
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

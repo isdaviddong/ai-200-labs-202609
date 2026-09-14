@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        使用 ACR Tasks 建置並執行容器映像 |
+        
+        在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="build-and-run-a-container-image-with-acr-tasks">使用 ACR Tasks 建置並執行容器映像</h1>
+<p>在本練習中，您會使用 Azure Container Registry (ACR) Tasks 完全在雲端建置及管理容器映像，而不需要在本機安裝 Docker。</p>
+<p>本練習中將完成下列工作：</p>
+<ul>
+<li>下載專案起始檔</li>
+<li>部署 Azure Container Registry</li>
+<li>使用 ACR Tasks 建置並驗證容器映像</li>
+<li>管理映像版本並保護正式環境映像</li>
+</ul>
+<p>本練習約需 <strong>30</strong> 分鐘完成。</p>
+<blockquote>
+<p><strong>重要：</strong> Azure Container Registry task runs 目前不支援 Azure 免費額度。本練習需要 Pay-As-You-Go 或其他付費方案。</p>
+</blockquote>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>具備部署所需 Azure 服務權限的 Azure 訂閱。如果您還沒有，可以 <a href="https://azure.microsoft.com/">註冊一個</a>。</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> ，可在下列其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台上執行</a>。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案起始檔並部署 Azure 服務</h2>
+<p>在本節中，您會下載專案起始檔，並使用指令碼將所需服務部署到 Azure 訂閱。Azure Container Registry 的部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載起始檔。檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/acr-tasks-python.zip
+</code></pre></li>
+<li>
+<p>將檔案複製或移動到您希望進行專案作業的系統位置，然後將其解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟 <em>azdeploy.py</em> 部署指令碼，並將指令碼頂端的兩個值修改為符合您的需求，然後儲存變更。 <strong>注意：</strong> 不要變更指令碼中的其他任何內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong> ，在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依照提示選取本練習要使用的 Azure 帳戶與訂閱。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令，以確保您的訂閱具有安裝 Azure Container Registry (ACR) 所需的資源提供者。</p>
+<pre><code>az provider register --namespace Microsoft.ContainerRegistry
+</code></pre></li>
+<li>
+<p>請確認您位於專案根目錄，並在終端機中執行下列命令以啟動部署指令碼。部署指令碼會部署 ACR，並建立本練習所需的環境變數檔案。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>執行對應命令，將環境變數載入目前的終端機工作階段。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 請保持終端機開啟。如果您將它關閉並建立新的終端機，可能需要再次執行命令來建立環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="build-the-image-with-acr-tasks">使用 ACR Tasks 建置映像</h2>
+<p>在本節中，您會使用快速工作在 Azure 中建置映像，而不需要本機安裝 Docker。 <strong>az acr build</strong> 命令會上傳您的原始檔，在雲端建置映像，並將其推送到您的登錄。</p>
+<ol>
+<li>
+<p>執行下列命令來建置映像並推送到您的登錄。整個建置程序都在 Azure 中完成，不需要本機安裝 Docker。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr build <span class="se">\</span>
+    <span class="nt">--registry</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--image</span> inference-api:v1.0.0 <span class="se">\</span>
+    ./api
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">build</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--registry</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--image</span><span class="w"> </span><span class="nx">inference-api:v1.0.0</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="o">.</span><span class="nx">/api</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>觀察 ACR Tasks 的輸出：</p>
+<ul>
+<li>封裝並將您的來源內容上傳到 Azure</li>
+<li>將建置工作排入佇列並啟動</li>
+<li>串流顯示 Docker 建置輸出中的每一層</li>
+<li>將完成的映像推送到您的登錄</li>
+<li>回報映像摘要與工作狀態</li>
+</ul>
+</li>
+</ol>
+<h2 id="verify-the-image-in-the-registry">驗證登錄中的映像</h2>
+<p>在本節中，您會透過列出存放庫與標籤來確認映像存在於您的登錄中。</p>
+<ol>
+<li>
+<p>執行下列命令以列出登錄中的所有存放庫。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr repository list <span class="nt">--name</span> <span class="nv">$ACR_NAME</span> <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">repository</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>輸出會顯示 <strong>inference-api</strong> 存放庫。</p>
+</li>
+<li>
+<p>執行下列命令以列出 <strong>inference-api</strong> 存放庫的標籤。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr repository show-tags <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--repository</span> inference-api <span class="se">\</span>
+    <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">repository</span><span class="w"> </span><span class="nx">show-tags</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--repository</span><span class="w"> </span><span class="nx">inference-api</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>輸出會顯示 <strong>v1.0.0</strong> 這個標籤是您在建置期間指定的。</p>
+</li>
+<li>
+<p>執行下列命令以檢視詳細的資訊清單資訊，包括摘要。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr manifest list-metadata <span class="se">\</span>
+    <span class="nt">--registry</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--name</span> inference-api <span class="se">\</span>
+    <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">manifest</span><span class="w"> </span><span class="nx">list-metadata</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--registry</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nx">inference-api</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>請記下摘要值。無論標籤為何，此 SHA-256 雜湊值都能唯一識別您的映像。</p>
+</li>
+</ol>
+<h2 id="run-the-image-with-acr-tasks">使用 ACR Tasks 執行映像</h2>
+<p>在本節中，您會使用 <strong>az acr run</strong> 命令在已建置的映像內執行命令，並驗證其可正常運作。</p>
+<ol>
+<li>
+<p>執行下列命令以驗證 Flask 應用程式可在容器中正確載入。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr run <span class="se">\</span>
+    <span class="nt">--registry</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--cmd</span> <span class="s2">"</span><span class="nv">$ACR_NAME</span><span class="s2">.azurecr.io/inference-api:v1.0.0 python -c 'from app import app'"</span> <span class="se">\</span>
+    /dev/null
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">run</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--registry</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--cmd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="s2">.azurecr.io/inference-api:v1.0.0 python -c 'from app import app'"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nx">/dev/null</span><span class="w">
+</span></code></pre></div></div>
+<p>輸出包含下載映像時的 Docker pull 進度。成功執行時會以 <strong>Run ID: xxx was successful after xxx</strong>。這表示容器可正確執行，且 Flask 應用程式可在沒有錯誤的情況下匯入。</p>
+</li>
+</ol>
+<h2 id="build-with-a-different-tag">使用不同標籤建置</h2>
+<p>在本節中，您會使用不同標籤建置映像的新版本，以了解登錄如何維護多個版本。</p>
+<ol>
+<li>
+<p>執行下列命令，使用新的版本標籤再次建置映像。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr build <span class="se">\</span>
+    <span class="nt">--registry</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--image</span> inference-api:v1.1.0 <span class="se">\</span>
+    ./api
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">build</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--registry</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--image</span><span class="w"> </span><span class="nx">inference-api:v1.1.0</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="o">.</span><span class="nx">/api</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以列出所有標籤並查看兩個版本。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr repository show-tags <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--repository</span> inference-api <span class="se">\</span>
+    <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">repository</span><span class="w"> </span><span class="nx">show-tags</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--repository</span><span class="w"> </span><span class="nx">inference-api</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>在輸出中， <strong>v1.0.0</strong> 以及 <strong>v1.1.0</strong> 都會出現，顯示登錄如何維護多個版本。</p>
+</li>
+</ol>
+<h2 id="view-build-history-and-lock-a-production-image">檢視建置歷程並鎖定正式環境映像</h2>
+<p>在本節中，您會檢閱 ACR 工作執行歷程，並鎖定映像以防止意外變更。</p>
+<ol>
+<li>
+<p>執行下列命令以檢閱 ACR 工作執行歷程，查看您已執行的所有建置。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr task list-runs <span class="se">\</span>
+    <span class="nt">--registry</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">task</span><span class="w"> </span><span class="nx">list-runs</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--registry</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>輸出會顯示每個建置工作的執行 ID、狀態、觸發類型與持續時間。這份歷程有助於您追蹤建置並診斷問題。</p>
+</li>
+<li>
+<p>執行下列命令以鎖定您的 v1.0.0 映像，防止意外刪除或修改。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr repository update <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--image</span> inference-api:v1.0.0 <span class="se">\</span>
+    <span class="nt">--write-enabled</span> <span class="nb">false</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">repository</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--image</span><span class="w"> </span><span class="nx">inference-api:v1.0.0</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--write-enabled</span><span class="w"> </span><span class="nx">false</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以驗證鎖定是否已生效。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az acr repository show <span class="se">\</span>
+    <span class="nt">--name</span> <span class="nv">$ACR_NAME</span> <span class="se">\</span>
+    <span class="nt">--image</span> inference-api:v1.0.0
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">acr</span><span class="w"> </span><span class="nx">repository</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--image</span><span class="w"> </span><span class="nx">inference-api:v1.0.0</span><span class="w">
+</span></code></pre></div></div>
+<p>欄位 <strong>writeEnabled</strong> 顯示 <strong>False</strong>，表示映像已受到保護。</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>完成本練習後，您應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及其中所有資源。將 <strong>&lt;rg-name&gt;</strong> 替換為您在本練習稍早選擇的名稱。此命令會在 Azure 中啟動背景工作來刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源群組會刪除其中包含的所有資源。如果您在本練習中選擇的是現有資源群組，則本練習範圍外的現有資源也會一併被刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>若您在完成本練習時遇到問題，請嘗試下列疑難排解步驟：</p>
+<p><strong>驗證 Azure 驗證與環境變數</strong></p>
+<ul>
+<li>執行 <strong>az account show</strong> 以確認您已登入正確的 Azure 訂閱。</li>
+<li>執行下列命令以確認環境變數已設定： <strong>echo $ACR_NAME</strong> （Bash）或 <strong>$env:ACR_NAME</strong> （PowerShell）。</li>
+<li>如果變數為空，請重新執行 <strong>source .env</strong> （Bash）或 <strong>. ..env.ps1</strong> （PowerShell）。</li>
+</ul>
+<p><strong>驗證 ACR 部署</strong></p>
+<ul>
+<li>前往 <a href="https://portal.azure.com">Azure portal</a> 並找到您的資源群組。</li>
+<li>確認 Azure Container Registry 存在，且 <strong>Provisioning State</strong> 為 <strong>Succeeded</strong>。</li>
+<li>執行 <strong>az acr list --output table</strong> 以確認您的登錄可供存取。</li>
+</ul>
+<p><strong>排解建置失敗</strong></p>
+<ul>
+<li>檢查建置輸出中的錯誤訊息；常見問題包括 Dockerfile 遺失或檔案路徑不正確。</li>
+<li>確認您是從專案根目錄執行命令（ <em>api</em> 資料夾所在的位置）。</li>
+<li>執行 <strong>az acr task list-runs --registry $ACR_NAME --output table</strong> 以查看最近建置的狀態。</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

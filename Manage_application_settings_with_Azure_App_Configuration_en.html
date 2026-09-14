@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Retrieve settings and secrets from Azure App Configuration |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="retrieve-settings-and-secrets-from-azure-app-configuration">Retrieve settings and secrets from Azure App Configuration</h1>
+<p>AI applications depend on both non-sensitive configuration such as model endpoints and batch sizes, and sensitive credentials such as API keys. Azure App Configuration provides a centralized store for managing these settings with label-based environment overrides, Key Vault references for secrets, and sentinel-based dynamic refresh so applications can pick up configuration changes without restarting.</p>
+<p>In this exercise, you deploy an Azure App Configuration store and Key Vault pre-loaded with sample settings and build a Python Flask web application that demonstrates core configuration management patterns using the Azure SDK. You load settings with label stacking and automatic Key Vault reference resolution, list all setting properties and metadata, and trigger a sentinel-based refresh to pick up changes dynamically.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Create an Azure App Configuration store and Key Vault with sample settings</li>
+<li>Add code to the starter files to complete the app</li>
+<li>Run the app to perform configuration operations</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-app-configuration">Download project starter files and deploy Azure App Configuration</h2>
+<p>In this section you download the starter files for the app and use a script to deploy an Azure App Configuration store and Key Vault with sample settings to your subscription.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/app-config-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers for the exercise.</p>
+<pre><code>az provider register --namespace Microsoft.AppConfiguration
+az provider register --namespace Microsoft.KeyVault
+</code></pre></li>
+<li>
+<p>Run the following command in the terminal to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script is running, enter <strong>1</strong> to launch the <strong>1. Create App Configuration</strong> option.</p>
+<p>This option creates the resource group if it doesn't already exist and deploys an Azure App Configuration store. App Configuration provides a centralized service for managing application settings separately from code.</p>
+</li>
+<li>
+<p>Enter <strong>2</strong> to run the <strong>2. Create Key Vault</strong> option. This creates an Azure Key Vault with RBAC authorization enabled. The Key Vault stores sensitive values such as API keys that App Configuration references securely.</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to run the <strong>3. Assign roles</strong> option. This assigns the App Configuration Data Owner role and the Key Vault Secrets Officer role to your account so you can read, create, and update settings and secrets using Microsoft Entra authentication.</p>
+</li>
+<li>
+<p>Enter <strong>4</strong> to run the <strong>4. Store settings</strong> option. This stores configuration settings in the App Configuration store including default (unlabeled) values and Production-labeled overrides for environment-specific settings. It also stores a secret in Key Vault and creates a Key Vault reference in App Configuration that points to the secret. Finally, it creates a sentinel key used for dynamic refresh.</p>
+</li>
+<li>
+<p>Enter <strong>5</strong> to run the <strong>5. Check deployment status</strong> option. Verify the App Configuration store and Key Vault both show <strong>Succeeded</strong>, the roles are assigned, and the settings are stored before continuing. If resources are still provisioning, wait a moment and try again.</p>
+</li>
+<li>
+<p>Enter <strong>6</strong> to run the <strong>6. Retrieve connection info</strong> option. This creates the environment variable file with the App Configuration endpoint URL needed by the app.</p>
+</li>
+<li>
+<p>Enter <strong>7</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the appropriate command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you need to run this command again to reload the environment variables.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-app">Complete the app</h2>
+<p>In this section you add code to the <em>appconfig_functions.py</em> file to complete the App Configuration management functions. The Flask app in <em>app.py</em> calls these functions and displays the results in the browser. You run the app later in the exercise.</p>
+<ol>
+<li>Open the <em>client/appconfig_functions.py</em> file to begin adding code.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> The code blocks you add to the application should align with the comment for that section of the code.</p>
+</blockquote>
+<h3 id="add-code-to-load-settings">Add code to load settings</h3>
+<p>In this section, you add code to load all configuration settings from the App Configuration store with label stacking and automatic Key Vault reference resolution. The function creates a provider that merges unlabeled default values with Production-labeled overrides and resolves Key Vault references transparently.</p>
+<p>The function calls <strong>load()</strong> with two <strong>SettingSelector</strong> entries: the first selects all unlabeled settings (using the null label filter <strong>\0</strong>), and the second selects all Production-labeled settings. Because the Production selector appears second, its values override the defaults for any matching keys. The <strong>AzureAppConfigurationKeyVaultOptions</strong> parameter tells the provider to resolve Key Vault references automatically using the same credential, so the application receives the actual secret value rather than a reference URI.</p>
+<blockquote>
+<p><strong>Tip:</strong> To maintain proper code indentation, paste the code flush with the left margin (column 1), select all of the pasted lines, and press <strong>Tab</strong> to align the block with the <strong>BEGIN / END</strong> markers. Press <strong>Shift+Tab</strong> to outdent if needed.</p>
+</blockquote>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN LOAD SETTINGS FUNCTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">load_settings</span><span class="p">():</span>
+    <span class="s">"""Load all settings with label stacking and Key Vault reference resolution."""</span>
+    <span class="n">provider</span> <span class="o">=</span> <span class="n">get_provider</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># The provider resolves Key Vault references automatically and
+</span>    <span class="c1"># applies label stacking: Production-labeled values override
+</span>    <span class="c1"># unlabeled defaults for matching keys
+</span>    <span class="n">known_keys</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s">"OpenAI:Endpoint"</span><span class="p">,</span>
+        <span class="s">"OpenAI:DeploymentName"</span><span class="p">,</span>
+        <span class="s">"OpenAI:ApiKey"</span><span class="p">,</span>
+        <span class="s">"Pipeline:BatchSize"</span><span class="p">,</span>
+        <span class="s">"Pipeline:RetryCount"</span><span class="p">,</span>
+        <span class="s">"Sentinel"</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">known_keys</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">provider</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">is_secret</span> <span class="o">=</span> <span class="n">key</span> <span class="o">==</span> <span class="s">"OpenAI:ApiKey"</span>
+            <span class="n">display_value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span> <span class="o">+</span> <span class="s">"..."</span> <span class="k">if</span> <span class="n">is_secret</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="k">else</span> <span class="n">value</span>
+            <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s">"key"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                <span class="s">"value"</span><span class="p">:</span> <span class="n">display_value</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"Key Vault reference"</span> <span class="k">if</span> <span class="n">is_secret</span> <span class="k">else</span> <span class="s">"configuration"</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"loaded"</span>
+            <span class="p">})</span>
+        <span class="k">except</span> <span class="nb">KeyError</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s">"key"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                <span class="s">"value"</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"unknown"</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"not found"</span>
+            <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Take a few minutes to review the code.</p>
+</li>
+</ol>
+<h3 id="add-code-to-list-setting-properties">Add code to list setting properties</h3>
+<p>In this section, you add code to list the properties of all settings in the App Configuration store. Unlike the <strong>load()</strong> function which merges labels and resolves Key Vault references, this function shows the raw storage view with every individual setting entry, including all labels and content types.</p>
+<p>The function calls <strong>list_configuration_settings()</strong> on the management client, which returns an iterable of setting objects with metadata such as key, label, content type, last modified timestamp, and read-only status. This is useful for inventory and audit operations where you need to see exactly what is stored, including the separate unlabeled and Production-labeled entries.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN LIST SETTINGS FUNCTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">list_setting_properties</span><span class="p">():</span>
+    <span class="s">"""List all setting properties from the App Configuration store."""</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># list_configuration_settings returns every setting in the store
+</span>    <span class="c1"># including all labels, showing the raw storage view rather than
+</span>    <span class="c1"># the merged view that load() provides
+</span>    <span class="k">for</span> <span class="n">setting</span> <span class="ow">in</span> <span class="n">client</span><span class="p">.</span><span class="n">list_configuration_settings</span><span class="p">():</span>
+        <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"key"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">key</span><span class="p">,</span>
+            <span class="s">"label"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">label</span> <span class="ow">or</span> <span class="s">"(no label)"</span><span class="p">,</span>
+            <span class="s">"content_type"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">content_type</span> <span class="ow">or</span> <span class="s">"—"</span><span class="p">,</span>
+            <span class="s">"last_modified"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">setting</span><span class="p">.</span><span class="n">last_modified</span><span class="p">)</span> <span class="k">if</span> <span class="n">setting</span><span class="p">.</span><span class="n">last_modified</span> <span class="k">else</span> <span class="s">"—"</span><span class="p">,</span>
+            <span class="s">"read_only"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">read_only</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes and take a few minutes to review the code.</p>
+</li>
+</ol>
+<h3 id="add-code-for-dynamic-refresh">Add code for dynamic refresh</h3>
+<p>In this section, you add code that demonstrates sentinel-based dynamic refresh. The function updates a setting and sets a new sentinel value, then calls <strong>refresh()</strong> on the provider to reload configuration without restarting the application.</p>
+<p>The function captures the current provider values, then uses the management client to update <strong>Pipeline:BatchSize</strong> with a new random value and set the <strong>Sentinel</strong> key to a new timestamp value. The sentinel acts as a change signal: the provider watches it, and when its value changes, a call to <strong>refresh()</strong> triggers a reload of all settings. The function waits briefly for the refresh interval to elapse, then calls <strong>refresh()</strong> and compares the before and after values to confirm the update propagated.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN REFRESH CONFIGURATION FUNCTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">refresh_configuration</span><span class="p">():</span>
+    <span class="s">"""Demonstrate sentinel-based dynamic refresh of configuration settings."""</span>
+    <span class="n">provider</span> <span class="o">=</span> <span class="n">get_provider</span><span class="p">()</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+
+    <span class="c1"># Capture current values before the change
+</span>    <span class="n">tracked_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s">"Pipeline:BatchSize"</span><span class="p">]</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tracked_keys</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">provider</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="nb">KeyError</span><span class="p">:</span>
+            <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s">"—"</span>
+
+    <span class="c1"># Update Pipeline:BatchSize with a new value to simulate a
+</span>    <span class="c1"># configuration change, then increment the Sentinel key to
+</span>    <span class="c1"># signal the provider that settings have changed
+</span>    <span class="kn">import</span> <span class="nn">random</span>
+    <span class="n">new_batch</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="p">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">999</span><span class="p">))</span>
+
+    <span class="n">setting</span> <span class="o">=</span> <span class="n">ConfigurationSetting</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="s">"Pipeline:BatchSize"</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">new_batch</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s">"Production"</span><span class="p">,</span>
+        <span class="n">content_type</span><span class="o">=</span><span class="s">"text/plain"</span>
+    <span class="p">)</span>
+    <span class="n">client</span><span class="p">.</span><span class="n">set_configuration_setting</span><span class="p">(</span><span class="n">setting</span><span class="p">)</span>
+
+    <span class="c1"># Update the Sentinel to signal the provider that settings have changed.
+</span>    <span class="c1"># Using a timestamp ensures the value is always different from whatever
+</span>    <span class="c1"># the provider has cached, even if settings were reset externally.
+</span>    <span class="n">new_sentinel</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()))</span>
+
+    <span class="n">sentinel_setting</span> <span class="o">=</span> <span class="n">ConfigurationSetting</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="s">"Sentinel"</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">new_sentinel</span>
+    <span class="p">)</span>
+    <span class="n">client</span><span class="p">.</span><span class="n">set_configuration_setting</span><span class="p">(</span><span class="n">sentinel_setting</span><span class="p">)</span>
+
+    <span class="c1"># Wait briefly for the refresh interval to elapse, then call
+</span>    <span class="c1"># refresh() to reload settings from the store
+</span>    <span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">provider</span><span class="p">.</span><span class="n">refresh</span><span class="p">()</span>
+
+    <span class="c1"># Capture values after the refresh
+</span>    <span class="n">after</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tracked_keys</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">provider</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="nb">KeyError</span><span class="p">:</span>
+            <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s">"—"</span>
+
+    <span class="n">settings</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tracked_keys</span><span class="p">:</span>
+        <span class="n">settings</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"key"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+            <span class="s">"before"</span><span class="p">:</span> <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">],</span>
+            <span class="s">"after"</span><span class="p">:</span> <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">],</span>
+            <span class="s">"changed"</span><span class="p">:</span> <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">!=</span> <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"settings"</span><span class="p">:</span> <span class="n">settings</span><span class="p">,</span>
+        <span class="s">"sentinel_value"</span><span class="p">:</span> <span class="n">new_sentinel</span><span class="p">,</span>
+        <span class="s">"new_batch_size"</span><span class="p">:</span> <span class="n">new_batch</span><span class="p">,</span>
+        <span class="s">"batch_size_updated"</span><span class="p">:</span> <span class="n">after</span><span class="p">[</span><span class="s">"Pipeline:BatchSize"</span><span class="p">]</span> <span class="o">==</span> <span class="n">new_batch</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes and take a few minutes to review the code.</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">Configure the Python environment</h2>
+<p>In this section, you navigate to the client app directory, create the Python environment, and install the dependencies.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to navigate to the <em>client</em> directory.</p>
+<pre><code>cd client
+</code></pre></li>
+<li>
+<p>Run the following command to create the Python environment.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to install the dependencies.</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h2 id="run-the-app">Run the app</h2>
+<p>In this section, you run the completed Flask application to perform various App Configuration management operations. The app provides a web interface that lets you load settings, list their properties, and test dynamic refresh.</p>
+<ol>
+<li>
+<p>Run the following command in the terminal to start the app. Refer to the commands from earlier in the exercise to activate the environment, if needed, before running the command. If you navigated away from the <em>client</em> directory, run <strong>cd client</strong> first.</p>
+<pre><code>python app.py
+</code></pre></li>
+<li>
+<p>Open a browser and navigate to <code>http://localhost:5000</code> to access the app.</p>
+</li>
+<li>
+<p>Select <strong>Load Settings</strong> in the left panel. This loads all configuration settings with label stacking and Key Vault reference resolution. The results show each setting's key, value, and type. Settings labeled as <strong>configuration</strong> are regular App Configuration values, while <strong>Key Vault reference</strong> indicates the value was resolved from a Key Vault secret.</p>
+</li>
+<li>
+<p>Select <strong>List Setting Properties</strong>. This lists every individual setting entry in the store, including both unlabeled defaults and Production-labeled overrides as separate rows. The results show each setting's key, label, content type, last modified timestamp, and read-only status. Notice that <strong>Pipeline:BatchSize</strong> appears twice: once with no label (value 10) and once with the <strong>Production</strong> label (value 200). The <strong>Load Settings</strong> results showed 200 because the Production-labeled override took precedence over the unlabeled default.</p>
+</li>
+<li>
+<p>Select <strong>Refresh Configuration</strong>. This demonstrates sentinel-based dynamic refresh. The function updates <strong>Pipeline:BatchSize</strong> with a new random value, sets the <strong>Sentinel</strong> key to a new timestamp, waits briefly, and then calls <strong>refresh()</strong> on the provider. The results show the before and after values for tracked settings, confirming that the provider picked up the change without restarting the application.</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Verify Azure App Configuration deployment</strong></p>
+<ul>
+<li>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your resource group.</li>
+<li>Confirm that the App Configuration store shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong>.</li>
+<li>Confirm that the Key Vault shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong> and has RBAC authorization enabled.</li>
+</ul>
+<p><strong>Check settings</strong></p>
+<ul>
+<li>Run the deployment script's <strong>Check deployment status</strong> option to verify the settings were stored successfully.</li>
+<li>If settings are missing, run the <strong>Store settings</strong> option again.</li>
+</ul>
+<p><strong>Check code completeness and indentation</strong></p>
+<ul>
+<li>Ensure all code blocks were added to the correct sections in <em>appconfig_functions.py</em> between the appropriate BEGIN/END comment markers.</li>
+<li>Verify that Python indentation is consistent (use spaces, not tabs) and that all code aligns properly within functions.</li>
+<li>Confirm that no code was accidentally removed or modified outside the designated sections.</li>
+</ul>
+<p><strong>Verify environment variables</strong></p>
+<ul>
+<li>Check that the <em>.env</em> file exists in the project root and contains the <strong>AZURE_APPCONFIG_ENDPOINT</strong> value.</li>
+<li>Ensure you ran <strong>source .env</strong> (Bash) or <strong>. ..env.ps1</strong> (PowerShell) to load environment variables into your terminal session.</li>
+<li>If variables are empty, re-run <strong>source .env</strong> (Bash) or <strong>. ..env.ps1</strong> (PowerShell).</li>
+</ul>
+<p><strong>Check authentication</strong></p>
+<ul>
+<li>Confirm you are logged in to Azure CLI by running <strong>az account show</strong>.</li>
+<li>Verify the App Configuration Data Owner and Key Vault Secrets Officer roles are assigned to your account by checking the role assignments in the Azure portal or running the deployment script's option to assign the roles again.</li>
+</ul>
+<p><strong>Check Python environment and dependencies</strong></p>
+<ul>
+<li>Confirm the virtual environment is activated before running the app.</li>
+<li>Verify that all packages from <em>requirements.txt</em> were installed successfully by running <strong>pip list</strong>.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

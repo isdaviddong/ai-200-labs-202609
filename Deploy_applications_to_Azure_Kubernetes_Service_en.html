@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Deploy an AI inference API to Azure Kubernetes Service |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="deploy-an-ai-inference-api-to-azure-kubernetes-service">Deploy an AI inference API to Azure Kubernetes Service</h1>
+<p>In this exercise, you deploy Azure resources including a Microsoft Foundry AI model, Azure Container Registry (ACR), and Azure Kubernetes Service (AKS) cluster. You then complete Kubernetes manifest files to define container specifications, health probes, resource limits, and load balancing. After deploying the containerized API to AKS, you use a Python client application to test the deployed API endpoints including health checks, readiness validation, and AI model inference requests.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Deploy resources to Azure</li>
+<li>Complete the <em>deployment.yaml</em> and <em>service.yaml</em> files and deploy the container to AKS</li>
+<li>Run the client app to test the API</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<blockquote>
+<p><strong>Important:</strong> Azure Container Registry task runs are temporarily paused from Azure free credits. This exercise requires a Pay-As-You-Go, or another paid plan.</p>
+</blockquote>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>The Kubernetes command-line tool, <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the starter files for the console app and use a script to deploy the necessary services to your Azure subscription. The Azure resource deployments can take 15-20 minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/aks-deploy-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the resource group and location values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">rg</span> <span class="o">=</span> <span class="s">"&lt;your-resource-group-name&gt;"</span>  <span class="c1"># Resource Group name
+</span><span class="n">location</span> <span class="o">=</span> <span class="s">"&lt;your-azure-region&gt;"</span>   <span class="c1"># Azure region for the resources
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> It is recommended to use one of the following three Azure regions for deployment: <strong>eastus2</strong>, <strong>swedencentral</strong>, or <strong>australiaeast</strong>. These regions support the deployment of the AI inference model used in the exercise.</p>
+</blockquote>
+</li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers to install AKS, ACR, and the Foundry AI model. The <strong>Microsoft.Compute</strong>, <strong>Microsoft.Network</strong>, and <strong>Microsoft.Storage</strong> providers are dependencies of AKS that Azure usually registers automatically, but explicitly registering them avoids occasional cluster creation failures on new subscriptions.</p>
+<pre><code>az provider register --namespace Microsoft.CognitiveServices
+az provider register --namespace Microsoft.ContainerService
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Storage
+</code></pre></li>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Depending on your system configuration, the Python command might be <strong>python3</strong> instead of <strong>python</strong>.</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="deploy-resources-to-azure">Deploy resources to Azure</h3>
+<p>With the deployment script running, follow these steps to create the needed resources in Azure.</p>
+<ol>
+<li>
+<p>Enter <strong>1</strong> to launch the <strong>1. Provision gpt-5-mini model in Microsoft Foundry</strong> option. This option creates the resource group if it doesn't already exist, creates the resource in MIcrosoft Foundry, and deploys the <strong>gpt-5-mini</strong> model to the resource.</p>
+<blockquote>
+<p><strong>Important:</strong> If there are errors during the model deployment, enter <strong>7</strong> to launch the <strong>7. Delete/Purge Foundry deployment</strong> option. This will delete the deployment and purge the resource name. Exit the menu, and change the region in the deployment script to one of the other recommended regions. Then restart the deployment script and run the model provisioning option again.</p>
+</blockquote>
+</li>
+<li>
+<p>After the model is deployed, enter <strong>2</strong> to launch <strong>2. Create Azure Container Registry (ACR)</strong>. This creates the resource where the API container will be stored, and later pulled into the AKS resource.</p>
+</li>
+<li>
+<p>After the ACR resource has been created, enter <strong>3</strong> to launch <strong>3. Build and push API image to ACR</strong>. This option uses ACR tasks to build the image and add it to the ACR repository. This operation can take 3-5 minutes to complete.</p>
+</li>
+<li>
+<p>After the image has been built and pushed to ACR, enter <strong>4</strong> to launch the <strong>4. Create AKS cluster</strong> option. This creates the AKS resource configured with a managed identity and gives the service permission to pull images from the ACR resource. This operation can take 5-10 minutes to complete.</p>
+</li>
+<li>
+<p>After the AKS resources have been deployed, enter <strong>5</strong> to launch the <strong>5. Check deployment status</strong> option. This option reports whether all three resources were successfully deployed.</p>
+<p>If all of the services return a <strong>successful</strong> message, enter <strong>9</strong> to exit the deployment script.</p>
+<p>If the AKS cluster is in a <strong>Failed</strong> or <strong>Canceled</strong> state, correct the reported issue, then enter <strong>8</strong> to launch the <strong>8. Delete failed AKS deployment</strong> option before running option <strong>4</strong> again. This guarded option does not delete a healthy or in-progress cluster.</p>
+</li>
+</ol>
+<p>Next, you complete the YAML files necessary to deploy the API to AKS.</p>
+<h2 id="complete-the-yaml-deployment-files-and-deploy-to-aks">Complete the YAML deployment files and deploy to AKS</h2>
+<p>In this section you complete both the <em>deployment.yaml</em> and <em>service.yaml</em> files. The deployment manifest defines how the API container is deployed and managed in AKS, while the service manifest exposes the API to external traffic through a load balancer.</p>
+<ol>
+<li>Open the <em>k8s/deployment.yaml</em> file to begin completing the file.</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> To maintain proper code indentation, paste the code flush with the left margin (column 1), select all of the pasted lines, and press <strong>Tab</strong> to align the block with the <strong>BEGIN / END</strong> markers. Press <strong>Shift+Tab</strong> to outdent if needed.</p>
+</blockquote>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN: Container specification</strong> comment and add the following YAML section to the manifest under the comment. Ensure YAML indentation is correct.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">containers</span><span class="pi">:</span>  <span class="c1"># List of containers to run in the pod</span>
+<span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">api</span>
+  <span class="na">image</span><span class="pi">:</span> <span class="s">ACR_ENDPOINT/aks-api:latest</span>  <span class="c1"># Container image from ACR</span>
+  <span class="na">imagePullPolicy</span><span class="pi">:</span> <span class="s">Always</span>  <span class="c1"># Always pull the latest image from registry</span>
+  <span class="na">ports</span><span class="pi">:</span>  <span class="c1"># Ports exposed by the container</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">http</span>
+    <span class="na">containerPort</span><span class="pi">:</span> <span class="m">8000</span>
+    <span class="na">protocol</span><span class="pi">:</span> <span class="s">TCP</span>
+</code></pre></div></div>
+<p>This section defines the container specification, including which container image to use from ACR, the pull policy, and which port the container exposes for HTTP traffic.</p>
+</li>
+<li>
+<p>Locate the <strong># BEGIN: Liveness Probe Configuration</strong> comment and add the following YAML section to the manifest under the comment. Ensure YAML indentation is correct.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">livenessProbe</span><span class="pi">:</span>  <span class="c1"># Detects if container is alive or needs restart</span>
+  <span class="na">httpGet</span><span class="pi">:</span>
+    <span class="na">path</span><span class="pi">:</span> <span class="s">/healthz</span>  <span class="c1"># Health check endpoint path</span>
+    <span class="na">port</span><span class="pi">:</span> <span class="s">http</span>
+  <span class="na">initialDelaySeconds</span><span class="pi">:</span> <span class="m">10</span>  <span class="c1"># Seconds to wait before first check</span>
+  <span class="na">periodSeconds</span><span class="pi">:</span> <span class="m">30</span>
+  <span class="na">timeoutSeconds</span><span class="pi">:</span> <span class="m">5</span>
+  <span class="na">failureThreshold</span><span class="pi">:</span> <span class="m">3</span>  <span class="c1"># Consecutive failures before restarting container</span>
+</code></pre></div></div>
+<p>This section configures the liveness probe, which periodically checks if the container is healthy by making HTTP requests to the <strong>/healthz</strong> endpoint. If the probe fails three consecutive times, Kubernetes automatically restarts the container.</p>
+</li>
+<li>
+<p>Locate the <strong># BEGIN: Resource Limits Configuration</strong> comment and add the following YAML section to the manifest under the comment. Ensure YAML indentation is correct.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">resources</span><span class="pi">:</span>  <span class="c1"># CPU and memory resource specifications</span>
+  <span class="na">requests</span><span class="pi">:</span>  <span class="c1"># Minimum resources guaranteed to the container</span>
+    <span class="na">memory</span><span class="pi">:</span> <span class="s2">"</span><span class="s">256Mi"</span>
+    <span class="na">cpu</span><span class="pi">:</span> <span class="s2">"</span><span class="s">250m"</span>
+  <span class="na">limits</span><span class="pi">:</span>  <span class="c1"># Maximum resources the container can use</span>
+    <span class="na">memory</span><span class="pi">:</span> <span class="s2">"</span><span class="s">512Mi"</span>
+    <span class="na">cpu</span><span class="pi">:</span> <span class="s2">"</span><span class="s">500m"</span>
+</code></pre></div></div>
+<p>This section defines the CPU and memory resources for the container. Requests specify the minimum resources guaranteed, while limits set the maximum resources the container can consume. This helps Kubernetes schedule pods efficiently and prevents resource starvation.</p>
+</li>
+<li>
+<p>Save your changes and take a few minutes to review the completed <em>deployment.yaml</em> file.</p>
+</li>
+</ol>
+<p>Next, you update the <em>service.yaml</em> file.</p>
+<ol>
+<li>
+<p>Open the empty <em>k8s/service.yaml</em> file.</p>
+</li>
+<li>
+<p>Add the following YAML to the manifest. Ensure YAML indentation is correct.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Service</span>  <span class="c1"># Service: exposes pods on a network and provides load balancing</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">aks-api-service</span>  <span class="c1"># Unique name for the service</span>
+  <span class="na">labels</span><span class="pi">:</span>
+    <span class="na">app</span><span class="pi">:</span> <span class="s">aks-api</span> <span class="c1"># Matches deployment and pod labels</span>
+  <span class="na">annotations</span><span class="pi">:</span>
+    <span class="na">service.beta.kubernetes.io/azure-load-balancer-internal</span><span class="pi">:</span> <span class="s2">"</span><span class="s">false"</span>  <span class="c1"># Use public load balancer</span>
+<span class="na">spec</span><span class="pi">:</span>  <span class="c1"># Service specification</span>
+  <span class="na">type</span><span class="pi">:</span> <span class="s">LoadBalancer</span>  <span class="c1"># Exposes service externally</span>
+  <span class="na">selector</span><span class="pi">:</span>  <span class="c1"># Selects which pods to route traffic to based on labels</span>
+    <span class="na">app</span><span class="pi">:</span> <span class="s">aks-api</span>
+    <span class="na">version</span><span class="pi">:</span> <span class="s">v1</span>
+  <span class="na">ports</span><span class="pi">:</span>  <span class="c1"># Port mappings between service and pods</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">http</span>
+    <span class="na">port</span><span class="pi">:</span> <span class="m">80</span>  <span class="c1"># Service port exposed externally</span>
+    <span class="na">targetPort</span><span class="pi">:</span> <span class="s">http</span>  <span class="c1"># Pod container port to forward traffic to</span>
+    <span class="na">protocol</span><span class="pi">:</span> <span class="s">TCP</span>
+  <span class="na">sessionAffinity</span><span class="pi">:</span> <span class="s">None</span>  <span class="c1"># Client requests not pinned to specific pods</span>
+</code></pre></div></div>
+<p>This manifest creates a LoadBalancer Service that exposes your API pods externally through an Azure Load Balancer. It routes incoming traffic on port 80 to the container's port 8000, using label selectors to identify which pods should receive traffic.</p>
+</li>
+<li>
+<p>Save your changes and take a few minutes to review the file.</p>
+</li>
+</ol>
+<h3 id="apply-the-manifests-to-aks">Apply the manifests to AKS</h3>
+<p>In this section you use the deployment script to apply the manifests to AKS.</p>
+<ol>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>Enter <strong>6</strong> to launch the <strong>6. Deploy to AKS</strong> option. This option performs several operations: it retrieves your AKS credentials and configures kubectl, assigns the <strong>Cognitive Services OpenAI User</strong> role to the AKS kubelet managed identity so the API can authenticate to Foundry using Microsoft Entra ID, updates the deployment manifest with your ACR endpoint and Foundry endpoint, and then uses <strong>kubectl apply</strong> to deploy both manifests to your AKS cluster. When the operation is complete, enter <strong>9</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the following commands in the terminal to verify the deployment. Expect <strong>kubectl get deploy,svc</strong> to show the Deployment <strong>READY</strong> as <strong>1/1</strong> (or your replica count) and the Service <strong>EXTERNAL-IP</strong> to have a public IP (not <strong>&lt;pending&gt;</strong>). The rollout command should print <strong>deployment &quot;aks-api&quot; successfully rolled out</strong> when the update is complete.</p>
+<pre><code>kubectl get deploy,svc
+kubectl rollout status deploy/aks-api
+</code></pre></li>
+</ol>
+<h2 id="run-the-client-app">Run the client app</h2>
+<p>In this section, you configure the Python environment and then perform operations on the API using the client app</p>
+<h3 id="configure-the-python-environment">Configure the Python environment</h3>
+<p>In this section, you create the Python environment and install the dependencies.</p>
+<ol>
+<li>
+<p>Ensure you are in the <em>client</em> folder of the project in the terminal.</p>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to create the Python environment.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to install the dependencies.</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h3 id="perform-operations-with-the-app">Perform operations with the app</h3>
+<p>Now it's time to run the client application to perform various operations on the API. The app provides a menu-driven interface.</p>
+<ol>
+<li>
+<p>Run the following command in the terminal to start the console app. Refer to the commands from earlier in the exercise to activate the environment, if needed, before running the command.</p>
+<pre><code>python main.py
+</code></pre></li>
+<li>
+<p>Enter <strong>1</strong> to start the <strong>1. Check API Health (Liveness)</strong> option. This verifies that the API container is running and responds to health checks, which is the same endpoint used by the Kubernetes liveness probe.</p>
+</li>
+<li>
+<p>Enter <strong>2</strong> to start the <strong>2. Check API Readiness (Foundry Connectivity)</strong> option. This confirms the API can successfully connect to the Foundry model endpoint and is ready to process inference requests.</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to start the <strong>3. Send Inference Request</strong> option. This sends a single prompt to the API and receives a complete response from the deployed model. Single inference requests are useful for batch processing, automated tasks, or when you need the entire response at once for further processing.</p>
+</li>
+<li>
+<p>Enter <strong>4</strong> to start the <strong>4. Start Chat Session (Streaming)</strong> option. This starts an interactive chat session where responses from the model are streamed in real-time as they're generated.</p>
+</li>
+</ol>
+<p>When you're finished enter <strong>5</strong> to exit the app.</p>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Verify Azure resource deployment</strong></p>
+<ul>
+<li>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your resource group.</li>
+<li>Confirm that the Microsoft Foundry resource shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong> and the <strong>gpt-5-mini</strong> model is deployed.</li>
+<li>Verify the Azure Container Registry (ACR) exists and contains the <strong>aks-api</strong> image.</li>
+<li>Check that the AKS cluster is in a <strong>Succeeded</strong> state and the nodes are running.</li>
+</ul>
+<p><strong>Resolve AKS cluster creation failures</strong></p>
+<ul>
+<li>Run the deployment script and select option <strong>5. Check deployment status</strong>. Quota validation can fail before an AKS resource is created, while failures later in provisioning can leave the cluster in a <strong>Failed</strong> or <strong>Canceled</strong> state.</li>
+<li>If the error reports that <strong>Standard_D2s_v7</strong> is unavailable or that the region has insufficient capacity, exit with option <strong>9</strong>. Change <strong>AKS_VM_SIZE</strong> to one of the v5 or v6 fallback sizes listed near the top of the deployment script, or change the <strong>location</strong> value to another recommended region, and then run option <strong>4. Create AKS cluster</strong> again.</li>
+<li>If the error reports insufficient quota, select a region where your subscription has available Dsv5-family quota or request a quota increase. Changing regions only helps when the other region has sufficient quota.</li>
+<li>The AKS cluster uses the <strong>location</strong> configured in the script even when the resource group already exists in another region.</li>
+<li>If option <strong>5</strong> reports <strong>Failed</strong> or <strong>Canceled</strong>, correct the underlying issue and run option <strong>8. Delete failed AKS deployment</strong> before retrying option <strong>4</strong>. If no AKS resource was created, no deletion is needed.</li>
+</ul>
+<p><strong>Verify AKS deployment status</strong></p>
+<ul>
+<li>Run <strong>kubectl get pods</strong> to check if the API pods are running. Look for <strong>Running</strong> status.</li>
+<li>Run <strong>kubectl get svc</strong> to verify the LoadBalancer service has an external IP assigned (not <strong>&lt;pending&gt;</strong>).</li>
+<li>Run <strong>kubectl describe pod &lt;pod-name&gt;</strong> to see detailed pod status and events if issues occur.</li>
+<li>Check pod logs with <strong>kubectl logs &lt;pod-name&gt;</strong> to see container startup errors or runtime issues.</li>
+</ul>
+<p><strong>Verify YAML file completeness</strong></p>
+<ul>
+<li>Ensure all YAML sections were added correctly to <em>deployment.yaml</em> and <em>service.yaml</em> between the appropriate comment markers.</li>
+<li>Verify YAML indentation is correct (use spaces, not tabs) as incorrect indentation will cause deployment failures.</li>
+<li>Confirm the ACR endpoint was properly substituted in the deployment manifest by the deployment script.</li>
+</ul>
+<p><strong>Verify client connectivity</strong></p>
+<ul>
+<li>Ensure the API endpoint uses the correct external IP from the LoadBalancer service.</li>
+<li>Verify you can reach the API endpoint by running <strong>curl http://&lt;external-ip&gt;/healthz</strong> from the terminal.</li>
+</ul>
+<p><strong>Check Python environment and dependencies</strong></p>
+<ul>
+<li>Confirm the virtual environment is activated before running the client app.</li>
+<li>Verify that all packages from <em>requirements.txt</em> were installed successfully by running <strong>pip list</strong>.</li>
+<li>Ensure you're running the client from the <em>client</em> directory.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

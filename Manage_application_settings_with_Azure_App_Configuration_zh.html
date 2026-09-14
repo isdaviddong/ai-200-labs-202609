@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        從 Azure App Configuration 擷取設定與秘密 |
+        
+        在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;首頁
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="retrieve-settings-and-secrets-from-azure-app-configuration">從 Azure App Configuration 擷取設定與秘密</h1>
+<p>AI 應用程式同時依賴非敏感設定（例如模型端點與批次大小）以及敏感認證（例如 API 金鑰）。Azure App Configuration 提供集中式儲存區來管理這些設定，支援以標籤為基礎的環境覆寫、用於秘密的 Key Vault 參考，以及以 Sentinel 為基礎的動態重新整理，讓應用程式無需重新啟動即可取得設定變更。</p>
+<p>在本練習中，您將部署一個預先載入範例設定的 Azure App Configuration 儲存區與 Key Vault，並建置一個使用 Azure SDK 展示核心設定管理模式的 Python Flask Web 應用程式。您會使用標籤堆疊與自動 Key Vault 參考解析來載入設定、列出所有設定屬性與中繼資料，並觸發以 Sentinel 為基礎的重新整理，以動態取得變更。</p>
+<p>本練習將執行的工作：</p>
+<ul>
+<li>下載專案起始檔</li>
+<li>建立含有範例設定的 Azure App Configuration 儲存區與 Key Vault</li>
+<li>在起始檔中加入程式碼以完成應用程式</li>
+<li>執行應用程式以進行設定作業</li>
+</ul>
+<p>本練習大約需要 <strong>30</strong> 分鐘完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>Azure 訂用帳戶。如果您還沒有，可以 <a href="https://azure.microsoft.com/">註冊一個</a>。</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> 安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援平台</a>。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-app-configuration">下載專案起始檔並部署 Azure App Configuration</h2>
+<p>在本節中，您將下載應用程式的起始檔，並使用指令碼將包含範例設定的 Azure App Configuration 儲存區與 Key Vault 部署到您的訂用帳戶。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載起始檔。檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/app-config-python.zip
+</code></pre></li>
+<li>
+<p>將檔案複製或移動到您系統中要進行專案作業的位置，然後將檔案解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，然後在功能表中選取 <strong>File &gt; Open Folder...</strong>，接著選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟 <em>azdeploy.py</em> 部署指令碼，修改指令碼頂端的兩個值以符合您的需求，然後儲存變更。<strong>注意：</strong> 請勿變更指令碼中的其他任何內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong>，以在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依照提示選取本練習要使用的 Azure 帳戶與訂用帳戶。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令，確認您的訂用帳戶具有本練習所需的資源提供者。</p>
+<pre><code>az provider register --namespace Microsoft.AppConfiguration
+az provider register --namespace Microsoft.KeyVault
+</code></pre></li>
+<li>
+<p>在終端機中執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>當指令碼執行時，輸入 <strong>1</strong> 以啟動 <strong>1. Create App Configuration</strong> 選項。</p>
+<p>此選項會在資源群組尚不存在時建立它，並部署 Azure App Configuration 儲存區。App Configuration 提供集中式服務，讓您可將應用程式設定與程式碼分開管理。</p>
+</li>
+<li>
+<p>輸入 <strong>2</strong> 以執行 <strong>2. Create Key Vault</strong> 選項。這會建立已啟用 RBAC 授權的 Azure Key Vault。Key Vault 會安全地儲存 App Configuration 參考的敏感值，例如 API 金鑰。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 以執行 <strong>3. Assign roles</strong> 選項。這會將 App Configuration Data Owner 角色與 Key Vault Secrets Officer 角色指派給您的帳戶，讓您可以使用 Microsoft Entra 驗證來讀取、建立及更新設定與秘密。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 以執行 <strong>4. Store settings</strong> 選項。這會在 App Configuration 儲存區中儲存組態設定，包括預設（未加標籤）值，以及用於特定環境設定的 Production 標籤覆寫值。它也會在 Key Vault 中儲存一個秘密，並在 App Configuration 中建立指向該秘密的 Key Vault 參考。最後，它會建立一個用於動態重新整理的 Sentinel 索引鍵。</p>
+</li>
+<li>
+<p>輸入 <strong>5</strong> 以執行 <strong>5. Check deployment status</strong> 選項。確認 App Configuration 儲存區與 Key Vault 都顯示為 <strong>Succeeded</strong>、角色已指派，且設定已儲存後再繼續。如果資源仍在佈建中，請稍候再試。</p>
+</li>
+<li>
+<p>輸入 <strong>6</strong> 以執行 <strong>6. Retrieve connection info</strong> 選項。這會建立應用程式所需、包含 App Configuration 端點 URL 的環境變數檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>7</strong> 以結束部署指令碼。</p>
+</li>
+<li>
+<p>執行適當的命令，將前一步建立的檔案中的環境變數載入到您的終端機工作階段中。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 請保持終端機開啟。如果您將其關閉並建立新的終端機，則需要再次執行此命令以重新載入環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-app">完成應用程式</h2>
+<p>在本節中，您將在 <em>appconfig_functions.py</em> 檔案中加入程式碼，以完成 App Configuration 管理功能。<em>app.py</em> 中的 Flask 應用程式會呼叫這些函式，並在瀏覽器中顯示結果。您會在後續步驟中執行此應用程式。</p>
+<ol>
+<li>開啟 <em>client/appconfig_functions.py</em> 檔案，開始加入程式碼。</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 您加入應用程式的程式碼區塊應與該程式碼區段的註解相對應。</p>
+</blockquote>
+<h3 id="add-code-to-load-settings">加入載入設定的程式碼</h3>
+<p>在本節中，您將加入程式碼，以使用標籤堆疊與自動 Key Vault 參考解析，從 App Configuration 儲存區載入所有組態設定。此函式會建立一個提供者，將未加標籤的預設值與 Production 標籤覆寫值合併，並以透明方式解析 Key Vault 參考。</p>
+<p>此函式會使用兩個 <strong>SettingSelector</strong> 項目呼叫 <strong>load()</strong>：第一個項目會選取所有未加標籤的設定（使用 null 標籤篩選器 <strong>\0</strong>），第二個項目則會選取所有具有 Production 標籤的設定。由於 Production 選取器位於第二個，其值會覆寫任何相符索引鍵的預設值。<strong>AzureAppConfigurationKeyVaultOptions</strong> 參數會指示提供者使用相同的認證自動解析 Key Vault 參考，讓應用程式取得實際的秘密值，而非參考 URI。</p>
+<blockquote>
+<p><strong>提示：</strong> 為維持正確的程式碼縮排，請從最左邊界（第 1 欄）貼上程式碼，選取所有貼上的行，然後按 <strong>Tab</strong> 鍵，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 鍵減少縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>找出 <strong># BEGIN LOAD SETTINGS FUNCTION</strong> 註解，並在該註解下方加入下列程式碼。請務必確認程式碼對齊正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">load_settings</span><span class="p">():</span>
+    <span class="s">"""Load all settings with label stacking and Key Vault reference resolution."""</span>
+    <span class="n">provider</span> <span class="o">=</span> <span class="n">get_provider</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># The provider resolves Key Vault references automatically and
+</span>    <span class="c1"># applies label stacking: Production-labeled values override
+</span>    <span class="c1"># unlabeled defaults for matching keys
+</span>    <span class="n">known_keys</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s">"OpenAI:Endpoint"</span><span class="p">,</span>
+        <span class="s">"OpenAI:DeploymentName"</span><span class="p">,</span>
+        <span class="s">"OpenAI:ApiKey"</span><span class="p">,</span>
+        <span class="s">"Pipeline:BatchSize"</span><span class="p">,</span>
+        <span class="s">"Pipeline:RetryCount"</span><span class="p">,</span>
+        <span class="s">"Sentinel"</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">known_keys</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">provider</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">is_secret</span> <span class="o">=</span> <span class="n">key</span> <span class="o">==</span> <span class="s">"OpenAI:ApiKey"</span>
+            <span class="n">display_value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span> <span class="o">+</span> <span class="s">"..."</span> <span class="k">if</span> <span class="n">is_secret</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="k">else</span> <span class="n">value</span>
+            <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s">"key"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                <span class="s">"value"</span><span class="p">:</span> <span class="n">display_value</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"Key Vault reference"</span> <span class="k">if</span> <span class="n">is_secret</span> <span class="k">else</span> <span class="s">"configuration"</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"loaded"</span>
+            <span class="p">})</span>
+        <span class="k">except</span> <span class="nb">KeyError</span><span class="p">:</span>
+            <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s">"key"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                <span class="s">"value"</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"unknown"</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"not found"</span>
+            <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>花幾分鐘檢視這段程式碼。</p>
+</li>
+</ol>
+<h3 id="add-code-to-list-setting-properties">加入列出設定屬性的程式碼</h3>
+<p>在本節中，您將加入程式碼來列出 App Configuration 儲存區中所有設定的屬性。不同於會合併標籤並解析 Key Vault 參考的 <strong>load()</strong> 函式，此函式會顯示原始儲存檢視，其中包含每一筆個別設定項目，以及所有標籤與內容類型。</p>
+<p>此函式會在管理用戶端上呼叫 <strong>list_configuration_settings()</strong>，傳回可迭代的設定物件，其中包含索引鍵、標籤、內容類型、上次修改時間戳記與唯讀狀態等中繼資料。這對於需要精確查看儲存內容的盤點與稽核作業很有幫助，包括分開的未加標籤項目與加上 Production 標籤的項目。</p>
+<ol>
+<li>
+<p>找出 <strong># BEGIN LIST SETTINGS FUNCTION</strong> 註解，並在該註解下方加入下列程式碼。請務必確認程式碼對齊正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">list_setting_properties</span><span class="p">():</span>
+    <span class="s">"""List all setting properties from the App Configuration store."""</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># list_configuration_settings returns every setting in the store
+</span>    <span class="c1"># including all labels, showing the raw storage view rather than
+</span>    <span class="c1"># the merged view that load() provides
+</span>    <span class="k">for</span> <span class="n">setting</span> <span class="ow">in</span> <span class="n">client</span><span class="p">.</span><span class="n">list_configuration_settings</span><span class="p">():</span>
+        <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"key"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">key</span><span class="p">,</span>
+            <span class="s">"label"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">label</span> <span class="ow">or</span> <span class="s">"(no label)"</span><span class="p">,</span>
+            <span class="s">"content_type"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">content_type</span> <span class="ow">or</span> <span class="s">"—"</span><span class="p">,</span>
+            <span class="s">"last_modified"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">setting</span><span class="p">.</span><span class="n">last_modified</span><span class="p">)</span> <span class="k">if</span> <span class="n">setting</span><span class="p">.</span><span class="n">last_modified</span> <span class="k">else</span> <span class="s">"—"</span><span class="p">,</span>
+            <span class="s">"read_only"</span><span class="p">:</span> <span class="n">setting</span><span class="p">.</span><span class="n">read_only</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存您的變更，並花幾分鐘檢視程式碼。</p>
+</li>
+</ol>
+<h3 id="add-code-for-dynamic-refresh">加入動態重新整理的程式碼</h3>
+<p>在本節中，您將加入示範以 Sentinel 為基礎動態重新整理的程式碼。此函式會更新一項設定並設定新的 Sentinel 值，然後在提供者上呼叫 <strong>refresh()</strong>，以在不重新啟動應用程式的情況下重新載入設定。</p>
+<p>此函式會先擷取目前提供者的值，接著使用管理用戶端以新的隨機值更新 <strong>Pipeline:BatchSize</strong>，並將 <strong>Sentinel</strong> 索引鍵設為新的時間戳記值。Sentinel 會作為變更訊號：提供者會監看它，當其值改變時，呼叫 <strong>refresh()</strong> 就會觸發所有設定的重新載入。此函式會短暫等待重新整理間隔過去，然後呼叫 <strong>refresh()</strong>，並比較前後值以確認更新已傳播。</p>
+<ol>
+<li>
+<p>找出 <strong># BEGIN REFRESH CONFIGURATION FUNCTION</strong> 註解，並在該註解下方加入下列程式碼。請務必確認程式碼對齊正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">refresh_configuration</span><span class="p">():</span>
+    <span class="s">"""Demonstrate sentinel-based dynamic refresh of configuration settings."""</span>
+    <span class="n">provider</span> <span class="o">=</span> <span class="n">get_provider</span><span class="p">()</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+
+    <span class="c1"># Capture current values before the change
+</span>    <span class="n">tracked_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s">"Pipeline:BatchSize"</span><span class="p">]</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tracked_keys</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">provider</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="nb">KeyError</span><span class="p">:</span>
+            <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s">"—"</span>
+
+    <span class="c1"># Update Pipeline:BatchSize with a new value to simulate a
+</span>    <span class="c1"># configuration change, then increment the Sentinel key to
+</span>    <span class="c1"># signal the provider that settings have changed
+</span>    <span class="kn">import</span> <span class="nn">random</span>
+    <span class="n">new_batch</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="p">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">999</span><span class="p">))</span>
+
+    <span class="n">setting</span> <span class="o">=</span> <span class="n">ConfigurationSetting</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="s">"Pipeline:BatchSize"</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">new_batch</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s">"Production"</span><span class="p">,</span>
+        <span class="n">content_type</span><span class="o">=</span><span class="s">"text/plain"</span>
+    <span class="p">)</span>
+    <span class="n">client</span><span class="p">.</span><span class="n">set_configuration_setting</span><span class="p">(</span><span class="n">setting</span><span class="p">)</span>
+
+    <span class="c1"># Update the Sentinel to signal the provider that settings have changed.
+</span>    <span class="c1"># Using a timestamp ensures the value is always different from whatever
+</span>    <span class="c1"># the provider has cached, even if settings were reset externally.
+</span>    <span class="n">new_sentinel</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()))</span>
+
+    <span class="n">sentinel_setting</span> <span class="o">=</span> <span class="n">ConfigurationSetting</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="s">"Sentinel"</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">new_sentinel</span>
+    <span class="p">)</span>
+    <span class="n">client</span><span class="p">.</span><span class="n">set_configuration_setting</span><span class="p">(</span><span class="n">sentinel_setting</span><span class="p">)</span>
+
+    <span class="c1"># Wait briefly for the refresh interval to elapse, then call
+</span>    <span class="c1"># refresh() to reload settings from the store
+</span>    <span class="n">time</span><span class="p">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">provider</span><span class="p">.</span><span class="n">refresh</span><span class="p">()</span>
+
+    <span class="c1"># Capture values after the refresh
+</span>    <span class="n">after</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tracked_keys</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">provider</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="nb">KeyError</span><span class="p">:</span>
+            <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s">"—"</span>
+
+    <span class="n">settings</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tracked_keys</span><span class="p">:</span>
+        <span class="n">settings</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"key"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+            <span class="s">"before"</span><span class="p">:</span> <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">],</span>
+            <span class="s">"after"</span><span class="p">:</span> <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">],</span>
+            <span class="s">"changed"</span><span class="p">:</span> <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">!=</span> <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"settings"</span><span class="p">:</span> <span class="n">settings</span><span class="p">,</span>
+        <span class="s">"sentinel_value"</span><span class="p">:</span> <span class="n">new_sentinel</span><span class="p">,</span>
+        <span class="s">"new_batch_size"</span><span class="p">:</span> <span class="n">new_batch</span><span class="p">,</span>
+        <span class="s">"batch_size_updated"</span><span class="p">:</span> <span class="n">after</span><span class="p">[</span><span class="s">"Pipeline:BatchSize"</span><span class="p">]</span> <span class="o">==</span> <span class="n">new_batch</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存您的變更，並花幾分鐘檢視程式碼。</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">設定 Python 環境</h2>
+<p>在本節中，您將切換到用戶端應用程式目錄、建立 Python 環境，並安裝相依性。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令，以切換到 <em>client</em> 目錄。</p>
+<pre><code>cd client
+</code></pre></li>
+<li>
+<p>執行下列命令以建立 Python 環境。</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>執行下列命令以啟用 Python 環境。<strong>注意：</strong> 在 Linux/macOS 上，請使用 Bash 命令；在 Windows 上，請使用 PowerShell 命令。如果您在 Windows 上使用 Git Bash，請使用 <strong>source .venv/Scripts/activate</strong>。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令以安裝相依性。</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h2 id="run-the-app">執行應用程式</h2>
+<p>在本節中，您將執行完成的 Flask 應用程式，以進行各種 App Configuration 管理作業。此應用程式提供 Web 介面，讓您可以載入設定、列出其屬性，並測試動態重新整理。</p>
+<ol>
+<li>
+<p>在終端機中執行下列命令以啟動應用程式。如有需要，請先參考本練習前面的命令來啟用環境，再執行此命令。如果您已離開 <em>client</em> 目錄，請先執行 <strong>cd client</strong>。</p>
+<pre><code>python app.py
+</code></pre></li>
+<li>
+<p>開啟瀏覽器並瀏覽至 <code>http://localhost:5000</code> 以存取應用程式。</p>
+</li>
+<li>
+<p>在左側面板中選取 <strong>Load Settings</strong>。這會使用標籤堆疊與 Key Vault 參考解析載入所有組態設定。結果會顯示每個設定的索引鍵、值與類型。標示為 <strong>configuration</strong> 的設定是一般 App Configuration 值，而 <strong>Key Vault reference</strong> 則表示該值已從 Key Vault 秘密解析取得。</p>
+</li>
+<li>
+<p>選取 <strong>List Setting Properties</strong>。這會列出儲存區中的每一筆個別設定項目，包含未加標籤的預設值與加上 Production 標籤的覆寫值，並分別顯示為不同資料列。結果會顯示每個設定的索引鍵、標籤、內容類型、上次修改時間戳記與唯讀狀態。請注意，<strong>Pipeline:BatchSize</strong> 會出現兩次：一次沒有標籤（值為 10），一次帶有 <strong>Production</strong> 標籤（值為 200）。<strong>Load Settings</strong> 的結果顯示 200，是因為加上 Production 標籤的覆寫值優先於未加標籤的預設值。</p>
+</li>
+<li>
+<p>選取 <strong>Refresh Configuration</strong>。這會示範以 Sentinel 為基礎的動態重新整理。此函式會以新的隨機值更新 <strong>Pipeline:BatchSize</strong>、將 <strong>Sentinel</strong> 索引鍵設為新的時間戳記、短暫等待，然後在提供者上呼叫 <strong>refresh()</strong>。結果會顯示所追蹤設定的變更前後值，確認提供者在不重新啟動應用程式的情況下已取得變更。</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>完成本練習後，您應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令，以刪除資源群組及其中所有資源。請將 <strong>&lt;rg-name&gt;</strong> 取代為您在本練習稍早選擇的名稱。此命令會在 Azure 中啟動背景工作來刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源群組會刪除其中包含的所有資源。如果您在本練習中選擇的是現有資源群組，則本練習範圍外的任何既有資源也會一併刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在完成本練習時遇到問題，請嘗試以下疑難排解步驟：</p>
+<p><strong>驗證 Azure App Configuration 部署</strong></p>
+<ul>
+<li>前往 <a href="https://portal.azure.com">Azure portal</a> 並找到您的資源群組。</li>
+<li>確認 App Configuration 儲存區的 <strong>Provisioning State</strong> 顯示為 <strong>Succeeded</strong>。</li>
+<li>確認 Key Vault 的 <strong>Provisioning State</strong> 顯示為 <strong>Succeeded</strong>，且已啟用 RBAC 授權。</li>
+</ul>
+<p><strong>檢查設定</strong></p>
+<ul>
+<li>執行部署指令碼中的 <strong>Check deployment status</strong> 選項，以確認設定已成功儲存。</li>
+<li>如果缺少設定，請再次執行 <strong>Store settings</strong> 選項。</li>
+</ul>
+<p><strong>檢查程式碼完整性與縮排</strong></p>
+<ul>
+<li>請確認所有程式碼區塊都已加入 <em>appconfig_functions.py</em> 中適當的區段，且位於正確的 BEGIN/END 註解標記之間。</li>
+<li>確認 Python 縮排一致（使用空格，不要使用 Tab），且所有程式碼在函式內都正確對齊。</li>
+<li>確認沒有在指定區段之外誤刪或修改任何程式碼。</li>
+</ul>
+<p><strong>驗證環境變數</strong></p>
+<ul>
+<li>檢查專案根目錄中是否存在 <em>.env</em> 檔案，且其中包含 <strong>AZURE_APPCONFIG_ENDPOINT</strong> 值。</li>
+<li>確認您已執行 <strong>source .env</strong>（Bash）或 <strong>. ..env.ps1</strong>（PowerShell），將環境變數載入到終端機工作階段中。</li>
+<li>如果變數是空的，請重新執行 <strong>source .env</strong>（Bash）或 <strong>. ..env.ps1</strong>（PowerShell）。</li>
+</ul>
+<p><strong>檢查驗證</strong></p>
+<ul>
+<li>執行 <strong>az account show</strong>，確認您已登入 Azure CLI。</li>
+<li>請透過檢查 Azure portal 中的角色指派，或再次執行部署指令碼中的角色指派選項，確認 App Configuration Data Owner 與 Key Vault Secrets Officer 角色已指派給您的帳戶。</li>
+</ul>
+<p><strong>檢查 Python 環境與相依性</strong></p>
+<ul>
+<li>在執行應用程式前，請確認虛擬環境已啟用。</li>
+<li>執行 <strong>pip list</strong>，確認 <em>requirements.txt</em> 中的所有套件都已成功安裝。</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

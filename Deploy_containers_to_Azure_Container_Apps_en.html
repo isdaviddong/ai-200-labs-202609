@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Deploy a containerized backend API to Azure Container Apps |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="deploy-a-containerized-backend-api-to-azure-container-apps">Deploy a containerized backend API to Azure Container Apps</h1>
+<p>In this exercise, you deploy a containerized backend API to Azure Container Apps. You use a managed identity to securely pull images from Azure Container Registry and configure secrets as environment variables.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files and deploy Azure services</li>
+<li>Deploy the container app with managed identity authentication</li>
+<li>Configure secrets and reference them from environment variables</li>
+<li>Verify the deployment by calling API endpoints and reviewing logs</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<blockquote>
+<p><strong>Important:</strong> Azure Container Registry task runs are temporarily paused from Azure free credits. This exercise requires a Pay-As-You-Go, or another paid plan.</p>
+</blockquote>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the project starter files and use a script to deploy the necessary services to your Azure subscription. The Azure Container Registry and Container Apps environment deployment takes a few minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/aca-deploy-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following command to ensure you have the <strong>containerapp</strong> extension for Azure CLI.</p>
+<pre><code class="language-azurecli">az extension add --name containerapp
+az extension add --name log-analytics
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers for the exercise.</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.OperationalInsights
+az provider register --namespace Microsoft.ContainerRegistry
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">Create resources in Azure</h3>
+<p>In this section you run the deployment script to deploy the necessary services to your Azure subscription.</p>
+<ol>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command in the terminal to launch the deployment script. The deployment script deploys ACR and creates the environment variable files needed for the exercise.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script is running, enter <strong>1</strong> to launch the <strong>Create Azure Container Registry and build container image</strong> option. This option creates the ACR service and uses ACR Tasks to build and push the image to the registry.</p>
+</li>
+<li>
+<p>When the previous operation is finished, enter <strong>2</strong> to launch the <strong>Create Container Apps environment</strong> options. Creating the environment is necessary before deploying the container.</p>
+<blockquote>
+<p><strong>Note:</strong> A file containing environment variables is created after the Container Apps environment is created. You use these variables throughout the exercise.</p>
+</blockquote>
+</li>
+<li>
+<p>When the previous operation is finished, enter <strong>4</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the appropriate command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you might need to run the command to create the environment variable again.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="deploy-the-container-app-and-configure-secrets">Deploy the container app and configure secrets</h2>
+<p>In this section you deploy the API as a container app with external ingress. Because the image is in a private registry, you must configure registry authentication at create time so the first revision can pull the image. You then configure a secret and reference it from an environment variable. This pattern mirrors how AI apps store provider API keys</p>
+<ol>
+<li>
+<p>Create the container app with a system-assigned managed identity and configure registry authentication at create time. The <strong>--registry-identity</strong> flag tells Container Apps to use the app's managed identity to pull images from the specified registry. The CLI automatically assigns the <strong>AcrPull</strong> role when you use this flag with an Azure Container Registry.</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp create \
+    --name $CONTAINER_APP_NAME \
+    --resource-group $RESOURCE_GROUP \
+    --environment $ACA_ENVIRONMENT \
+    --image &quot;$ACR_SERVER/$CONTAINER_IMAGE&quot; \
+    --ingress external \
+    --target-port $TARGET_PORT \
+    --env-vars MODEL_NAME=$MODEL_NAME \
+    --registry-server &quot;$ACR_SERVER&quot; \
+    --registry-identity system
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--environment</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACA_ENVIRONMENT</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--image</span><span class="w"> </span><span class="s2">"</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_SERVER</span><span class="s2">/</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_IMAGE</span><span class="s2">"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--ingress</span><span class="w"> </span><span class="nx">external</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--target-port</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">TARGET_PORT</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--env-vars</span><span class="w"> </span><span class="nx">MODEL_NAME</span><span class="o">=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">MODEL_NAME</span><span class="w"> </span><span class="err">`</span><span class="w">
+    </span><span class="nt">--registry-server</span><span class="w"> </span><span class="s2">"</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_SERVER</span><span class="s2">"</span><span class="w"> </span><span class="err">`</span><span class="w">
+    </span><span class="nt">--registry-identity</span><span class="w"> </span><span class="n">system</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Create a secret and reference it from an environment variable.</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp secret set -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP \
+    --secrets embeddings-api-key=$EMBEDDINGS_API_KEY
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">secret</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--secrets</span><span class="w"> </span><span class="nx">embeddings-api-key</span><span class="o">=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">EMBEDDINGS_API_KEY</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Reference the secret from an environment variable. This command creates a new revision, which restarts the app so the secret change takes effect.</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp update -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP \
+    --set-env-vars EMBEDDINGS_API_KEY=secretref:embeddings-api-key
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--set-env-vars</span><span class="w"> </span><span class="nx">EMBEDDINGS_API_KEY</span><span class="o">=</span><span class="n">secretref:embeddings-api-key</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to list the revisions to confirm a new revision was created.</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp revision list -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP -o table
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">revision</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>The revision name ends with a suffix like <code>--0000002</code>, indicating this is the second revision. Container Apps creates a new revision whenever you change environment variables or secrets, which restarts the app with the updated configuration. Old inactive revisions may be pruned over time.</p>
+</li>
+</ol>
+<h2 id="verify-the-deployment">Verify the deployment</h2>
+<p>You should validate that the app starts and that ingress works. You also use logs to confirm the app is behaving as expected.</p>
+<ol>
+<li>
+<p>Run the following command to retrieve the app FQDN and store the result to a variable.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">FQDN</span><span class="o">=</span><span class="si">$(</span>az containerapp show <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--query</span> properties.configuration.ingress.fqdn <span class="nt">-o</span> tsv<span class="si">)</span>
+
+<span class="nb">echo</span> <span class="s2">"</span><span class="nv">$FQDN</span><span class="s2">"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$FQDN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="nx">properties.configuration.ingress.fqdn</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">tsv</span><span class="w">
+
+</span><span class="n">Write-Output</span><span class="w"> </span><span class="nv">$FQDN</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to call the health endpoint. The command should return <strong>{&quot;status&quot;: &quot;healthy&quot;}</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to verify the secret is configured by calling the root endpoint. The endpoint returns JSON containing app information including the configured model name and whether the API key secret is configured.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to test the document processing endpoint. The command sends the <em>document.txt</em> file to the endpoint. The operation returns JSON with mock data analysis information.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="nt">-X</span> POST <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/process"</span> <span class="se">\</span>
+    <span class="nt">-H</span> <span class="s2">"Content-Type: text/plain"</span> <span class="se">\</span>
+    <span class="nt">-d</span> @document.txt
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/process"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-Method</span><span class="w"> </span><span class="nx">Post</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-ContentType</span><span class="w"> </span><span class="s2">"text/plain"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-Body</span><span class="w"> </span><span class="p">(</span><span class="n">Get-Content</span><span class="w"> </span><span class="nt">-Raw</span><span class="w"> </span><span class="nx">document.txt</span><span class="p">)</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to review logs for startup and runtime signals. This command shows recent console output only. For historical logs and advanced troubleshooting, logs persist in the Log Analytics workspace associated with your Container Apps environment.</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp logs show -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP
+</code></pre>
+<p><strong>Powershell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">logs</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w">
+</span></code></pre></div></div>
+<p>Look for <strong>gunicorn</strong> startup messages showing workers spawned and listening on port 8000. You should also see HTTP request logs from your curl commands (GET /health, POST /process, etc.).</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Check deployment status with the script</strong></p>
+<ul>
+<li>Run the deployment script and select option <strong>3</strong> to check the status of your ACR and Container Apps environment. This verifies the base infrastructure is deployed and the container image exists.</li>
+</ul>
+<p><strong>Verify Azure authentication and environment variables</strong></p>
+<ul>
+<li>Run <strong>az account show</strong> to confirm you're logged in to the correct Azure subscription.</li>
+<li>Verify your environment variables are set by running <strong>echo $ACR_NAME</strong> (Bash) or <strong>$env:ACR_NAME</strong> (PowerShell).</li>
+<li>If variables are empty, re-run <strong>source .env</strong> (Bash) or <strong>. ..env.ps1</strong> (PowerShell).</li>
+</ul>
+<p><strong>Verify ACR deployment</strong></p>
+<ul>
+<li>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your resource group.</li>
+<li>Confirm that the Azure Container Registry exists and shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong>.</li>
+<li>Run <strong>az acr list --output table</strong> to verify your registry is accessible.</li>
+</ul>
+<p><strong>Troubleshoot build failures</strong></p>
+<ul>
+<li>The deployment script suppresses verbose <strong>az acr build</strong> output. To troubleshoot failures, check the status and logs of the most recent ACR Task run.</li>
+<li>Verify you're running the deployment script from the project root directory (where the <em>api</em> folder is located).</li>
+<li>List recent ACR Task runs:
+<ul>
+<li><strong>Bash:</strong> <strong>az acr task list-runs --registry $ACR_NAME --output table</strong></li>
+<li><strong>PowerShell:</strong> <strong>az acr task list-runs --registry $env:ACR_NAME --output table</strong></li>
+</ul>
+</li>
+<li>View logs for a specific run (replace <strong>&lt;run-id&gt;</strong> with a value from the previous command):
+<ul>
+<li><strong>Bash:</strong> <strong>az acr task logs --registry $ACR_NAME --run-id &lt;run-id&gt;</strong></li>
+<li><strong>PowerShell:</strong> <strong>az acr task logs --registry $env:ACR_NAME --run-id &lt;run-id&gt;</strong></li>
+</ul>
+</li>
+</ul>
+<p><strong>Troubleshoot container pull failures (ImagePullBackOff / unauthorized / 403)</strong></p>
+<ul>
+<li>Confirm the container app has a system-assigned managed identity enabled:
+<ul>
+<li><strong>Bash:</strong> <strong>az containerapp identity show -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP</strong></li>
+<li><strong>PowerShell:</strong> <strong>az containerapp identity show -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP</strong></li>
+</ul>
+</li>
+<li>Confirm the container app has the <strong>AcrPull</strong> role assignment scoped to the registry. Role assignments can take a minute or two to propagate after creation.</li>
+</ul>
+<p><strong>Troubleshoot container startup and application errors</strong></p>
+<ul>
+<li>Stream container logs to diagnose startup issues:
+<ul>
+<li><strong>Bash:</strong> <strong>az containerapp logs show -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP --follow</strong></li>
+<li><strong>PowerShell:</strong> <strong>az containerapp logs show -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP --follow</strong></li>
+</ul>
+</li>
+<li>If the app returns a 502/503 shortly after deployment, wait a minute and try again. The first start can take longer while Container Apps pulls and starts the container.</li>
+<li>Check revision status for provisioning errors:
+<ul>
+<li><strong>Bash:</strong> <strong>az containerapp revision list -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP -o table</strong></li>
+<li><strong>PowerShell:</strong> <strong>az containerapp revision list -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP -o table</strong></li>
+</ul>
+</li>
+</ul>
+<p><strong>Troubleshoot secret configuration</strong></p>
+<ul>
+<li>Verify the secret was created:
+<ul>
+<li><strong>Bash:</strong> <strong>az containerapp secret list -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP -o table</strong></li>
+<li><strong>PowerShell:</strong> <strong>az containerapp secret list -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP -o table</strong></li>
+</ul>
+</li>
+<li>Confirm the environment variable references the secret correctly by calling the root endpoint (<strong>/</strong>), which shows whether the API key is configured.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

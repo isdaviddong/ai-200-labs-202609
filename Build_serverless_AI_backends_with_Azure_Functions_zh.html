@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        使用 Azure Functions 建立 MCP 伺服器 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="create-an-mcp-server-with-azure-functions">使用 Azure Functions 建立 MCP 伺服器</h1>
+<p>Model Context Protocol (MCP) 是一種開放標準，用來定義 AI 代理與語言模型如何探索並呼叫外部工具。Azure Functions 包含 MCP extension，可讓您將 function apps 公開為 MCP 伺服器，其中每個函式都會成為 MCP 用戶端可呼叫的工具。</p>
+<p>在此練習中，您將建立使用 MCP extension 的 Azure Functions 專案、為文件處理定義工具觸發函式、設定 MCP 伺服器設定，並透過 GitHub Copilot 的 agent mode 在本機連線測試該伺服器。</p>
+<blockquote>
+<p><strong>注意：</strong> 此練習使用 Azure Functions MCP extension，而此 extension 仍在快速演進中。請造訪 <a href="https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-mcp">Azure Functions MCP 延伸模組文件</a> 以取得最新的設定指示、API 介面與組態選項。</p>
+</blockquote>
+<p>此練習中執行的工作：</p>
+<ul>
+<li>建立使用 MCP extension 的新 Azure Functions 專案</li>
+<li>在 <em>host.json</em></li>
+<li>於 <em>function_app.py</em></li>
+<li>設定 Python 環境</li>
+<li>使用 GitHub Copilot 的 agent mode 在本機測試 MCP 伺服器</li>
+</ul>
+<p>此練習大約需要 <strong>25</strong> 分鐘完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> 安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>.</li>
+<li> <a href="https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions">Azure Functions extension</a> Visual Studio Code 的延伸模組。</li>
+<li><a href="https://learn.microsoft.com/azure/azure-functions/functions-run-local">Azure Functions Core Tools</a> v4 或更新版本。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.9</a> 或更新版本。</li>
+<li>一個 <a href="https://github.com/">GitHub 帳戶</a> ，且可存取 GitHub Copilot。</li>
+<li> <a href="https://marketplace.visualstudio.com/items?itemName=GitHub.copilot">GitHub Copilot</a> Visual Studio Code 的延伸模組。</li>
+</ul>
+<h2 id="create-a-new-functions-project-with-the-mcp-extension">建立使用 MCP extension 的新 Functions 專案</h2>
+<p>在本節中，您將在 Visual Studio Code 中使用 Azure Functions extension 建立新的 Azure Functions 專案，並在 <em>host.json</em>中設定 MCP 伺服器設定。此 extension 會建立專案結構、產生 <em>.vscode</em> 的整合式偵錯設定檔，並設定 Python v2 程式設計模型。</p>
+<ol>
+<li>
+<p>為專案建立資料夾（例如 <em>mcp-server-functions</em>），並在 Visual Studio Code 中透過選取 <strong>File &gt; Open Folder...</strong> 於選單中開啟它。</p>
+</li>
+<li>
+<p>選取 <strong>檢視 &gt; 命令選擇區...&quot;</strong> 以開啟 Command Palette。執行 <strong>Azure Functions: Create Function...</strong> 命令，並在提示時選擇下列選項：</p>
+<table>
+<thead>
+<tr>
+<th>選項</th>
+<th>動作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Select the folder...</td>
+<td>選取您在前一步開啟的資料夾</td>
+</tr>
+<tr>
+<td>選取專案類型</td>
+<td>選取 <strong>Python</strong></td>
+</tr>
+<tr>
+<td>Select a Python interpreter...</td>
+<td>選取 <strong>略過虛擬環境</strong></td>
+</tr>
+<tr>
+<td>Select a template...</td>
+<td>選取 <strong>HTTP trigger</strong></td>
+</tr>
+<tr>
+<td>函式名稱</td>
+<td>接受預設值 <strong>http_trigger</strong></td>
+</tr>
+<tr>
+<td>授權層級</td>
+<td>選取 <strong>ANONYMOUS</strong></td>
+</tr>
+</tbody>
+</table>
+<p>此 extension 會建立專案結構，其中包括 <em>function_app.py</em>, <em>host.json</em>, <em>local.settings.json</em>, <em>requirements.txt</em>，以及 <em>.vscode</em> 資料夾與其中的 <em>launch.json</em>, <em>tasks.json</em>, and <em>extensions.json</em>。在下一節中，會取代 <em>function_app.py</em> 內由 scaffold 建立的 HTTP trigger 函式。</p>
+</li>
+<li>
+<p>Open <em>host.json</em> 並以下列程式碼取代其內容，然後儲存您的變更。 <strong>extensionBundle</strong> 必須使用 <strong>Preview</strong> bundle，因為 <strong>mcpToolTrigger</strong> binding type 是預覽功能，不包含在穩定版 extension bundle 中。 <strong>mcpToolTrigger</strong> 區段會定義 MCP 伺服器名稱、版本，以及 MCP 用戶端連線時顯示的說明。</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2.0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"extensionBundle"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Microsoft.Azure.Functions.ExtensionBundle.Preview"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"[4.*, 5.0.0)"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"extensions"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"mcpToolTrigger"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"serverName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"document-tools"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"serverVersion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.0.0"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"serverInstructions"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Tools for document processing and classification"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Open <em>local.settings.json</em> 並以下列程式碼取代其內容。</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"IsEncrypted"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"Values"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"AzureWebJobsStorage"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"FUNCTIONS_WORKER_RUNTIME"</span><span class="p">:</span><span class="w"> </span><span class="s2">"python"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"AzureWebJobsSecretStorageType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Files"</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>建立 <em>.vscode/mcp.json</em> 檔案於專案中，以向 Visual Studio Code 註冊本機 MCP 端點。此檔案會告知 Visual Studio Code 要在哪裡找到 MCP 伺服器，以及如何連線到它們。將下列程式碼加入該檔案，然後儲存您的變更。</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"servers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"document-tools-local"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sse"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://localhost:7071/runtime/webhooks/mcp/sse"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<h2 id="define-mcp-tool-trigger-functions">定義 MCP 工具觸發函式</h2>
+<p>在本節中，您將定義兩個 MCP 工具觸發函式，讓 MCP 用戶端可探索並使用。每個函式都會使用 <strong>@app.generic_trigger()</strong> 裝飾器搭配 <strong>mcpToolTrigger</strong> 類型。您會透過觸發器設定來定義工具名稱、描述與輸入屬性，而函式會接收來自已連線 MCP 用戶端的工具呼叫要求。</p>
+<ol>
+<li>
+<p>Open <em>function_app.py</em> 於 Visual Studio Code Explorer 側邊欄中，並以下列程式碼取代其內容，以定義兩個 MCP 工具觸發函式：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">azure.functions</span> <span class="k">as</span> <span class="n">func</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="c1"># Initialize the FunctionApp instance that registers all trigger functions
+</span><span class="n">app</span> <span class="o">=</span> <span class="n">func</span><span class="p">.</span><span class="n">FunctionApp</span><span class="p">()</span>
+
+<span class="c1"># Define an MCP tool trigger that exposes "summarize_text" to MCP clients.
+# toolProperties defines the input schema: a single "text" string parameter.
+</span><span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">generic_trigger</span><span class="p">(</span>
+    <span class="n">arg_name</span><span class="o">=</span><span class="s">"context"</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s">"mcpToolTrigger"</span><span class="p">,</span>
+    <span class="n">toolName</span><span class="o">=</span><span class="s">"summarize_text"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">"Summarize a block of text into key points"</span><span class="p">,</span>
+    <span class="n">toolProperties</span><span class="o">=</span><span class="s">'[{"propertyName": "text", "propertyType": "string", "description": "The text to summarize"}]'</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">summarize_text</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># Log the raw payload for debugging
+</span>    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"summarize_text raw context: </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Parse the outer request envelope sent by the MCP client
+</span>    <span class="n">request</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"summarize_text parsed request: </span><span class="si">{</span><span class="n">request</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Extract the tool arguments from the request
+</span>    <span class="n">arguments</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"arguments"</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="c1"># Retrieve the "text" property defined in toolProperties
+</span>    <span class="n">text</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"text"</span><span class="p">,</span> <span class="s">""</span><span class="p">)</span>
+
+    <span class="c1"># In a real implementation, call an Azure AI service here
+</span>    <span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s">"Summary of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">.</span><span class="n">split</span><span class="p">())</span><span class="si">}</span><span class="s"> words: </span><span class="si">{</span><span class="n">text</span><span class="p">[</span><span class="si">:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s">..."</span>
+
+    <span class="c1"># Return a JSON response; the "content" field is displayed to the MCP client
+</span>    <span class="k">return</span> <span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span><span class="s">"content"</span><span class="p">:</span> <span class="n">summary</span><span class="p">})</span>
+
+<span class="c1"># Define a second MCP tool trigger that exposes "classify_document" to MCP clients.
+# toolProperties defines two input parameters: "text" and "categories".
+</span><span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">generic_trigger</span><span class="p">(</span>
+    <span class="n">arg_name</span><span class="o">=</span><span class="s">"context"</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s">"mcpToolTrigger"</span><span class="p">,</span>
+    <span class="n">toolName</span><span class="o">=</span><span class="s">"classify_document"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">"Classify a document into a category"</span><span class="p">,</span>
+    <span class="n">toolProperties</span><span class="o">=</span><span class="s">'[{"propertyName": "text", "propertyType": "string", "description": "The document text to classify"}, {"propertyName": "categories", "propertyType": "string", "description": "Comma-separated list of possible categories"}]'</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">classify_document</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># Log the raw payload for debugging
+</span>    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"classify_document raw context: </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Parse the outer request envelope sent by the MCP client
+</span>    <span class="n">request</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"classify_document parsed request: </span><span class="si">{</span><span class="n">request</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Extract the tool arguments from the request
+</span>    <span class="n">arguments</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"arguments"</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="c1"># Retrieve the "text" and "categories" properties defined in toolProperties
+</span>    <span class="n">text</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"text"</span><span class="p">,</span> <span class="s">""</span><span class="p">)</span>
+    <span class="n">categories</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"categories"</span><span class="p">,</span> <span class="s">"general"</span><span class="p">)</span>
+
+    <span class="c1"># In a real implementation, call an Azure AI service here
+</span>    <span class="c1"># Split the comma-separated categories string into a list
+</span>    <span class="n">category_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">","</span><span class="p">)]</span>
+    <span class="c1"># Select the first category as the classification result
+</span>    <span class="n">selected_category</span> <span class="o">=</span> <span class="n">category_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">category_list</span> <span class="k">else</span> <span class="s">"unknown"</span>
+
+    <span class="c1"># Return a JSON response with the classification result
+</span>    <span class="k">return</span> <span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span>
+        <span class="s">"content"</span><span class="p">:</span> <span class="sa">f</span><span class="s">"Classification: </span><span class="si">{</span><span class="n">selected_category</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+        <span class="s">"category"</span><span class="p">:</span> <span class="n">selected_category</span>
+    <span class="p">})</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存檔案並花幾分鐘檢閱程式碼。每個函式都會使用 <strong>@app.generic_trigger()</strong> 裝飾器搭配 <strong>mcpToolTrigger</strong> 類型。 <strong>toolName</strong> 會顯示在 MCP 用戶端的工具清單中，而 <strong>description</strong> 可協助語言模型了解何時使用各個工具。 <strong>toolProperties</strong> 參數會將輸入結構描述定義為屬性定義的 JSON 陣列。</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">設定 Python 環境</h2>
+<p>在本節中，您將建立並啟用 Python 虛擬環境、安裝專案相依性，並設定 Visual Studio Code 使用此虛擬環境。</p>
+<ol>
+<li>
+<p>在 Visual Studio Code 中，選取 <strong>終端機 &gt; 新增終端機</strong> ，以在專案目錄中開啟整合式終端機。</p>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令，以建立 Python 環境。</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>執行下列命令以啟用 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，請使用 Bash 命令。在 Windows 上，請使用 PowerShell 命令。如果在 Windows 上使用 Git Bash，請使用 <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令以安裝相依性。</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+<li>
+<p>選取 <strong>檢視 &gt; 命令選擇區...</strong> 以開啟命令選擇區，並執行 <strong>Python: Select Interpreter</strong> 命令。從專案目錄的 <em>.venv</em> 資料夾中選取解譯器。這可確保偵錯工具在您使用下列按鍵啟動 Functions 執行階段時使用正確的環境： <strong>F5</strong>.</p>
+</li>
+</ol>
+<h2 id="test-the-mcp-server-locally">在本機測試 MCP 伺服器</h2>
+<p>在本節中，您將啟動本機 Functions runtime，並透過 GitHub Copilot 的 agent mode 連線到 MCP 伺服器，以驗證工具可被探索並傳回預期結果。</p>
+<ol>
+<li>
+<p>按下 <strong>F5</strong> 以在附加偵錯工具的情況下啟動 Functions runtime。若您收到有關必要 storage account 的警告，請選取 <strong>Skip for now</strong> 。Visual Studio Code 會啟動 Core Tools、附加偵錯工具，並開啟顯示函式端點的終端機面板。</p>
+<blockquote>
+<p><strong>注意：</strong> 您也可以透過執行下列命令，在不附加偵錯工具的情況下啟動 runtime： <code>func start</code> （位於整合式終端機中）。</p>
+</blockquote>
+<p>終端機輸出會顯示已註冊的 MCP 工具觸發函式。請確認您看到類似下列的輸出：</p>
+<pre><code>Functions:
+    classify_document: mcpToolTrigger
+    summarize_text: mcpToolTrigger
+</code></pre>
+<p>若兩個函式都出現，表示 MCP 伺服器正在執行並已可供連線。</p>
+</li>
+<li>
+<p>Visual Studio Code 會偵測 <em>.vscode/mcp.json</em> 檔案，並連線到 MCP 伺服器。開啟 GitHub Copilot chat 並切換到 <strong>Agent</strong> 模式。選取工具圖示（扳手），並尋找 <strong>document-tools-local</strong> 群組——這與 <em>.vscode/mcp.json</em>中的伺服器鍵名稱相符。請確認 <strong>summarize_text</strong> 和 <strong>classify_document</strong> 都顯示在該群組下方，並附有其描述。</p>
+</li>
+</ol>
+<h3 id="test-with-explicit-prompts">使用明確提示進行測試</h3>
+<p>直接點名工具的明確提示是觸發 MCP 工具最可靠的方式。模型通常會呼叫該工具，但仍可能在回應中重新表述或摘要工具的原始輸出。若工具未被呼叫，請檢查終端機輸出以確認，再嘗試重新提交提示。</p>
+<ol>
+<li>
+<p>測試 <strong>classify_document</strong> 工具，方法是在 Copilot chat 中輸入下列提示。 <strong>注意：</strong> 當 Copilot 第一次呼叫 MCP 工具時，您可能會看到權限提示。請選取 <strong>Allow</strong> 以允許 Copilot 呼叫該工具。</p>
+<pre><code>Use the classify_document tool to classify this text: 'This agreement is entered into by Party A and Party B'  with categories: contract, invoice, memo
+</code></pre>
+<p>Copilot 會呼叫該工具並傳回回應。請確認結果包含 <strong>contract</strong>的分類。此 stub 實作會從以逗號分隔的清單中選取第一個類別，因此結果會符合您在提示中提供的第一個類別。請檢查終端機輸出中的函式呼叫記錄項目。</p>
+</li>
+<li>
+<p>測試 <strong>summarize_text</strong> 工具，方法是在 Copilot chat 中輸入下列提示。</p>
+<pre><code>Use the summarize_text tool to summarize this text: 'Azure Functions is a serverless compute service that lets you run event-triggered code without having to explicitly provision or manage infrastructure.'
+</code></pre>
+<p>請確認結果包含以 <strong>Summary of</strong> 開頭的摘要字串，後面接著字數與輸入文字的截斷預覽。</p>
+</li>
+</ol>
+<h3 id="test-with-natural-language-prompts">使用自然語言提示進行測試</h3>
+<p>自然語言提示較可能直接回答問題而不呼叫工具，因為模型必須自行判斷某個工具是否相關。請檢查終端機輸出中的記錄項目，以確認工具是否真的被呼叫。若未呼叫，請嘗試重新表述提示或明確點名工具。</p>
+<ol>
+<li>
+<p>在 Copilot chat 中輸入下列提示：</p>
+<pre><code>Is the following text an invoice, contract, or memo?
+'Invoice B1234 for services rendered in January 2026. Total amount due: $5,000.'
+</code></pre>
+<p>Copilot 應辨識出 <strong>classify_document</strong> 工具符合此要求並自動呼叫它。請確認結果會傳回分類，並檢查終端機輸出以確認函式已被呼叫。</p>
+</li>
+<li>
+<p>輸入下列提示，以測試 <strong>summarize_text</strong> 工具的自然探索：</p>
+<pre><code>Give me a brief summary of this text: 'Machine learning models require large datasets for training. The quality of the training data directly impacts model accuracy. Data preprocessing steps include cleaning, normalization, and feature extraction.'
+</code></pre>
+<p>Copilot 應叫用 <strong>summarize_text</strong> 工具並傳回摘要。請確認終端機輸出顯示函式呼叫。</p>
+</li>
+<li>
+<p>按下 <strong>Shift+F5</strong> 以停止偵錯工具並關閉 Functions runtime。</p>
+</li>
+</ol>
+<h2 id="next-steps">後續步驟</h2>
+<p>在實際生產情境中，您會使用 Flex Consumption 方案將 function app 部署到 Azure，並使用 <strong>mcp_extension</strong> system key 驗證 MCP 用戶端連線，並將每個工具函式中的預留位置邏輯替換為使用 <strong>DefaultAzureCredential</strong> 以及 function app 的 managed identity 呼叫 Azure AI 服務的實作。詳細資訊請參閱 <a href="/azure/azure-functions/functions-bindings-mcp">Azure Functions MCP 延伸模組文件</a>.</p>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在完成此練習時遇到問題，請嘗試下列疑難排解步驟：</p>
+<p><strong>Azure Functions Core Tools 無法啟動</strong></p>
+<ul>
+<li>請透過執行下列命令確認已安裝 Azure Functions Core Tools v4 或更新版本： <strong>func --version</strong> （於終端機中）。</li>
+<li>請確認連接埠 7071 未被其他程序占用。</li>
+<li>請確認 <em>local.settings.json</em> 存在於專案根目錄。Azure Functions extension 會在專案建立期間產生此檔案。</li>
+</ul>
+<p><strong>MCP 工具未出現在 Copilot 中</strong></p>
+<ul>
+<li>Verify that <em>.vscode/mcp.json</em> 已儲存，且 URL 與本機端點相符（<code>http://localhost:7071/runtime/webhooks/mcp/sse</code>）。</li>
+<li>請確認 Functions runtime 正在執行，且終端機輸出中顯示兩個工具觸發函式。</li>
+<li>如果儲存檔案後仍未偵測到 MCP 伺服器設定，請嘗試重新啟動 Visual Studio Code。</li>
+</ul>
+<p><strong>函式呼叫傳回錯誤</strong></p>
+<ul>
+<li>請檢查終端機輸出中的 Python 例外狀況或堆疊追蹤。</li>
+<li>Verify <em>function_app.py</em> 的縮排正確，且所有程式碼都已依照範例輸入。</li>
+<li>請確認虛擬環境已啟用，且來自 <em>requirements.txt</em> 的所有相依性都已安裝。</li>
+</ul>
+<p><strong>檢查 Python 環境與相依性</strong></p>
+<ul>
+<li>請確認 Visual Studio Code 正在使用來自 <em>.venv</em> 資料夾的 Python 解譯器，方法是執行 <strong>Python: Select Interpreter</strong> 命令。</li>
+<li>請確認來自 <em>requirements.txt</em> 的所有套件都已透過執行 <strong>pip list</strong> （位於整合式終端機中）。</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 Microsoft |
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>|
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>|
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>|
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>|
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

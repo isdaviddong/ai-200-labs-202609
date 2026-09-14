@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Troubleshoot apps on Azure Kubernetes Service |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="troubleshoot-apps-on-azure-kubernetes-service">Troubleshoot apps on Azure Kubernetes Service</h1>
+<p>In this exercise, you deploy a containerized API to Azure Kubernetes Service (AKS) and then diagnose and resolve common Kubernetes issues. You use <strong>kubectl</strong> commands to identify problems, inspect pod status, check logs, and view events. You then use <strong>kubectl edit</strong> to fix misconfigurations including Service selector mismatches, missing environment variables, and invalid readiness probe paths.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Deploy resources to Azure (ACR, AKS cluster)</li>
+<li>Diagnose and resolve some common issues</li>
+<li>Clean up Azure resources</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<blockquote>
+<p><strong>Important:</strong> Azure Container Registry task runs are temporarily paused from Azure free credits. This exercise requires a Pay-As-You-Go, or another paid plan.</p>
+</blockquote>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>The Kubernetes command-line tool, <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the starter files for the console app and use a script to deploy the necessary services to your Azure subscription. The Azure resource deployments can take 10-15 minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/aks-troubleshoot-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the resource group and location values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">rg</span> <span class="o">=</span> <span class="s">"&lt;your-resource-group-name&gt;"</span>  <span class="c1"># Resource Group name
+</span><span class="n">location</span> <span class="o">=</span> <span class="s">"&lt;your-azure-region&gt;"</span>   <span class="c1"># Azure region for the resources
+</span></code></pre></div></div>
+</li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers to install AKS and ACR. The <strong>Microsoft.Compute</strong>, <strong>Microsoft.Network</strong>, and <strong>Microsoft.Storage</strong> providers are dependencies of AKS that Azure usually registers automatically, but explicitly registering them avoids occasional cluster creation failures on new subscriptions.</p>
+<pre><code>az provider register --namespace Microsoft.ContainerService
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Storage
+</code></pre></li>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Depending on your system configuration, the Python command might be <strong>python3</strong> instead of <strong>python</strong>.</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="deploy-resources-to-azure">Deploy resources to Azure</h3>
+<p>With the deployment script running, follow these steps to create the needed resources in Azure.</p>
+<ol>
+<li>
+<p>Enter <strong>1</strong> to launch <strong>Create Azure Container Registry (ACR)</strong>. This creates the resource where the API container will be stored, and later pulled into the AKS resource.</p>
+</li>
+<li>
+<p>After the ACR resource has been created, enter <strong>2</strong> to launch <strong>Build and push API image to ACR</strong>. This option uses ACR tasks to build the image and add it to the ACR repository. This operation can take 3-5 minutes to complete.</p>
+</li>
+<li>
+<p>After the image has been built and pushed to ACR, enter <strong>3</strong> to launch the <strong>Create AKS cluster</strong> option. This creates the AKS resource configured with a managed identity, and gives the service permission to pull images from the ACR resource.</p>
+</li>
+<li>
+<p>After the AKS cluster deployment has completed, enter <strong>4</strong> to launch the <strong>Get AKS credentials for kubectl</strong> option. This uses the <strong>az aks get-credentials</strong> command to retrieve credentials and configure <strong>kubectl</strong>.</p>
+</li>
+<li>
+<p>After the credentials have been set, enter <strong>5</strong> to launch the <strong>Deploy application to AKS</strong> option. This deploys an API to the AKS cluster.</p>
+</li>
+<li>
+<p>After the app has been deployed, enter <strong>6</strong> to launch the <strong>Check deployment status</strong> option. This option reports if each of the resources have been successfully deployed.</p>
+<p>If all of the services return a <strong>successful</strong> message, enter <strong>8</strong> to exit the deployment script.</p>
+<p>If the AKS cluster is in a <strong>Failed</strong> or <strong>Canceled</strong> state, correct the reported issue, then enter <strong>7</strong> to launch the <strong>Delete failed AKS deployment</strong> option before running option <strong>3</strong> again. This guarded option does not delete a healthy or in-progress cluster.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> Leave the terminal open, all of the steps in the exercise are performed in the terminal.</p>
+</blockquote>
+<h2 id="troubleshoot-the-deployment">Troubleshoot the deployment</h2>
+<p>The deployment script created all Kubernetes resources in a <strong>namespace</strong> called <strong>aks-troubleshoot</strong>. Namespaces are a way to organize and isolate resources within a Kubernetes cluster. They allow you to group related resources together, apply resource quotas, and manage access control. When you don't specify a namespace, resources are created in the <strong>default</strong> namespace. For this exercise, all <strong>kubectl</strong> commands include <strong>-n aks-troubleshoot</strong> to target the correct namespace.</p>
+<p>After you verify the deployment, you work through three troubleshooting scenarios. In each scenario, you apply a manifest file that introduces a specific error into the deployment. Then you use <strong>kubectl</strong> commands to diagnose the problem and edit the configuration to resolve it.</p>
+<h3 id="verify-the-deployment">Verify the deployment</h3>
+<p>In this section you confirm the application deployed by the setup script is running correctly before introducing errors.</p>
+<ol>
+<li>
+<p>Run the following command to verify the pod is running in the namespace. The command should return one pod with <strong>Running</strong> status and <strong>1/1</strong> in the READY column.</p>
+<pre><code>kubectl get pods -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to verify the Service has endpoints. The command should return one endpoint slice listed with an IP address.</p>
+<pre><code>kubectl get endpointslices -l kubernetes.io/service-name=api-service -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to test connectivity using port-forward. This command creates a tunnel from your local machine to the Service running in the cluster, allowing you to access it at <strong><a href="http://localhost:8080">http://localhost:8080</a></strong>.</p>
+<pre><code>kubectl port-forward service/api-service 8080:80 -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a second terminal window in VS Code. Run the following command to test the connection. You should receive a JSON response with <strong>&quot;status&quot;: &quot;healthy&quot;</strong>.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Bash</span>
+curl http://localhost:8080/healthz
+</code></pre></div></div>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># PowerShell</span><span class="w">
+</span><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nx">http://localhost:8080/healthz</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Switch back to the terminal where <strong>port-forward</strong> is running and enter <strong>ctrl+c</strong> to exit the command.</p>
+</li>
+</ol>
+<p>You verified the deployment is working correctly, next you diagnose a label mismatch issue.</p>
+<h3 id="diagnose-a-label-mismatch">Diagnose a label mismatch</h3>
+<p>A Service routes traffic to pods based on label selectors. When labels don't match, the Service has no endpoints and requests fail. The API was deployed with pods labeled <strong>app: api</strong> and a Service selector matching <strong>app: api</strong>. In this section you apply a Service configuration that changes the selector to <strong>app: api-v2</strong>, breaking the connection.</p>
+<ol>
+<li>
+<p>Run the following command to apply the Service configuration that creates a label mismatch error.</p>
+<pre><code>kubectl apply -f k8s/label-mismatch-service.yaml -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to verify the pod is still running. The pod shows <strong>Running</strong> status with <strong>1/1</strong> ready and labels showing <strong>app=api</strong>.</p>
+<pre><code>kubectl get pods --show-labels -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to check the Service endpoint slices. The command should return an endpoint slice with <strong>&lt;unset&gt;</strong> in the ENDPOINTS column, indicating no pods match the Service selector.</p>
+<pre><code>kubectl get endpointslices -l kubernetes.io/service-name=api-service -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to view the Service details. Look for the <strong>Selector</strong> field in the output, which now shows <strong>app=api-v2</strong>.</p>
+<pre><code>kubectl describe service api-service -n aks-troubleshoot
+</code></pre>
+<p>This confirms the label mismatch. The Service selector is <strong>app=api-v2</strong> but the pod label is <strong>app=api</strong>.</p>
+</li>
+<li>
+<p>Run the following command to open the Service configuration in an editor.</p>
+<pre><code>kubectl edit service api-service -n aks-troubleshoot
+</code></pre>
+<p><strong>Note:</strong> The <strong>kubectl edit</strong> command fetches the live resource configuration from the cluster and opens it in a local text editor. When you save and close the editor, kubectl automatically sends the changes back to the Kubernetes API server, which validates and applies them to the running cluster. The editor depends on your environment:</p>
+<ul>
+<li><strong>Bash:</strong> Opens <strong>vi</strong> by default. Press <strong>i</strong> to enter insert mode, make your changes, press <strong>Esc</strong>, then type <strong>:wq</strong> and press <strong>Enter</strong> to save and exit. Type <strong>:q!</strong> to exit without saving.</li>
+<li><strong>PowerShell (Windows):</strong> Opens <strong>Notepad</strong> by default. Make your changes, select <strong>File &gt; Save</strong> (or <strong>Ctrl+S</strong>), then close the window. Closing without saving cancels the edit.</li>
+</ul>
+</li>
+<li>
+<p>In the editor, find the <strong>selector</strong> section and change <strong>app: api-v2</strong> to <strong>app: api</strong>. Save the changes and close the editor.</p>
+</li>
+<li>
+<p>Run the following command to verify the endpoint slice addresses are restored. The command should return an endpoint slice with an IP address listed.</p>
+<pre><code>kubectl get endpointslices -l kubernetes.io/service-name=api-service -n aks-troubleshoot
+</code></pre></li>
+</ol>
+<p>You fixed the label mismatch issue, next you diagnose a CrashLoopBackOff.</p>
+<h3 id="diagnose-a-crashloopbackoff">Diagnose a CrashLoopBackOff</h3>
+<p>When a container fails to start, Kubernetes repeatedly restarts it, resulting in <strong>CrashLoopBackOff</strong> status. Reading logs reveals why the application crashed.</p>
+<ol>
+<li>
+<p>Run the following command to apply the deployment configuration that removes the required <strong>API_KEY</strong> environment variable.</p>
+<pre><code>kubectl apply -f k8s/crashloop-deployment.yaml -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to watch the pod status. After a few moments, the pod enters <strong>CrashLoopBackOff</strong>. Enter <strong>ctrl-c</strong> to exit the command.</p>
+<pre><code>kubectl get pods -n aks-troubleshoot -w
+</code></pre></li>
+<li>
+<p>Run the following command to check the pod logs for the error message. You should see an error indicating the missing environment variable.</p>
+<pre><code>kubectl logs -l app=api -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Fix the issue by editing the Deployment to add the <strong>API_KEY</strong> environment variable.</p>
+<pre><code>kubectl edit deployment api-deployment -n aks-troubleshoot
+</code></pre>
+<p>In the editor, find the <strong>containers</strong> section under <strong>spec.template.spec</strong>. Locate the <strong>name: api</strong> line and add the <strong>env</strong> block directly below it, matching the indentation of <strong>name</strong>:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="na">name</span><span class="pi">:</span> <span class="s">api</span>
+    <span class="na">env</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">API_KEY</span>
+      <span class="na">value</span><span class="pi">:</span> <span class="s2">"</span><span class="s">demo-api-key-12345"</span>
+    <span class="na">ports</span><span class="pi">:</span>
+</code></pre></div></div>
+<p>Save the changes and close the editor.</p>
+</li>
+<li>
+<p>Run the following command to watch the pod status. After a few moments, the pod enters <strong>Running</strong>. Enter <strong>ctrl-c</strong> to exit the command.</p>
+<pre><code>kubectl get pods -n aks-troubleshoot -w
+</code></pre></li>
+</ol>
+<p>You solved the CrashLoopBackOff issue, next you diagnose a readiness probe failure.</p>
+<h3 id="diagnose-a-readiness-probe-failure">Diagnose a readiness probe failure</h3>
+<p>When a readiness probe fails, the pod shows <strong>Running</strong> but <strong>0/1</strong> containers are ready. Kubernetes won't add the pod to Service endpoints until it passes the readiness check. With a rolling update strategy, the old working pod continues serving traffic while the new pod remains stuck in a not-ready state.</p>
+<ol>
+<li>
+<p>Run the following command to apply the deployment configuration that introduces a readiness probe failure. This applies an invalid path for the readiness check.</p>
+<pre><code>kubectl apply -f k8s/probe-failure-deployment.yaml -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to check the pod status. You should see two pods: the new pod shows <strong>Running</strong> but <strong>0/1</strong> in the READY column, while the old pod remains <strong>1/1</strong> ready. The rolling update is blocked because the new pod never becomes ready.</p>
+<pre><code>kubectl get pods -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>Run the following command to check for probe failure events. The command returns all <strong>Unhealthy</strong> events, which include both readiness and liveness probe failures. Look for a message indicating the readiness probe failed with a 404 status code.</p>
+<pre><code>kubectl get events -n aks-troubleshoot --field-selector reason=Unhealthy
+</code></pre></li>
+<li>
+<p>Run the following command to fix the readiness probe by editing the Deployment to correct the path.</p>
+<pre><code>kubectl edit deployment api-deployment -n aks-troubleshoot
+</code></pre>
+<p>In the editor, find the <strong>readinessProbe</strong> section and change <strong>path: /invalid-path</strong> to <strong>path: /healthz</strong>. Save the changes and close the editor.</p>
+</li>
+<li>
+<p>Run the following command to verify the new pod becomes ready and the old pod terminates. You should see only one pod with <strong>Running</strong> status and <strong>1/1</strong> in the READY column.</p>
+<pre><code>kubectl get pods -n aks-troubleshoot
+</code></pre></li>
+</ol>
+<p>You diagnosed and solved a readiness probe error, next you verify end-to-end connectivity.</p>
+<h3 id="verify-end-to-end-connectivity">Verify end-to-end connectivity</h3>
+<p>After completing all troubleshooting scenarios, you confirm the application is fully functional.</p>
+<ol>
+<li>
+<p>Run the following command to use port-forward to access the Service.</p>
+<pre><code>kubectl port-forward service/api-service 8080:80 -n aks-troubleshoot
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a second terminal window in VS Code. Run the following commands to test all endpoints.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Bash</span>
+curl http://localhost:8080/healthz
+curl http://localhost:8080/readyz
+curl http://localhost:8080/api/info
+</code></pre></div></div>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># PowerShell</span><span class="w">
+</span><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nx">http://localhost:8080/healthz</span><span class="w">
+</span><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nx">http://localhost:8080/readyz</span><span class="w">
+</span><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nx">http://localhost:8080/api/info</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to check the pod logs to see the requests.</p>
+<pre><code>kubectl logs -l app=api -n aks-troubleshoot
+</code></pre></li>
+</ol>
+<p>You verified the application is fully functional, next you clean up resources.</p>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while setting up this exercise, try the following troubleshooting steps:</p>
+<p><strong>Check deployment status with the deployment script</strong></p>
+<ul>
+<li>Run the deployment script and select option <strong>6. Check deployment status</strong> to verify the state of all deployed resources.</li>
+<li>This command checks ACR provisioning state, AKS cluster provisioning state, and Kubernetes resource availability.</li>
+<li>Use this output to identify which component may be causing issues.</li>
+</ul>
+<p><strong>Resolve AKS cluster creation failures</strong></p>
+<ul>
+<li>Quota validation can fail before an AKS resource is created, while failures later in provisioning can leave the cluster in a <strong>Failed</strong> or <strong>Canceled</strong> state.</li>
+<li>If the error reports that <strong>Standard_D2s_v7</strong> is unavailable or that the region has insufficient capacity, exit with option <strong>8</strong>. Change <strong>AKS_VM_SIZE</strong> to one of the v5 or v6 fallback sizes listed near the top of the deployment script, or change the <strong>location</strong> value, and then run option <strong>3. Create AKS cluster</strong> again.</li>
+<li>If the error reports insufficient quota, select a region where your subscription has available Dsv5-family quota or request a quota increase. Changing regions only helps when the other region has sufficient quota.</li>
+<li>The AKS cluster uses the <strong>location</strong> configured in the script even when the resource group already exists in another region.</li>
+<li>If option <strong>6</strong> reports <strong>Failed</strong> or <strong>Canceled</strong>, correct the underlying issue and run option <strong>7. Delete failed AKS deployment</strong> before retrying option <strong>3</strong>. If no AKS resource was created, no deletion is needed.</li>
+</ul>
+<p><strong>ACR image pull errors</strong></p>
+<ul>
+<li>If pods show <strong>ImagePullBackOff</strong> or <strong>ErrImagePull</strong> status, verify the ACR resource was created and the image was pushed successfully.</li>
+<li>Run the deployment script option <strong>2. Build and push API image to ACR</strong> again if needed.</li>
+<li>Confirm the AKS cluster has permission to pull from ACR by checking the deployment script output for successful role assignment.</li>
+</ul>
+<p><strong>kubectl connection issues</strong></p>
+<ul>
+<li>If kubectl commands fail with connection errors, run the deployment script option <strong>4. Get AKS credentials for kubectl</strong> to refresh credentials.</li>
+<li>Verify the AKS cluster is running by checking the Azure portal or running <strong>az aks show --resource-group &lt;rg-name&gt; --name &lt;aks-name&gt; --query provisioningState</strong>.</li>
+</ul>
+<p><strong>Resetting the exercise</strong></p>
+<ul>
+<li>If you need to start the troubleshooting scenarios over, run the deployment script option <strong>5. Deploy application to AKS</strong> to redeploy the original working configuration.</li>
+<li>This reapplies the base deployment and service files, resetting any changes made during the exercise.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

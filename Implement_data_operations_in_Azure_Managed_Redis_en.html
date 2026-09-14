@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Perform data operations in Azure Managed Redis |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="perform-data-operations-in-azure-managed-redis">Perform data operations in Azure Managed Redis</h1>
+<p>In this exercise, you create an Azure Managed Redis resource and build a Python console application that performs common data operations using the <strong>redis-py</strong> library. You work with Redis hash data structures to store and retrieve key-value pairs, manage key expiration with Time-To-Live (TTL) settings, and delete keys from the cache.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Create an Azure Managed Redis resource</li>
+<li>Add code to the starter files to complete the console app</li>
+<li>Run the console app to perform data operations</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>The Azure CLI <strong>redisenterprise</strong> extension. You can install it by running the <strong>az extension add --name redisenterprise</strong> command.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-managed-redis">Download project starter files and deploy Azure Managed Redis</h2>
+<p>In this section you download the starter files for the console app and use a script to deploy Azure Managed Redis to your subscription. The deployment takes 5-10 minutes, so you start it first and complete the app code while it provisions.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/amr-data-operations-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following command to ensure your subscription has the necessary resource provider for Azure Managed Redis.</p>
+<pre><code>az provider register --namespace Microsoft.Cache
+</code></pre></li>
+<li>
+<p>Run the following command to install the <strong>redisenterprise</strong> extension for Azure CLI.</p>
+<pre><code>az extension add --name redisenterprise
+</code></pre></li>
+<li>
+<p>Run the following command in the terminal to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script is running, enter <strong>1</strong> to launch the <strong>1. Create Azure Managed Redis resource</strong> option.</p>
+<p>This option creates the resource group if it doesn't already exist, then deploys Azure Managed Redis. The script waits for the deployment to finish and reports the result in the terminal.</p>
+</li>
+<li>
+<p>Leave the deployment script running and continue to the next section to complete the app code while Azure Managed Redis provisions. Check the terminal periodically for completion or error messages.</p>
+</li>
+</ol>
+<h2 id="complete-the-app">Complete the app</h2>
+<p>In this section you add code to the <em>main.py</em> script to complete the console app. You run the app later in the exercise, after you confirm the Azure Managed Redis resource is fully deployed and create the <em>.env</em> file.</p>
+<ol>
+<li>Open the <em>main.py</em> file to begin adding code.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> The code blocks you add to the application should align with the comment for that section of the code.</p>
+</blockquote>
+<h3 id="add-the-client-connection">Add the client connection</h3>
+<p>In this section, you add code to establish a connection to Azure Managed Redis using the redis-py library. The code reads the Redis endpoint from an environment variable and uses <strong>DefaultAzureCredential</strong> through the <strong>redis-entraid</strong> credential provider so the client authenticates with Microsoft Entra ID and refreshes its token automatically.</p>
+<blockquote>
+<p><strong>Tip:</strong> To maintain proper code indentation, paste the code flush with the left margin (column 1), select all of the pasted lines, and press <strong>Tab</strong> to align the block with the <strong>BEGIN / END</strong> markers. Press <strong>Shift+Tab</strong> to outdent if needed.</p>
+</blockquote>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN CONNECTION CODE SECTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">try</span><span class="p">:</span>
+    <span class="c1"># Azure Managed Redis using Microsoft Entra ID authentication
+</span>    <span class="n">redis_host</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">"REDIS_HOST"</span><span class="p">)</span>
+
+    <span class="c1"># create_from_default_azure_credential uses DefaultAzureCredential to
+</span>    <span class="c1"># acquire and refresh a Microsoft Entra token for Redis.
+</span>    <span class="n">credential_provider</span> <span class="o">=</span> <span class="n">create_from_default_azure_credential</span><span class="p">(</span>
+        <span class="p">(</span><span class="s">"https://redis.azure.com/.default"</span><span class="p">,),</span>
+    <span class="p">)</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="n">redis</span><span class="p">.</span><span class="n">Redis</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">redis_host</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Azure Managed Redis uses port 10000
+</span>        <span class="n">ssl</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">decode_responses</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="c1"># Decode responses to strings
+</span>        <span class="n">credential_provider</span><span class="o">=</span><span class="n">credential_provider</span><span class="p">,</span>
+        <span class="n">socket_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>  <span class="c1"># Add timeout for better reliability
+</span>        <span class="n">socket_connect_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Connected to Redis at </span><span class="si">{</span><span class="n">redis_host</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">r</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="add-code-to-store-and-retrieve-data">Add code to store and retrieve data</h3>
+<p>In this section, you add code to work with Redis hash data structures using the <strong>hset</strong> and <strong>hgetall</strong> commands. The <strong>hset</strong> method stores multiple field-value pairs under a single key, while <strong>hgetall</strong> retrieves all fields and values for a given key.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN STORE AND RETRIEVE CODE SECTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">store_hash_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Store a hash data in Redis"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Storing hash data for key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">hset</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="n">value</span><span class="p">)</span> <span class="c1"># Store hash data
+</span>    <span class="k">if</span> <span class="n">result</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># New fields were added
+</span>        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Data stored successfully under key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' (</span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s"> new fields added)"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Data updated successfully under key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' (all fields already existed)"</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">retrieve_hash_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Retrieve hash data from Redis"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Retrieving hash data for key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="n">retrieved_value</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">hgetall</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="c1"># Retrieve hash data
+</span>    <span class="k">if</span> <span class="n">retrieved_value</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Retrieved hash data:"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">retrieved_value</span><span class="p">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"  </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist."</span><span class="p">)</span>
+
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="add-code-to-set-and-retrieve-expiration">Add code to set and retrieve expiration</h3>
+<p>In this section, you add code to manage key expiration using the <strong>expire</strong> and <strong>ttl</strong> commands. The <strong>expire</strong> method sets a Time-To-Live (TTL) on a key, causing it to automatically expire after the specified number of seconds, while <strong>ttl</strong> retrieves the remaining time before a key expires.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN EXPIRATION CODE SECTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">set_expiration</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Set an expiration time for a key"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Set expiration time for a key"</span><span class="p">)</span>
+    <span class="c1"># Set expiration time, 1 hour equals 3600 seconds
+</span>    <span class="n">expiration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s">"Enter expiration time in seconds (default 3600): "</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">3600</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">expire</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">expiration</span><span class="p">)</span> <span class="c1"># Set expiration time
+</span>    <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Expiration time of </span><span class="si">{</span><span class="n">expiration</span><span class="si">}</span><span class="s"> seconds set for key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">'"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist. Expiration not set."</span><span class="p">)</span>
+
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">retrieve_expiration</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Retrieve TTL of a key"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Retrieving the current TTL of </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">..."</span><span class="p">)</span>
+    <span class="n">ttl</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">ttl</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="c1"># Get current TTL
+</span>    <span class="k">if</span> <span class="n">ttl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span> <span class="c1"># Key does not exist
+</span>        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"</span><span class="se">\n</span><span class="s">Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist."</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">ttl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># No expiration set
+</span>        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"</span><span class="se">\n</span><span class="s">Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' has no expiration set (persists indefinitely)."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"</span><span class="se">\n</span><span class="s">Current TTL for '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">': </span><span class="si">{</span><span class="n">ttl</span><span class="si">}</span><span class="s"> seconds"</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="add-code-to-delete-data">Add code to delete data</h3>
+<p>In this section, you add code to remove keys from Redis using the <strong>delete</strong> command. The <strong>delete</strong> method permanently removes a key and its associated value from the cache, freeing up memory and ensuring the data is no longer accessible.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN DELETE CODE SECTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">delete_key</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Delete a key"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Deleting key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">..."</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="c1"># Delete the key
+</span>    <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' deleted successfully."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist."</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes to the <em>main.py</em> file.</p>
+</li>
+</ol>
+<h2 id="verify-resource-deployment">Verify resource deployment</h2>
+<p>In this section you verify the Azure Managed Redis deployment, create the database, configure Microsoft Entra ID access, and create the environment variable files with the Redis endpoint.</p>
+<ol>
+<li>
+<p>Return to the terminal running the deployment script. After the script reports that the Azure Managed Redis resource was created successfully, select <strong>Enter</strong> to return to the deployment menu.</p>
+</li>
+<li>
+<p>When the deployment menu appears, enter <strong>2</strong> to run the <strong>2. Check deployment status</strong> option. If the status shows <strong>Succeeded</strong>, proceed to the next step. If not, then wait a few minutes and try the option again.</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to run the <strong>3. Create database and configure access</strong> option. This creates the database, assigns a Microsoft Entra ID data access policy to your account so the app can connect using your identity, and creates the <em>.env</em> and <em>.env.ps1</em> files with the <strong>REDIS_HOST</strong> endpoint.</p>
+</li>
+<li>
+<p>Review the environment variable file for your shell to verify the values are present, then enter <strong>4</strong> to exit the deployment script.</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">Configure the Python environment</h2>
+<p>In this section, you create the Python environment and install the dependencies after completing the Azure deployment.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to create the Python environment.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to install the dependencies.</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h2 id="run-the-console-app">Run the console app</h2>
+<p>In this section, you run the completed console application to perform various Redis data operations. The app provides a menu-driven interface that lets you store hash data, retrieve values, manage key expiration, and delete keys.</p>
+<ol>
+<li>
+<p>Run the appropriate command to load the environment variables into your terminal session from the file created by the deployment script.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you need to run this command again to reload the environment variables.</p>
+</blockquote>
+</li>
+<li>
+<p>Run the following command in the terminal to start the console app. Refer to the commands from earlier in the exercise to activate the environment, if needed, before running the command.</p>
+<pre><code>python main.py
+</code></pre></li>
+<li>
+<p>The app has the following options. Select the <strong>1. Store hash data</strong> to get started.</p>
+<pre><code>1. Store hash data
+2. Retrieve hash data
+3. Set expiration
+4. Retrieve expiration (TTL)
+5. Delete key
+6. Exit
+</code></pre></li>
+<li>
+<p>Select the remaining options in order to run the different operations.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> You can run the options in any order you choose. For example, after storing the hash data you can retrieve the expiration information to learn there is no expiration set on the key.</p>
+</blockquote>
+<p>The mock hash data used in the app is defined in the beginning of the <strong>main()</strong> function. You can update the code to use a different key, or add more values to the hash data.</p>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Verify Azure Managed Redis resource deployment</strong></p>
+<ul>
+<li>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your resource group.</li>
+<li>Confirm that the Azure Managed Redis resource shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong>.</li>
+<li>Check that the resource has <strong>Public network access</strong> enabled.</li>
+</ul>
+<p><strong>Check code completeness and indentation</strong></p>
+<ul>
+<li>Ensure all code blocks were added to the correct sections in <em>main.py</em> between the appropriate BEGIN/END comment markers.</li>
+<li>Verify that Python indentation is consistent (use spaces, not tabs) and that all code aligns properly within functions.</li>
+<li>Confirm that no code was accidentally removed or modified outside the designated sections.</li>
+</ul>
+<p><strong>Verify environment variables</strong></p>
+<ul>
+<li>Check that both the <em>.env</em> and <em>.env.ps1</em> files exist in the project folder and contain a valid <strong>REDIS_HOST</strong> value.</li>
+<li>Ensure both files are in the same directory as <em>main.py</em>.</li>
+</ul>
+<p><strong>Check authentication and access</strong></p>
+<ul>
+<li>Confirm you are logged in to Azure CLI by running <strong>az account show</strong>.</li>
+<li>Ensure the deployment script's <strong>Create database and configure access</strong> option completed successfully so your account has a data access policy on the database.</li>
+<li>If the app reports an authentication error, wait a moment and try again, as the access policy assignment can take a short time to take effect.</li>
+</ul>
+<p><strong>Check Python environment and dependencies</strong></p>
+<ul>
+<li>Confirm the virtual environment is activated before running the app.</li>
+<li>Verify that all packages from <em>requirements.txt</em> were installed successfully by running <strong>pip list</strong>.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

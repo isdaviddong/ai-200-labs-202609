@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        在 Azure Managed Redis 中執行資料作業 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="perform-data-operations-in-azure-managed-redis">在 Azure Managed Redis 中執行資料作業</h1>
+<p>在本練習中，您將建立 Azure Managed Redis 資源，並建置一個 Python 主控台應用程式，使用 <strong>redis-py</strong> 函式庫來執行常見的資料作業。您會使用 Redis hash 資料結構來儲存與擷取鍵值組、以 Time-To-Live (TTL) 設定管理金鑰過期時間，並從快取中刪除金鑰。</p>
+<p>本練習將執行的工作：</p>
+<ul>
+<li>下載專案起始檔案</li>
+<li>建立 Azure Managed Redis 資源</li>
+<li>將程式碼加入起始檔案以完成主控台應用程式</li>
+<li>執行主控台應用程式以執行資料作業</li>
+</ul>
+<p>本練習約需 <strong>30</strong> 分鐘完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>Azure 訂用帳戶。如果您尚未擁有，您可以 <a href="https://azure.microsoft.com/">註冊一個</a>。</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> 安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>。</li>
+<li>Azure CLI 的 <strong>redisenterprise</strong> 延伸模組。您可以執行 <strong>az extension add --name redisenterprise</strong> 命令來安裝它。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-managed-redis">下載專案起始檔案並部署 Azure Managed Redis</h2>
+<p>在本節中，您將下載主控台應用程式的起始檔案，並使用指令碼將 Azure Managed Redis 部署至您的訂用帳戶。部署需要 5 到 10 分鐘，因此您會先啟動部署，並在佈建期間完成應用程式程式碼。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載起始檔案。該檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/amr-data-operations-python.zip
+</code></pre></li>
+<li>
+<p>將該檔案複製或移動到系統中您想要進行專案作業的位置，然後將它解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並在選單中選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟 <em>azdeploy.py</em> 部署指令碼，並變更指令碼頂端的兩個值以符合您的需求，然後儲存變更。 <strong>Note:</strong> 請勿變更指令碼中的其他任何內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong> ，以在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依照提示選取要用於本練習的 Azure 帳戶與訂用帳戶。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令，確認您的訂用帳戶具有 Azure Managed Redis 所需的資源提供者。</p>
+<pre><code>az provider register --namespace Microsoft.Cache
+</code></pre></li>
+<li>
+<p>執行下列命令以安裝 <strong>redisenterprise</strong> 的 Azure CLI 延伸模組。</p>
+<pre><code>az extension add --name redisenterprise
+</code></pre></li>
+<li>
+<p>在終端機中執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>當指令碼執行時，輸入 <strong>1</strong> 以啟動 <strong>1. Create Azure Managed Redis resource</strong> 選項。</p>
+<p>此選項會在資源群組尚不存在時建立它，然後部署 Azure Managed Redis。指令碼會等待部署完成，並在終端機中報告結果。</p>
+</li>
+<li>
+<p>讓部署指令碼繼續執行，並在 Azure Managed Redis 佈建期間繼續下一節以完成應用程式程式碼。請定期查看終端機是否出現完成或錯誤訊息。</p>
+</li>
+</ol>
+<h2 id="complete-the-app">完成應用程式</h2>
+<p>在本節中，您將程式碼加入 <em>main.py</em> 指令碼以完成主控台應用程式。您會在本練習稍後確認 Azure Managed Redis 資源已完全部署並建立 <em>.env</em> 檔案之後再執行此應用程式。</p>
+<ol>
+<li>開啟 <em>main.py</em> 檔案以開始加入程式碼。</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> 您加入到應用程式中的程式碼區塊應與該段程式碼的註解對齊。</p>
+</blockquote>
+<h3 id="add-the-client-connection">加入用戶端連線</h3>
+<p>在本節中，您將加入程式碼，使用 redis-py 函式庫建立與 Azure Managed Redis 的連線。程式碼會從環境變數讀取 Redis 端點，並透過 <strong>DefaultAzureCredential</strong> 和 <strong>redis-entraid</strong> 認證提供者，讓用戶端使用 Microsoft Entra ID 進行驗證並自動重新整理其權杖。</p>
+<blockquote>
+<p><strong>提示：</strong> 為保持正確的程式碼縮排，請將程式碼貼齊左邊界（第 1 欄），選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 以減少縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>尋找 <strong># BEGIN CONNECTION CODE SECTION</strong> 註解，並在該註解下方加入下列程式碼。請務必確認程式碼縮排正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">try</span><span class="p">:</span>
+    <span class="c1"># Azure Managed Redis using Microsoft Entra ID authentication
+</span>    <span class="n">redis_host</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">"REDIS_HOST"</span><span class="p">)</span>
+
+    <span class="c1"># create_from_default_azure_credential uses DefaultAzureCredential to
+</span>    <span class="c1"># acquire and refresh a Microsoft Entra token for Redis.
+</span>    <span class="n">credential_provider</span> <span class="o">=</span> <span class="n">create_from_default_azure_credential</span><span class="p">(</span>
+        <span class="p">(</span><span class="s">"https://redis.azure.com/.default"</span><span class="p">,),</span>
+    <span class="p">)</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="n">redis</span><span class="p">.</span><span class="n">Redis</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">redis_host</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Azure Managed Redis uses port 10000
+</span>        <span class="n">ssl</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">decode_responses</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="c1"># Decode responses to strings
+</span>        <span class="n">credential_provider</span><span class="o">=</span><span class="n">credential_provider</span><span class="p">,</span>
+        <span class="n">socket_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>  <span class="c1"># Add timeout for better reliability
+</span>        <span class="n">socket_connect_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Connected to Redis at </span><span class="si">{</span><span class="n">redis_host</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">r</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="add-code-to-store-and-retrieve-data">加入用於儲存與擷取資料的程式碼</h3>
+<p>在本節中，您將加入程式碼，使用 <strong>hset</strong> 與 <strong>hgetall</strong> 命令來操作 Redis hash 資料結構。 <strong>hset</strong> 方法會在單一金鑰下儲存多個欄位值配對，而 <strong>hgetall</strong> 則會擷取指定金鑰的所有欄位與值。</p>
+<ol>
+<li>
+<p>尋找 <strong># BEGIN STORE AND RETRIEVE CODE SECTION</strong> 註解，並在該註解下方加入下列程式碼。請務必確認程式碼縮排正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">store_hash_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Store a hash data in Redis"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Storing hash data for key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">hset</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="n">value</span><span class="p">)</span> <span class="c1"># Store hash data
+</span>    <span class="k">if</span> <span class="n">result</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># New fields were added
+</span>        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Data stored successfully under key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' (</span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s"> new fields added)"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Data updated successfully under key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' (all fields already existed)"</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">retrieve_hash_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Retrieve hash data from Redis"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Retrieving hash data for key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="n">retrieved_value</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">hgetall</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="c1"># Retrieve hash data
+</span>    <span class="k">if</span> <span class="n">retrieved_value</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Retrieved hash data:"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">retrieved_value</span><span class="p">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"  </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist."</span><span class="p">)</span>
+
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="add-code-to-set-and-retrieve-expiration">加入設定與擷取到期時間的程式碼</h3>
+<p>在本節中，您將加入程式碼，使用 <strong>expire</strong> 與 <strong>ttl</strong> 命令來操作 Redis hash 資料結構。 <strong>expire</strong> 方法會在金鑰上設定 Time-To-Live (TTL)，使其在指定秒數後自動過期，而 <strong>ttl</strong> 則會擷取金鑰過期前的剩餘時間。</p>
+<ol>
+<li>
+<p>尋找 <strong># BEGIN EXPIRATION CODE SECTION</strong> 註解，並在該註解下方加入下列程式碼。請務必確認程式碼縮排正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">set_expiration</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Set an expiration time for a key"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Set expiration time for a key"</span><span class="p">)</span>
+    <span class="c1"># Set expiration time, 1 hour equals 3600 seconds
+</span>    <span class="n">expiration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">(</span><span class="s">"Enter expiration time in seconds (default 3600): "</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">3600</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">expire</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">expiration</span><span class="p">)</span> <span class="c1"># Set expiration time
+</span>    <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Expiration time of </span><span class="si">{</span><span class="n">expiration</span><span class="si">}</span><span class="s"> seconds set for key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">'"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist. Expiration not set."</span><span class="p">)</span>
+
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">retrieve_expiration</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Retrieve TTL of a key"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Retrieving the current TTL of </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">..."</span><span class="p">)</span>
+    <span class="n">ttl</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">ttl</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="c1"># Get current TTL
+</span>    <span class="k">if</span> <span class="n">ttl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span> <span class="c1"># Key does not exist
+</span>        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"</span><span class="se">\n</span><span class="s">Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist."</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">ttl</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># No expiration set
+</span>        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"</span><span class="se">\n</span><span class="s">Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' has no expiration set (persists indefinitely)."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"</span><span class="se">\n</span><span class="s">Current TTL for '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">': </span><span class="si">{</span><span class="n">ttl</span><span class="si">}</span><span class="s"> seconds"</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="add-code-to-delete-data">加入刪除資料的程式碼</h3>
+<p>在本節中，您將加入程式碼，使用 <strong>delete</strong> 命令從 Redis 移除金鑰。 <strong>delete</strong> 方法會從快取中永久移除金鑰及其相關值，釋放記憶體並確保資料不再可存取。</p>
+<ol>
+<li>
+<p>尋找 <strong># BEGIN DELETE CODE SECTION</strong> 註解，並在該註解下方加入下列程式碼。請務必確認程式碼縮排正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">delete_key</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="s">"""Delete a key"""</span>
+    <span class="n">clear_screen</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Deleting key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">..."</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">r</span><span class="p">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="c1"># Delete the key
+</span>    <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' deleted successfully."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Key '</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s">' does not exist."</span><span class="p">)</span>
+    <span class="nb">input</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">Press Enter to continue..."</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>將您的變更儲存到 <em>main.py</em> 檔案之後再執行此應用程式。</p>
+</li>
+</ol>
+<h2 id="verify-resource-deployment">驗證資源部署</h2>
+<p>在本節中，您將確認 Azure Managed Redis 部署、建立資料庫、設定 Microsoft Entra ID 存取權，並建立包含 Redis 端點的環境變數檔案。</p>
+<ol>
+<li>
+<p>返回正在執行部署指令碼的終端機。指令碼報告 Azure Managed Redis 資源已成功建立後，選取 <strong>Enter</strong> 以返回部署選單。</p>
+</li>
+<li>
+<p>當部署選單出現時，輸入 <strong>2</strong> 以執行 <strong>2. Check deployment status</strong> 選項。如果狀態顯示為 <strong>Succeeded</strong>，請繼續下一步。若否，請等待幾分鐘後再試一次此選項。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 以執行 <strong>3. Create database and configure access</strong> 選項。這會建立資料庫、將 Microsoft Entra ID 資料存取原則指派給您的帳戶，讓應用程式可使用您的身分識別進行連線，並建立 <em>.env</em> 與 <em>.env.ps1</em> 檔案，其中包含 <strong>REDIS_HOST</strong> 端點。</p>
+</li>
+<li>
+<p>檢閱您殼層的環境變數檔案以確認其中包含這些值，然後輸入 <strong>4</strong> 以結束部署指令碼。</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">設定 Python 環境</h2>
+<p>在本節中，您將在完成 Azure 部署後建立 Python 環境並安裝相依性。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以建立 Python 環境。</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>執行下列命令以啟用 Python 環境。 <strong>Note:</strong> 在 Linux/macOS 上，請使用 Bash 命令。在 Windows 上，請使用 PowerShell 命令。如果是在 Windows 上使用 Git Bash，請使用 <strong>source .venv/Scripts/activate</strong>。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令以安裝相依性。</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h2 id="run-the-console-app">執行主控台應用程式</h2>
+<p>在本節中，您將執行已完成的主控台應用程式，以執行各種 Redis 資料作業。此應用程式提供選單式介面，讓您可以儲存 hash 資料、擷取值、管理金鑰過期時間，以及刪除金鑰。</p>
+<ol>
+<li>
+<p>執行適當的命令，從部署指令碼建立的檔案將環境變數載入終端機工作階段。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> 讓終端機保持開啟。如果您關閉終端機並建立新的終端機，則需要再次執行此命令以重新載入環境變數。</p>
+</blockquote>
+</li>
+<li>
+<p>在終端機中執行下列命令以啟動主控台應用程式。如有需要，請參考稍早練習中的命令先啟用環境，再執行此命令。</p>
+<pre><code>python main.py
+</code></pre></li>
+<li>
+<p>應用程式提供下列選項。請選取 <strong>1. Store hash data</strong> 開始操作。</p>
+<pre><code>1. Store hash data
+2. Retrieve hash data
+3. Set expiration
+4. Retrieve expiration (TTL)
+5. Delete key
+6. Exit
+</code></pre></li>
+<li>
+<p>接著依序選取其餘選項，以執行不同作業。</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> 您可以依自己選擇的任意順序執行這些選項。例如，在儲存 hash 資料後，您可以擷取到期資訊，以了解該金鑰未設定到期時間。</p>
+</blockquote>
+<p>應用程式中使用的模擬 hash 資料定義於 <strong>main()</strong> 函式的開頭。您可以更新程式碼以使用不同的金鑰，或向 hash 資料新增更多值。</p>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>既然您已完成本練習，應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及群組中的所有資源。請將 <strong>&lt;rg-name&gt;</strong> 替換為您稍早在練習中選擇的名稱。此命令會在 Azure 中啟動背景工作以刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> 刪除資源群組會刪除其中包含的所有資源。如果您為本練習選用了現有的資源群組，則此練習範圍外的任何既有資源也會一併刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在完成本練習時遇到問題，請嘗試下列疑難排解步驟：</p>
+<p><strong>驗證 Azure Managed Redis 資源部署</strong></p>
+<ul>
+<li>瀏覽至 <a href="https://portal.azure.com">Azure portal</a> 並找出您的資源群組。</li>
+<li>確認 Azure Managed Redis 資源顯示的 <strong>Provisioning State</strong> 為 <strong>Succeeded</strong>。</li>
+<li>確認資源已啟用 <strong>Public network access</strong>。</li>
+</ul>
+<p><strong>檢查程式碼完整性與縮排</strong></p>
+<ul>
+<li>確認所有程式碼區塊都已加入 <em>main.py</em> 中對應的 BEGIN/END 註解標記之間。</li>
+<li>確認 Python 縮排一致（使用空格，不使用 Tab），且所有程式碼在函式內都正確對齊。</li>
+<li>確認在指定區段之外沒有任何程式碼被意外刪除或修改。</li>
+</ul>
+<p><strong>驗證環境變數</strong></p>
+<ul>
+<li>確認專案根目錄中同時存在 <em>.env</em> 與 <em>.env.ps1</em> 檔案，且包含有效的 <strong>REDIS_HOST</strong> 值。</li>
+<li>確認這兩個檔案與下列檔案位於相同目錄： <em>main.py</em>。</li>
+</ul>
+<p><strong>檢查驗證與存取權</strong></p>
+<ul>
+<li>執行下列命令，確認您已登入 Azure CLI： <strong>az account show</strong>。</li>
+<li>確認部署指令碼的 <strong>Create database and configure access</strong> 選項已成功完成，讓您的帳戶具有資料庫的資料存取原則。</li>
+<li>如果應用程式報告驗證錯誤，請稍候片刻再試一次，因為存取原則指派可能需要一點時間才會生效。</li>
+</ul>
+<p><strong>檢查 Python 環境與相依性</strong></p>
+<ul>
+<li>確認在執行應用程式前已啟用虛擬環境。</li>
+<li>確認 <em>requirements.txt</em> 中的所有套件都已成功安裝，可執行 <strong>pip list</strong>。</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">隱私權 </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">消費者健康隱私權 </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">使用規定 </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">商標 </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    來源
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

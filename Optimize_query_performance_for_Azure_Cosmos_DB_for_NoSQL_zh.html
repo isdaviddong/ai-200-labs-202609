@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        使用 Azure Cosmos DB for NoSQL 的向量索引最佳化查詢效能 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-door-fill" viewbox="0 0 16 16">
+                        <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"></path>
+                    </svg>
+                     首頁
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color->
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="">
+            <article class="col-sm-10 mb-5">
+                <h1 id="optimize-query-performance-with-vector-indexes-on-azure-cosmos-db-for-nosql">使用 Azure Cosmos DB for NoSQL 的向量索引最佳化查詢效能</h1>
+<p>在本練習中，您將比較和調整向量索引策略以最佳化查詢效能 Azure Cosmos DB for NoSQL。向量索引顯著影響搜尋品質和 Request Unit (RU） 消耗。您建立具有三種不同索引類型的容器 -flat, quantizedFlat， 和 diskANN—載入相同的樣本資料，並執行比較搜尋來衡量效能差異。這種實踐練習可以幫助您選擇適合您的索引策略 AI 應用程式的要求。</p>
+<p>本練習執行的工作：</p>
+<ul>
+<li>下載專案啟動檔案並設定部署腳本</li>
+<li>部署一個 Azure Cosmos DB for NoSQL 帳戶 具有向量搜尋功能</li>
+<li>建造 Python 用於比較向量索引效能的函數</li>
+<li>建立容器 flat, quantizedFlat， 和 diskANN 索引</li>
+<li>使用以下方法測試並比較索引效能 Flask Web 應用程式</li>
+</ul>
+<p>本練習大約需要 <strong>30</strong> 分鐘即可完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>要完成練習，您需要：</p>
+<ul>
+<li>具有部署必要 Azure 服務權限的 Azure 訂閱。如果您還沒有，您可以 <a href="https://azure.microsoft.com/">註冊一個</a>.</li>
+<li>
+<a href="https://code.visualstudio.com/">Visual Studio Code</a> 在其支援的平台之一上 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>.</li>
+<li>最新版本的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>
+<a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案啟動檔案並部署 Azure 服務</h2>
+<p>在本部分中，您將下載專案入門檔案並使用腳本將必要的服務部署至 Azure 訂閱。宇宙 DB 帳戶 部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入以下內容 URL 下載啟動檔。該文件將保存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/cosmosdb-optimize-query-python.zip
+</code></pre>
+</li>
+<li>
+<p>將文件複製或移動到您的位置 system 您想在哪裡從事該專案。然後將檔案解壓縮到一個資料夾中。</p>
+</li>
+<li>
+<p>發射 Visual Studio Code (VS Code）並選擇 <strong>File &gt; Open Folder...</strong> 在選單中，然後選擇包含項目文件的資料夾。</p>
+</li>
+<li>
+<p>打開 <em>azdeploy.py</em> 部署腳本並依您的需求變更腳本頂端的兩個值，然後儲存變更。 <strong>注意：</strong> 不要更改腳本中的任何其他內容。</p>
+<pre><code>"&lt;your-resource-group-name&gt;" # Resource Group name
+"&lt;your-azure-region&gt;" # Azure region for the resources
+</code></pre>
+</li>
+<li>
+<p>在功能表列中選擇 <strong>終端機 &gt; 新增終端機</strong> 打開終端機視窗 VS Code.</p>
+</li>
+<li>
+<p>執行以下命令登入您的 Azure account。回答提示以選擇您的 Azure 帳戶 並訂閱該練習。</p>
+<pre><code>az login
+</code></pre>
+</li>
+<li>
+<p>執行以下命令以確保您的訂閱具有練習所需的資源提供者。</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DocumentDB
+</code></pre>
+</li>
+</ol>
+<h3 id="create-resources-in-azure">在 Azure 中建立資源</h3>
+<p>在本部分中，您將執行部署腳本來部署 Cosmos DB 帳戶 具有向量搜尋功能。</p>
+<ol>
+<li>
+<p>請確定您位於專案的根目錄中，並在終端機執行下列命令以啟動部署腳本。</p>
+<pre><code>python azdeploy.py
+</code></pre>
+</li>
+<li>
+<p>當腳本選單出現時，輸入 <strong>1</strong> 啟動 <strong>Create Cosmos DB account</strong> 選項。這創造了宇宙 DB 為了 NoSQL 帳戶 與 <strong>EnableNoSQLVectorSearch</strong> 能力和資料庫。 <strong>注意：</strong> 部署可能需要 5-10 分鐘才能完成。</p>
+<blockquote>
+<p><strong>重要：</strong> 在練習期間，使運行部署的終端保持開啟狀態。您可以繼續練習的下一部分，同時在終端機中繼續部署。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-index-comparison-functions">完成索引比較功能</h2>
+<p>在本節中，您將完成 Python 用於比較向量索引效能並查看容器設定腳本的程式碼。您新增執行相似性搜尋和追蹤的功能 RU 消耗和執行時間。您也可以檢查不同的向量索引設定，以了解每種索引類型的建立方式。</p>
+<h3 id="complete-the-vector-similarity-search-script">完成向量相似度搜尋腳本</h3>
+<p>在本節中，您將完成 <em>index_functions.py</em> 文件中新增了執行向量相似性搜尋和效能追蹤的功能。為每個容器呼叫此函數，以比較不同索引類型處理相同查詢的方式。</p>
+<ol>
+<li>打開 <em>client/index_functions.py</em> 文件輸入 VS Code.</li>
+</ol>
+<blockquote>
+<p><strong>提示：</strong> 若要維持正確的程式碼縮排，請從左邊界（第 1 欄）開始貼上程式碼，選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 取消縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>搜尋 <strong>BEGIN VECTOR SIMILARITY SEARCH FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數會尋找與查詢類似的文件並追蹤效能指標。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">vector_similarity_search</span><span class="p">(</span>
+    <span class="n">container_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">query_embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">top_n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""
+    Find documents most similar to the query using vector distance.
+
+    This function performs a vector similarity search using the VectorDistance
+    function and tracks the RU consumption and execution time. Results are
+    ordered by distance (lowest = most similar).
+
+    Args:
+        container_name: Name of the container to search
+        query_embedding: 256-dimensional query vector
+        top_n: Number of results to return
+
+    Returns:
+        Dictionary containing results, ru_charge, and execution_time_ms
+    """</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">(</span><span class="n">container_name</span><span class="p">)</span>
+
+    <span class="c1"># Track execution time for performance comparison
+</span>    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="c1"># The VectorDistance function calculates distance between vectors
+</span>    <span class="c1"># Using cosine distance: 0 = identical, 2 = opposite
+</span>    <span class="c1"># Results ordered by distance ascending (most similar first)
+</span>    <span class="n">query</span> <span class="o">=</span> <span class="s">"""
+        SELECT TOP @topN
+            c.id,
+            c.documentId,
+            c.content,
+            c.metadata,
+            VectorDistance(c.embedding, @queryVector) AS similarityScore
+        FROM c
+        ORDER BY VectorDistance(c.embedding, @queryVector)
+    """</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">query_items</span><span class="p">(</span>
+        <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@topN"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">top_n</span><span class="p">},</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@queryVector"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">query_embedding</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="n">enable_cross_partition_query</span><span class="o">=</span><span class="bp">True</span>
+    <span class="p">))</span>
+
+    <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="p">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">execution_time_ms</span> <span class="o">=</span> <span class="p">(</span><span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
+
+    <span class="c1"># Get RU charge from the query - note: this is approximate for multi-page results
+</span>    <span class="c1"># For accurate RU tracking in production, use Azure Monitor
+</span>    <span class="n">ru_charge</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># The last_response_headers contains the RU charge
+</span>        <span class="n">ru_charge</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">client_connection</span><span class="p">.</span><span class="n">last_response_headers</span><span class="p">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s">'x-ms-request-charge'</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="p">))</span>
+    <span class="k">except</span> <span class="nb">Exception</span><span class="p">:</span>
+        <span class="k">pass</span>  <span class="c1"># RU tracking may not be available in all scenarios
+</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"document_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"documentId"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"similarity_score"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"similarityScore"</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"results"</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+        <span class="s">"ru_charge"</span><span class="p">:</span> <span class="n">ru_charge</span><span class="p">,</span>
+        <span class="s">"execution_time_ms"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">execution_time_ms</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN COMPARE INDEX PERFORMANCE FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。該函數對所有三個容器執行相同的查詢並傳回比較結果。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">compare_index_performance</span><span class="p">(</span>
+    <span class="n">query_embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">top_n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""
+    Run the same vector search query against all three containers and compare performance.
+
+    This function executes identical vector similarity searches against containers
+    with different indexing strategies (flat, quantizedFlat, diskANN) to demonstrate
+    the performance characteristics of each approach.
+
+    Args:
+        query_embedding: 256-dimensional query vector
+        top_n: Number of results to return from each container
+
+    Returns:
+        Dictionary with results from each container including RU costs and timing
+    """</span>
+    <span class="n">comparison</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Test each container with the same query
+</span>    <span class="k">for</span> <span class="n">index_type</span><span class="p">,</span> <span class="n">container_name</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s">"flat"</span><span class="p">,</span> <span class="n">CONTAINER_FLAT</span><span class="p">),</span>
+        <span class="p">(</span><span class="s">"quantizedFlat"</span><span class="p">,</span> <span class="n">CONTAINER_QUANTIZED</span><span class="p">),</span>
+        <span class="p">(</span><span class="s">"diskANN"</span><span class="p">,</span> <span class="n">CONTAINER_DISKANN</span><span class="p">)</span>
+    <span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">vector_similarity_search</span><span class="p">(</span><span class="n">container_name</span><span class="p">,</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="n">top_n</span><span class="p">)</span>
+            <span class="n">comparison</span><span class="p">[</span><span class="n">index_type</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s">"container"</span><span class="p">:</span> <span class="n">container_name</span><span class="p">,</span>
+                <span class="s">"results"</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s">"results"</span><span class="p">],</span>
+                <span class="s">"ru_charge"</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s">"ru_charge"</span><span class="p">],</span>
+                <span class="s">"execution_time_ms"</span><span class="p">:</span> <span class="n">result</span><span class="p">[</span><span class="s">"execution_time_ms"</span><span class="p">],</span>
+                <span class="s">"result_count"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s">"results"</span><span class="p">]),</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"success"</span>
+            <span class="p">}</span>
+        <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">comparison</span><span class="p">[</span><span class="n">index_type</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s">"container"</span><span class="p">:</span> <span class="n">container_name</span><span class="p">,</span>
+                <span class="s">"results"</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s">"ru_charge"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s">"execution_time_ms"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s">"result_count"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"error"</span><span class="p">,</span>
+                <span class="s">"error"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">comparison</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>將您的變更儲存到 <em>index_functions.py</em> file.</p>
+</li>
+<li>
+<p>花幾分鐘時間查看腳本中的所有程式碼。</p>
+</li>
+</ol>
+<h3 id="review-the-container-setup-code">查看容器設定代碼</h3>
+<p>在本節中，您將回顧 <em>setup_containers.py</em> 建立具有不同向量索引策略的容器的腳本。向量嵌入策略（路徑、維度、資料類型和距離函數）是在容器建立時設定的，之後無法變更。然而，向量索引類型是索引策略的一部分，可以在現有容器上更新。當您變更索引類型時，Cosmos DB 在背景執行索引轉換。儘管具有這種靈活性，預先測試不同的索引類型仍然是最佳實踐：常見的方法是使用每種索引類型建立測試容器，載入代表性範例資料，並執行基準查詢來測量 RU 投入生產設定之前的成本和延遲。</p>
+<ol>
+<li>
+<p>打開 <em>client/setup_containers.py</em> 文件輸入 VS Code.</p>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN CREATE FLAT CONTAINER FUNCTION</strong> 評論並審查程式碼。請注意如何 flat 索引設定：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">create_flat_container</span><span class="p">():</span>
+    <span class="s">"""
+    Create a container with a flat vector index.
+    """</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">get_database</span><span class="p">()</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="s">"vectors-flat"</span>
+
+    <span class="c1"># Vector embedding policy defines how Cosmos DB handles vector data
+</span>    <span class="n">vector_embedding_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"vectorEmbeddings"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"dataType"</span><span class="p">:</span> <span class="s">"float32"</span><span class="p">,</span>
+                <span class="s">"distanceFunction"</span><span class="p">:</span> <span class="s">"cosine"</span><span class="p">,</span>
+                <span class="s">"dimensions"</span><span class="p">:</span> <span class="mi">256</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Flat index: exact search, compares query against all vectors
+</span>    <span class="c1"># Higher RU cost for large datasets but guaranteed best results
+</span>    <span class="n">indexing_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"indexingMode"</span><span class="p">:</span> <span class="s">"consistent"</span><span class="p">,</span>
+        <span class="s">"automatic"</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+        <span class="s">"includedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"excludedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"vectorIndexes"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"flat"</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Creating container '</span><span class="si">{</span><span class="n">container_name</span><span class="si">}</span><span class="s">' with flat vector index..."</span><span class="p">)</span>
+
+    <span class="n">container</span> <span class="o">=</span> <span class="n">database</span><span class="p">.</span><span class="n">create_container_if_not_exists</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="n">container_name</span><span class="p">,</span>
+        <span class="n">partition_key</span><span class="o">=</span><span class="n">PartitionKey</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s">"/documentId"</span><span class="p">),</span>
+        <span class="n">indexing_policy</span><span class="o">=</span><span class="n">indexing_policy</span><span class="p">,</span>
+        <span class="n">vector_embedding_policy</span><span class="o">=</span><span class="n">vector_embedding_policy</span>
+    <span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"✓ Container '</span><span class="si">{</span><span class="n">container_name</span><span class="si">}</span><span class="s">' created with flat index"</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"  - Index type: flat (exact nearest neighbor)"</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"  - Best for: small datasets, exact results required"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">container</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN CREATE QUANTIZED CONTAINER FUNCTION</strong> 評論並審查 quantizedFlat 設定：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">create_quantized_container</span><span class="p">():</span>
+    <span class="s">"""
+    Create a container with a quantized flat vector index.
+
+    The quantizedFlat index compresses vectors using scalar quantization,
+    reducing memory usage while maintaining good search quality. It still
+    performs exact search but on compressed representations. Suitable for:
+    - Medium datasets (10,000 - 100,000 vectors)
+    - Memory-constrained environments
+    - Balance between performance and accuracy
+    """</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">get_database</span><span class="p">()</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="s">"vectors-quantized"</span>
+
+    <span class="n">vector_embedding_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"vectorEmbeddings"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"dataType"</span><span class="p">:</span> <span class="s">"float32"</span><span class="p">,</span>
+                <span class="s">"distanceFunction"</span><span class="p">:</span> <span class="s">"cosine"</span><span class="p">,</span>
+                <span class="s">"dimensions"</span><span class="p">:</span> <span class="mi">256</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="c1"># QuantizedFlat index: compressed vectors for memory efficiency
+</span>    <span class="c1"># Lower memory footprint with slight accuracy trade-off
+</span>    <span class="n">indexing_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"indexingMode"</span><span class="p">:</span> <span class="s">"consistent"</span><span class="p">,</span>
+        <span class="s">"automatic"</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+        <span class="s">"includedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"excludedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"vectorIndexes"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"quantizedFlat"</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Creating container '</span><span class="si">{</span><span class="n">container_name</span><span class="si">}</span><span class="s">' with quantizedFlat vector index..."</span><span class="p">)</span>
+
+    <span class="n">container</span> <span class="o">=</span> <span class="n">database</span><span class="p">.</span><span class="n">create_container_if_not_exists</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="n">container_name</span><span class="p">,</span>
+        <span class="n">partition_key</span><span class="o">=</span><span class="n">PartitionKey</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s">"/documentId"</span><span class="p">),</span>
+        <span class="n">indexing_policy</span><span class="o">=</span><span class="n">indexing_policy</span><span class="p">,</span>
+        <span class="n">vector_embedding_policy</span><span class="o">=</span><span class="n">vector_embedding_policy</span>
+    <span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"✓ Container '</span><span class="si">{</span><span class="n">container_name</span><span class="si">}</span><span class="s">' created with quantizedFlat index"</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"  - Index type: quantizedFlat (compressed exact search)"</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"  - Best for: medium datasets, memory efficiency"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">container</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN CREATE DISKANN CONTAINER FUNCTION</strong> 評論並審查 diskANN 設定：</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">create_diskann_container</span><span class="p">():</span>
+    <span class="s">"""
+    Create a container with a DiskANN vector index.
+
+    DiskANN (Disk-based Approximate Nearest Neighbor) uses a graph-based
+    algorithm for efficient similarity search. It provides excellent
+    performance with high recall rates (typically 95%+). Recommended for:
+    - Large datasets (&gt; 100,000 vectors)
+    - Production workloads
+    - Low-latency requirements
+    """</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">get_database</span><span class="p">()</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="s">"vectors-diskann"</span>
+
+    <span class="n">vector_embedding_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"vectorEmbeddings"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"dataType"</span><span class="p">:</span> <span class="s">"float32"</span><span class="p">,</span>
+                <span class="s">"distanceFunction"</span><span class="p">:</span> <span class="s">"cosine"</span><span class="p">,</span>
+                <span class="s">"dimensions"</span><span class="p">:</span> <span class="mi">256</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="c1"># DiskANN index: approximate nearest neighbor with graph-based search
+</span>    <span class="c1"># Best performance for large datasets, slight accuracy trade-off
+</span>    <span class="n">indexing_policy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"indexingMode"</span><span class="p">:</span> <span class="s">"consistent"</span><span class="p">,</span>
+        <span class="s">"automatic"</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+        <span class="s">"includedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"excludedPaths"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span><span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding/*"</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s">"vectorIndexes"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s">"path"</span><span class="p">:</span> <span class="s">"/embedding"</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"diskANN"</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Creating container '</span><span class="si">{</span><span class="n">container_name</span><span class="si">}</span><span class="s">' with diskANN vector index..."</span><span class="p">)</span>
+
+    <span class="n">container</span> <span class="o">=</span> <span class="n">database</span><span class="p">.</span><span class="n">create_container_if_not_exists</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="n">container_name</span><span class="p">,</span>
+        <span class="n">partition_key</span><span class="o">=</span><span class="n">PartitionKey</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s">"/documentId"</span><span class="p">),</span>
+        <span class="n">indexing_policy</span><span class="o">=</span><span class="n">indexing_policy</span><span class="p">,</span>
+        <span class="n">vector_embedding_policy</span><span class="o">=</span><span class="n">vector_embedding_policy</span>
+    <span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"✓ Container '</span><span class="si">{</span><span class="n">container_name</span><span class="si">}</span><span class="s">' created with diskANN index"</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"  - Index type: diskANN (approximate nearest neighbor)"</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"  - Best for: large datasets, production workloads"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">container</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>花點時間了解索引類型之間的主要區別：</p>
+<table>
+<thead>
+<tr>
+<th>指數型</th>
+<th>擷取方式</th>
+<th>最適合</th>
+<th>權衡</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>flat</strong></td>
+<td>精確最近鄰</td>
+<td>資料集小，精度最高</td>
+<td>更高 RU 對於大型資料集</td>
+</tr>
+<tr>
+<td><strong>quantizedFlat</strong></td>
+<td>壓縮精確搜索</td>
+<td>中等資料集，記憶體效率</td>
+<td>精度略有下降</td>
+</tr>
+<tr>
+<td><strong>diskANN</strong></td>
+<td>近似圖搜尋</td>
+<td>大資料集、生產</td>
+<td>~95% 召回率，最佳性能</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ol>
+<p>接下來，完成 Azure 資源部署。</p>
+<h2 id="complete-the-azure-resource-deployment">完成 Azure 資源部署</h2>
+<p>在本節中，您將返回部署腳本以建立容器、設定 Entra ID 存取並擷取連線資訊。</p>
+<ol>
+<li>
+<p>當 <strong>Create Cosmos DB account</strong> 操作有 completed， 輸入 <strong>2</strong> 啟動 <strong>Create containers</strong> 選項。這將建立三個具有不同向量索引策略的容器： flat, quantizedFlat， 和 diskANN.</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 啟動 <strong>Configure Entra ID access</strong> 選項。這將分配您的 user 帳戶 訪問 Cosmos 的必要角色 DB 資料平面。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 啟動 <strong>Check deployment status</strong> 選項。驗證宇宙 DB 帳戶 顯示為已啟用向量搜尋功能。</p>
+</li>
+<li>
+<p>輸入 <strong>5</strong> 啟動 <strong>Retrieve connection info</strong> 選項。這將建立一個包含必要環境變數的檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>6</strong> 結束部署腳本。</p>
+</li>
+<li>
+<p>執行以下命令將環境變數從上一個步驟建立的檔案載入到終端會話中。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 保持終端打開。如果關閉它並建立新終端，則可能需要執行命令來再次建立環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<p>接下來，您設定 Python 環境並運行應用程式。</p>
+<h2 id="set-up-the-python-environment">設定 Python 環境</h2>
+<p>在本節中，您將建立一個 Python 虛擬環境並安裝容器設定腳本和 Flask 應用。</p>
+<ol>
+<li>
+<p>運行以下命令導航到 <em>client</em> 目錄。</p>
+<pre><code>cd client
+</code></pre>
+</li>
+<li>
+<p>執行以下命令建立虛擬環境 Python 腳本。根據您的環境，命令可能是 <strong>python</strong> 或者 <strong>python3</strong>.</p>
+<pre><code>python -m venv .venv
+</code></pre>
+</li>
+<li>
+<p>運行以下命令來激活 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，使用 Bash 命令。在 Windows 上，使用 PowerShell 命令。如果使用 Git Bash 在 Windows 上，使用 <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令來安裝 Python 依賴關係。這將安裝 <strong>flask</strong>, <strong>azure-cosmos</strong>， 和 <strong>azure-identity</strong> libraries.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-r</span> requirements.txt
+</code></pre></div></div>
+</li>
+</ol>
+<p>接下來，您使用以下命令測試向量索引效能 Flask 應用。</p>
+<h2 id="test-vector-index-performance-with-the-flask-app">測試向量索引效能 Flask 應用程式</h2>
+<p>在本節中，您將開始 Flask Web 應用程式並使用其介面來比較三種索引策略的向量搜尋效能。該應用程式對所有容器運行相同的查詢並並排顯示結果。</p>
+<ol>
+<li>
+<p>確保您仍在 <em>client</em> 激活虛擬環境的目錄。你應該看到 <strong>(.venv)</strong> 在你的終端機提示符中。</p>
+</li>
+<li>
+<p>執行以下命令來啟動 Flask 應用。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python app.py
+</code></pre></div></div>
+</li>
+<li>
+<p>打開瀏覽器並導航至 <code>http://127.0.0.1:5000</code> 查看應用程式。</p>
+</li>
+</ol>
+<h3 id="load-sample-data">載入範例資料</h3>
+<p>在本部分中，您將使用該應用程式載入帶有預先計算的範例支援票證 embeddings 放入所有三個容器中。載入相同的資料可以公平地比較索引效能。</p>
+<ol>
+<li>
+<p>回顧 <strong>Container Status</strong> 頁面頂部的部分。所有三個容器最初都應顯示 0 個文件。</p>
+</li>
+<li>
+<p>在 <strong>Load Sample Data</strong> 部分，選擇 <strong>Load Data to All Containers</strong>。這將插入 500 個支援票及其預先計算的 embeddings 從 <em>sample_vectors.json</em> 文件到每個容器中。上傳使用並行處理來高效載入資料，通常在 30-45 秒內完成。</p>
+</li>
+<li>
+<p>驗證是否顯示成功訊息，顯示載入的文件數量和 RU 每個集裝箱的成本。注意怎麼寫 RU 不同指數類型的成本可能略有不同。</p>
+</li>
+</ol>
+<h3 id="compare-vector-search-performance">比較向量搜尋效能</h3>
+<p>在本部分中，您將執行向量相似性搜尋並比較每種索引類型處理相同查詢的方式。該應用程式顯示 RU 成本和執行時間並存。</p>
+<ol>
+<li>
+<p>在 <strong>Vector Search Comparison</strong> 部分，選擇 <strong>I can't login to my account</strong> 從 <strong>Select Query</strong> dropdown.</p>
+</li>
+<li>
+<p>保持預設即可 <strong>Top 5</strong> 結果並選擇 <strong>Compare Index Performance</strong>.</p>
+</li>
+<li>
+<p>回顧 <strong>Index Performance Comparison</strong> 表格顯示：</p>
+<ul>
+<li>
+<strong>Results</strong> 每個容器的計數</li>
+<li>
+<strong>RU Cost</strong> 對於每個查詢</li>
+<li>
+<strong>Time (ms)</strong> 執行時間</li>
+</ul>
+</li>
+<li>
+<p>向下捲動以查看從每個容器傳回的資料的並排結果。注意：</p>
+<ul>
+<li>對於這個小資料集，所有三個索引都應傳回類似的結果</li>
+<li>RU 成本可能因指數類型而異</li>
+<li>這 diskANN 指數通常顯示較低 RU 規模消費</li>
+</ul>
+</li>
+<li>
+<p>嘗試不同的查詢，例如 <strong>My payment was charged twice</strong> 或者 <strong>Package hasn't arrived yet</strong> 查看跨搜尋的一致模式。</p>
+</li>
+</ol>
+<h3 id="compare-filtered-search-performance">比較過濾的搜尋效能</h3>
+<p>在本節中，您將結合 metadata 使用向量相似性搜尋進行過濾。在應用向量排名之前，過濾會縮小搜尋空間，這可能會對每種索引類型的效能產生不同的影響。</p>
+<ol>
+<li>
+<p>在 <strong>Filtered Vector Search Comparison</strong> 部分，選擇 <strong>Protect my 帳戶 from hackers</strong> 從 <strong>Select Query</strong> dropdown.</p>
+</li>
+<li>
+<p>選擇 <strong>account</strong> 從 <strong>Filter by Category</strong> dropdown.</p>
+</li>
+<li>
+<p>選擇 <strong>Compare Filtered Search</strong> 在所有容器中執行過濾搜尋。</p>
+</li>
+<li>
+<p>查看結果。注意：</p>
+<ul>
+<li>僅包含以下內容的文件 <strong>account</strong> 返回類別</li>
+<li>過濾和向量搜尋的組合可能會顯示不同的結果 RU 模式</li>
+<li>所有索引類型在向量排名之前會套用篩選器</li>
+</ul>
+</li>
+<li>
+<p>嘗試使用相同的查詢 <strong>technical</strong> 類別以查看不同的篩選結果。</p>
+</li>
+</ol>
+<h3 id="analyze-the-results">分析結果</h3>
+<p>根據您的測試，請考慮以下選擇索引類型的準則：</p>
+<table>
+<thead>
+<tr>
+<th>設想</th>
+<th>推薦指數</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>小資料集（&lt; 10K 向量）</td>
+<td>flat</td>
+<td>結果準確，可以接受 RU 成本</td>
+</tr>
+<tr>
+<td>中等資料集，記憶體受限</td>
+<td>quantizedFlat</td>
+<td>減少內存，提高準確性</td>
+</tr>
+<tr>
+<td>資料集大，生產工作量大</td>
+<td>diskANN</td>
+<td>最好的 RU 效率，約 95% 的召回率</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>返回終端並按 <strong>Ctrl+C</strong> 停止 Flask 應用。</li>
+</ol>
+<h2 id="summary">摘要</h2>
+<p>在本練習中，您比較了向量索引策略 Azure Cosmos DB for NoSQL。您部署了一個 Azure Cosmos DB 帳戶 與 <strong>EnableNoSQLVectorSearch</strong> 能力和設定 Entra ID 驗證。您使用以下命令建立了三個容器 Python SDK 具有不同的向量索引類型： flat 為了精確搜索， quantizedFlat 為了提高記憶體效率，以及 diskANN 用於生產規模的近似搜尋。你建造了 Python 在追蹤時執行向量相似性搜尋的函數 RU 消耗和執行時間。你用了一個 Flask Web 應用程式來執行比較搜尋並分析效能差異。此模式可協助您選擇最適合您的索引策略 AI 基於資料集大小、準確性要求和成本限制的應用程式。</p>
+<h2 id="clean-up-resources">清理資源</h2>
+<p>現在您已完成練習，您應該刪除您建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在中運行以下命令 VS Code 終端刪除資源組以及該組中的所有資源。代替 <strong>&lt;rg-name&gt;</strong> 使用您之前在練習中選擇的名稱。該命令將在 Azure 中啟動背景任務以刪除資源組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre>
+</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源組會刪除其中包含的所有資源。如果您為此練習選擇了現有資源組，則本練習範圍之外的任何現有資源也將被刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在此練習中遇到問題，請嘗試以下步驟：</p>
+<p><strong>Flask app fails to start</strong></p>
+<ul>
+<li>確保 Python 虛擬環境已啟動（您應該看到 <strong>(.venv)</strong> 在你的終端機提示中）</li>
+<li>確保安裝了依賴項： <strong>pip install -r requirements.txt</strong>
+</li>
+<li>確保透過運行載入環境變量 <strong>source .env</strong> (Bash） 或者 <strong>. ..env.ps1</strong> (PowerShell)</li>
+<li>確保您在 <em>client</em> 運行時目錄 <strong>python app.py</strong>
+</li>
+</ul>
+<p><strong>Authentication or access denied errors</strong></p>
+<ul>
+<li>確保 Entra ID 透過執行部署腳本選項設定存取權限 <strong>3</strong>
+</li>
+<li>驗證您的 user 兩者都有 <strong>Contributor</strong> 角色和 <strong>Cosmos DB Built-in Data Contributor</strong> 角色</li>
+<li>確保 <strong>COSMOS_ENDPOINT</strong> 在您的終端會話中設定正確</li>
+</ul>
+<p><strong>setup_containers.py fails</strong></p>
+<ul>
+<li>確保 Python 虛擬環境已激活</li>
+<li>確保環境變數已設定（<strong>COSMOS_ENDPOINT</strong>, <strong>COSMOS_DATABASE</strong>)</li>
+<li>如果容器已存在，腳本將使用現有容器</li>
+</ul>
+<p><strong>Vector search returns errors</strong></p>
+<ul>
+<li>驗證容器是透過執行部署腳本選項建立的 <strong>2</strong>
+</li>
+<li>確保在運行搜尋之前加載範例資料</li>
+<li>檢查容器是否設定了向量嵌入策略</li>
+</ul>
+<p><strong>Cosmos DB operations fail</strong></p>
+<ul>
+<li>驗證宇宙 DB 帳戶 透過執行部署腳本選項已準備就緒 <strong>4</strong>
+</li>
+<li>確保資料庫是在部署期間建立的</li>
+<li>檢查是否 帳戶 有 <strong>EnableNoSQLVectorSearch</strong> 能力</li>
+</ul>
+<p><strong>Environment variable issues</strong></p>
+<ul>
+<li>確保 <em>.env</em> 文件是透過運行部署腳本選項創建的 <strong>5</strong>
+</li>
+<li>跑步 <strong>source .env</strong> (Bash） 或者 <strong>. ..env.ps1</strong> (PowerShell）建立新終端後</li>
+<li>透過運行驗證變數是否已設定 <strong>echo $COSMOS_ENDPOINT</strong> (Bash） 或者 <strong>$env:COSMOS_ENDPOINT</strong> (PowerShell)</li>
+</ul>
+<p><strong>Python venv activation issues</strong></p>
+<ul>
+<li>在 Linux/macOS 上，使用： <strong>source .venv/bin/activate</strong>
+</li>
+<li>在 Windows 上 PowerShell， 使用： <strong>..venv\Scripts\Activate.ps1</strong>
+</li>
+<li>如果 <strong>activate</strong> 腳本遺失，重新安裝 <strong>python3-venv</strong> 打包並重新建立 venv</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 微軟| 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">隱私權 </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">消費者健康隱私權 </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">使用條款 </a> | 
+                  <a href="https://www.microsoft.com/trademarks">商標 </a> | 
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    原始碼
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Process messages with Azure Service Bus |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="process-messages-with-azure-service-bus">Process messages with Azure Service Bus</h1>
+<p>AI workflows often rely on messaging to decouple request intake from model inference and to route results to multiple downstream consumers. Azure Service Bus provides the reliability and routing layer that connects these components so each piece can scale and fail independently.</p>
+<p>In this exercise, you create an Azure Service Bus namespace and build a Python Flask web application that demonstrates core messaging patterns using an AI inference scenario. You work with queues to send and receive inference requests using peek-lock delivery, inspect the dead-letter queue for malformed payloads that failed processing, and use topics with filtered subscriptions to fan out inference results by priority level.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Create an Azure Service Bus namespace and messaging entities</li>
+<li>Add code to the starter files to complete the app</li>
+<li>Run the app to perform messaging operations</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-service-bus">Download project starter files and deploy Azure Service Bus</h2>
+<p>In this section you download the starter files for the app and use a script to deploy an Azure Service Bus namespace and messaging entities to your subscription.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/service-bus-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following command to ensure your subscription has the necessary resource provider for the exercise.</p>
+<pre><code>az provider register --namespace Microsoft.ServiceBus
+</code></pre></li>
+<li>
+<p>Run the following command in the terminal to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script is running, enter <strong>1</strong> to launch the <strong>1. Create Service Bus namespace</strong> option.</p>
+<p>This option creates the resource group if it doesn't already exist, and deploys an Azure Service Bus namespace with the Standard tier. The namespace is the container for all messaging entities you create during the exercise.</p>
+</li>
+<li>
+<p>Enter <strong>2</strong> to run the <strong>2. Create messaging entities</strong> option. This creates the queue, topic, subscriptions, and SQL filter that the app uses. The <strong>inference-requests</strong> queue is configured with a max delivery count of 5 and dead-lettering on message expiration. The <strong>inference-results</strong> topic has two subscriptions: <strong>notifications</strong> (receives all messages) and <strong>high-priority</strong> (filtered to only receive messages where the <strong>priority</strong> property equals <strong>high</strong>).</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to run the <strong>3. Assign role</strong> option. This assigns the Azure Service Bus Data Owner role to your account so you can send and receive messages using Microsoft Entra authentication.</p>
+</li>
+<li>
+<p>Enter <strong>4</strong> to run the <strong>4. Check deployment status</strong> option. Verify the namespace status shows <strong>Succeeded</strong>, the messaging entities are created, and the role is assigned before continuing. If the namespace is still provisioning, wait a moment and try again.</p>
+</li>
+<li>
+<p>Enter <strong>5</strong> to run the <strong>5. Retrieve connection info</strong> option. This creates the environment variable file with the fully qualified domain name (FQDN) needed by the app.</p>
+</li>
+<li>
+<p>Enter <strong>6</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the appropriate command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you need to run this command again to reload the environment variables.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-app">Complete the app</h2>
+<p>In this section you add code to the <em>service_bus_functions.py</em> file to complete the Service Bus messaging functions. The Flask app in <em>app.py</em> calls these functions and displays the results in the browser. You run the app later in the exercise.</p>
+<ol>
+<li>Open the <em>client/service_bus_functions.py</em> file to begin adding code.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> The code blocks you add to the application should align with the comment for that section of the code.</p>
+</blockquote>
+<h3 id="add-code-to-send-messages-to-the-queue">Add code to send messages to the queue</h3>
+<p>In this section, you add code to send three messages to the queue. Two messages have valid JSON payloads representing inference requests, and one has intentionally malformed JSON to simulate a processing failure that demonstrates the dead-letter queue.</p>
+<p>The function opens a <strong>ServiceBusClient</strong> using <strong>DefaultAzureCredential</strong> and creates a queue sender with <strong>get_queue_sender()</strong>. It constructs three <strong>ServiceBusMessage</strong> objects, each with a <strong>message_id</strong> for deduplication, a <strong>correlation_id</strong> for tracking, and <strong>application_properties</strong> for custom metadata. Two messages contain valid JSON payloads and one contains intentionally malformed JSON. The <strong>send_messages()</strong> method sends each message individually to the queue.</p>
+<blockquote>
+<p><strong>Tip:</strong> To maintain proper code indentation, paste the code flush with the left margin (column 1), select all of the pasted lines, and press <strong>Tab</strong> to align the block with the <strong>BEGIN / END</strong> markers. Press <strong>Shift+Tab</strong> to outdent if needed.</p>
+</blockquote>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN SEND MESSAGES FUNCTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">send_messages</span><span class="p">():</span>
+    <span class="s">"""Send messages to the queue including one malformed message."""</span>
+    <span class="c1"># Create a ServiceBusClient using DefaultAzureCredential
+</span>    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
+        <span class="c1"># Open a sender bound to the queue
+</span>        <span class="k">with</span> <span class="n">client</span><span class="p">.</span><span class="n">get_queue_sender</span><span class="p">(</span><span class="n">QUEUE_NAME</span><span class="p">)</span> <span class="k">as</span> <span class="n">sender</span><span class="p">:</span>
+            <span class="c1"># Valid message 1 — message_id enables deduplication,
+</span>            <span class="c1"># correlation_id links related messages for tracking,
+</span>            <span class="c1"># and application_properties carry custom metadata for routing
+</span>            <span class="n">msg1</span> <span class="o">=</span> <span class="n">ServiceBusMessage</span><span class="p">(</span>
+                <span class="n">body</span><span class="o">=</span><span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span>
+                    <span class="s">"prompt"</span><span class="p">:</span> <span class="s">"Extract parties and effective date."</span><span class="p">,</span>
+                    <span class="s">"model"</span><span class="p">:</span> <span class="s">"gpt-4o"</span><span class="p">,</span>
+                    <span class="s">"document_id"</span><span class="p">:</span> <span class="s">"doc-001"</span>
+                <span class="p">}),</span>
+                <span class="n">content_type</span><span class="o">=</span><span class="s">"application/json"</span><span class="p">,</span>
+                <span class="n">message_id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                <span class="n">correlation_id</span><span class="o">=</span><span class="s">"req-doc-001"</span><span class="p">,</span>
+                <span class="n">application_properties</span><span class="o">=</span><span class="p">{</span><span class="s">"priority"</span><span class="p">:</span> <span class="s">"standard"</span><span class="p">,</span> <span class="s">"document_type"</span><span class="p">:</span> <span class="s">"contract"</span><span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">sender</span><span class="p">.</span><span class="n">send_messages</span><span class="p">(</span><span class="n">msg1</span><span class="p">)</span>
+            <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s">"correlation_id"</span><span class="p">:</span> <span class="n">msg1</span><span class="p">.</span><span class="n">correlation_id</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"valid"</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"sent"</span>
+            <span class="p">})</span>
+
+            <span class="c1"># Valid message 2 — priority is set to "high" so it matches
+</span>            <span class="c1"># the SQL filter on the high-priority topic subscription
+</span>            <span class="n">msg2</span> <span class="o">=</span> <span class="n">ServiceBusMessage</span><span class="p">(</span>
+                <span class="n">body</span><span class="o">=</span><span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span>
+                    <span class="s">"prompt"</span><span class="p">:</span> <span class="s">"Summarize the key terms."</span><span class="p">,</span>
+                    <span class="s">"model"</span><span class="p">:</span> <span class="s">"gpt-4o"</span><span class="p">,</span>
+                    <span class="s">"document_id"</span><span class="p">:</span> <span class="s">"doc-002"</span>
+                <span class="p">}),</span>
+                <span class="n">content_type</span><span class="o">=</span><span class="s">"application/json"</span><span class="p">,</span>
+                <span class="n">message_id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                <span class="n">correlation_id</span><span class="o">=</span><span class="s">"req-doc-002"</span><span class="p">,</span>
+                <span class="n">application_properties</span><span class="o">=</span><span class="p">{</span><span class="s">"priority"</span><span class="p">:</span> <span class="s">"high"</span><span class="p">,</span> <span class="s">"document_type"</span><span class="p">:</span> <span class="s">"contract"</span><span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">sender</span><span class="p">.</span><span class="n">send_messages</span><span class="p">(</span><span class="n">msg2</span><span class="p">)</span>
+            <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s">"correlation_id"</span><span class="p">:</span> <span class="n">msg2</span><span class="p">.</span><span class="n">correlation_id</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"valid"</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"sent"</span>
+            <span class="p">})</span>
+
+            <span class="c1"># Invalid message — intentionally malformed JSON body to
+</span>            <span class="c1"># demonstrate dead-lettering during processing
+</span>            <span class="n">msg3</span> <span class="o">=</span> <span class="n">ServiceBusMessage</span><span class="p">(</span>
+                <span class="n">body</span><span class="o">=</span><span class="s">"not valid json: [broken"</span><span class="p">,</span>
+                <span class="n">content_type</span><span class="o">=</span><span class="s">"application/json"</span><span class="p">,</span>
+                <span class="n">message_id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                <span class="n">correlation_id</span><span class="o">=</span><span class="s">"req-doc-003"</span><span class="p">,</span>
+                <span class="n">application_properties</span><span class="o">=</span><span class="p">{</span><span class="s">"priority"</span><span class="p">:</span> <span class="s">"standard"</span><span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">sender</span><span class="p">.</span><span class="n">send_messages</span><span class="p">(</span><span class="n">msg3</span><span class="p">)</span>
+            <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s">"correlation_id"</span><span class="p">:</span> <span class="n">msg3</span><span class="p">.</span><span class="n">correlation_id</span><span class="p">,</span>
+                <span class="s">"type"</span><span class="p">:</span> <span class="s">"malformed"</span><span class="p">,</span>
+                <span class="s">"status"</span><span class="p">:</span> <span class="s">"sent"</span>
+            <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Take a few minutes to review the code.</p>
+</li>
+</ol>
+<h3 id="add-code-to-process-messages-with-peek-lock">Add code to process messages with peek-lock</h3>
+<p>In this section, you add code to receive messages from the queue using peek-lock mode. The processor validates the JSON payload, completes valid messages, and dead-letters messages with invalid JSON by providing a reason and error description.</p>
+<p>The function creates a queue receiver with <strong>get_queue_receiver()</strong> using peek-lock mode (the default), which locks each message while it's being processed but keeps it in the queue until settlement. For each message, it attempts to parse the JSON body. Valid messages are removed from the queue with <strong>complete_message()</strong>. Invalid messages are moved to the dead-letter sub-queue with <strong>dead_letter_message()</strong>, which accepts a <strong>reason</strong> and <strong>error_description</strong> for diagnostics.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN PROCESS MESSAGES FUNCTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">process_messages</span><span class="p">():</span>
+    <span class="s">"""Receive and process messages from the queue using peek-lock."""</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
+        <span class="c1"># Peek-lock is the default receive mode — the message is locked
+</span>        <span class="c1"># but stays in the queue until explicitly completed or dead-lettered.
+</span>        <span class="c1"># max_wait_time sets how long the receiver waits for new messages.
+</span>        <span class="k">with</span> <span class="n">client</span><span class="p">.</span><span class="n">get_queue_receiver</span><span class="p">(</span>
+            <span class="n">queue_name</span><span class="o">=</span><span class="n">QUEUE_NAME</span><span class="p">,</span>
+            <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">5</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">receiver</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">receiver</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">payload</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+                    <span class="c1"># Complete removes the message from the queue
+</span>                    <span class="n">receiver</span><span class="p">.</span><span class="n">complete_message</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                    <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                        <span class="s">"correlation_id"</span><span class="p">:</span> <span class="n">msg</span><span class="p">.</span><span class="n">correlation_id</span><span class="p">,</span>
+                        <span class="s">"document_id"</span><span class="p">:</span> <span class="n">payload</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"document_id"</span><span class="p">),</span>
+                        <span class="s">"model"</span><span class="p">:</span> <span class="n">payload</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"model"</span><span class="p">),</span>
+                        <span class="s">"prompt"</span><span class="p">:</span> <span class="n">payload</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"prompt"</span><span class="p">,</span> <span class="s">""</span><span class="p">)[:</span><span class="mi">50</span><span class="p">],</span>
+                        <span class="s">"status"</span><span class="p">:</span> <span class="s">"completed"</span>
+                    <span class="p">})</span>
+                <span class="k">except</span> <span class="n">json</span><span class="p">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+                    <span class="c1"># Dead-letter moves the message to the dead-letter
+</span>                    <span class="c1"># sub-queue with a reason and description for diagnostics
+</span>                    <span class="n">receiver</span><span class="p">.</span><span class="n">dead_letter_message</span><span class="p">(</span>
+                        <span class="n">msg</span><span class="p">,</span>
+                        <span class="n">reason</span><span class="o">=</span><span class="s">"MalformedPayload"</span><span class="p">,</span>
+                        <span class="n">error_description</span><span class="o">=</span><span class="s">"Message body is not valid JSON"</span>
+                    <span class="p">)</span>
+                    <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                        <span class="s">"correlation_id"</span><span class="p">:</span> <span class="n">msg</span><span class="p">.</span><span class="n">correlation_id</span><span class="p">,</span>
+                        <span class="s">"document_id"</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                        <span class="s">"model"</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                        <span class="s">"prompt"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">)[:</span><span class="mi">50</span><span class="p">],</span>
+                        <span class="s">"status"</span><span class="p">:</span> <span class="s">"dead-lettered"</span>
+                    <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes and take a few minutes to review the code.</p>
+</li>
+</ol>
+<h3 id="add-code-to-inspect-the-dead-letter-queue">Add code to inspect the dead-letter queue</h3>
+<p>In this section, you add code to read messages from the dead-letter queue and display diagnostic information. The dead-letter queue captures messages that couldn't be processed, along with the reason and error description for troubleshooting.</p>
+<p>The function creates a receiver that targets the dead-letter sub-queue by passing <strong>sub_queue=ServiceBusSubQueue.DEAD_LETTER</strong> to <strong>get_queue_receiver()</strong>. For each dead-lettered message, it reads the diagnostic properties: <strong>dead_letter_reason</strong>, <strong>dead_letter_error_description</strong>, and <strong>delivery_count</strong>. After reading, it calls <strong>complete_message()</strong> to remove the message from the dead-letter queue.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN INSPECT DLQ FUNCTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">inspect_dead_letter_queue</span><span class="p">():</span>
+    <span class="s">"""Inspect and remove messages from the dead-letter queue."""</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
+        <span class="c1"># ServiceBusSubQueue.DEAD_LETTER targets the dead-letter sub-queue,
+</span>        <span class="c1"># which holds messages that failed processing
+</span>        <span class="k">with</span> <span class="n">client</span><span class="p">.</span><span class="n">get_queue_receiver</span><span class="p">(</span>
+            <span class="n">queue_name</span><span class="o">=</span><span class="n">QUEUE_NAME</span><span class="p">,</span>
+            <span class="n">sub_queue</span><span class="o">=</span><span class="n">ServiceBusSubQueue</span><span class="p">.</span><span class="n">DEAD_LETTER</span><span class="p">,</span>
+            <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">5</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">dlq_receiver</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">dlq_receiver</span><span class="p">:</span>
+                <span class="c1"># Dead-lettered messages include diagnostic properties:
+</span>                <span class="c1"># dead_letter_reason, dead_letter_error_description,
+</span>                <span class="c1"># and delivery_count (number of delivery attempts)
+</span>                <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s">"message_id"</span><span class="p">:</span> <span class="n">msg</span><span class="p">.</span><span class="n">message_id</span><span class="p">,</span>
+                    <span class="s">"correlation_id"</span><span class="p">:</span> <span class="n">msg</span><span class="p">.</span><span class="n">correlation_id</span><span class="p">,</span>
+                    <span class="s">"dead_letter_reason"</span><span class="p">:</span> <span class="n">msg</span><span class="p">.</span><span class="n">dead_letter_reason</span><span class="p">,</span>
+                    <span class="s">"error_description"</span><span class="p">:</span> <span class="n">msg</span><span class="p">.</span><span class="n">dead_letter_error_description</span><span class="p">,</span>
+                    <span class="s">"delivery_count"</span><span class="p">:</span> <span class="n">msg</span><span class="p">.</span><span class="n">delivery_count</span><span class="p">,</span>
+                    <span class="s">"body"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">)[:</span><span class="mi">100</span><span class="p">]</span>
+                <span class="p">})</span>
+                <span class="c1"># Complete removes the message from the dead-letter queue
+</span>                <span class="n">dlq_receiver</span><span class="p">.</span><span class="n">complete_message</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes and take a few minutes to review the code.</p>
+</li>
+</ol>
+<h3 id="add-code-for-topic-messaging-with-filtered-subscriptions">Add code for topic messaging with filtered subscriptions</h3>
+<p>In this section, you add code to send messages to a topic with different priority levels, then receive from each subscription to verify that filtering works. The <strong>notifications</strong> subscription receives all messages, while the <strong>high-priority</strong> subscription receives only messages where the <strong>priority</strong> application property equals <strong>high</strong>.</p>
+<p>The function uses <strong>get_topic_sender()</strong> to open a sender bound to the topic, then sends five messages with varying <strong>priority</strong> values in their <strong>application_properties</strong>. It then opens two subscription receivers with <strong>get_subscription_receiver()</strong>. The <strong>notifications</strong> subscription has no filter and receives all five messages. The <strong>high-priority</strong> subscription only delivers messages that match its SQL filter. Note that application properties may arrive as bytes due to AMQP encoding, so the code handles both string and bytes keys.</p>
+<ol>
+<li>
+<p>Locate the <strong># BEGIN TOPIC MESSAGING FUNCTION</strong> comment and add the following code under the comment. Be sure to check for proper code alignment.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">topic_messaging</span><span class="p">():</span>
+    <span class="s">"""Send messages to a topic and receive from filtered subscriptions."""</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_client</span><span class="p">()</span>
+    <span class="n">sent</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">notifications</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">high_priority</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="n">client</span><span class="p">:</span>
+        <span class="c1"># get_topic_sender opens a sender bound to a topic instead of a queue.
+</span>        <span class="c1"># Each message is broadcast to all matching subscriptions.
+</span>        <span class="k">with</span> <span class="n">client</span><span class="p">.</span><span class="n">get_topic_sender</span><span class="p">(</span><span class="n">TOPIC_NAME</span><span class="p">)</span> <span class="k">as</span> <span class="n">sender</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">priority</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s">"standard"</span><span class="p">,</span> <span class="s">"high"</span><span class="p">,</span> <span class="s">"standard"</span><span class="p">,</span> <span class="s">"high"</span><span class="p">,</span> <span class="s">"low"</span><span class="p">]):</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s">"document_id"</span><span class="p">:</span> <span class="sa">f</span><span class="s">"doc-</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="mi">03</span><span class="n">d</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+                    <span class="s">"status"</span><span class="p">:</span> <span class="s">"completed"</span><span class="p">,</span>
+                    <span class="s">"confidence"</span><span class="p">:</span> <span class="mf">0.95</span>
+                <span class="p">}</span>
+                <span class="c1"># The "priority" application property is what the SQL
+</span>                <span class="c1"># filter on the high-priority subscription evaluates
+</span>                <span class="n">msg</span> <span class="o">=</span> <span class="n">ServiceBusMessage</span><span class="p">(</span>
+                    <span class="n">body</span><span class="o">=</span><span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">),</span>
+                    <span class="n">content_type</span><span class="o">=</span><span class="s">"application/json"</span><span class="p">,</span>
+                    <span class="n">message_id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                    <span class="n">application_properties</span><span class="o">=</span><span class="p">{</span><span class="s">"priority"</span><span class="p">:</span> <span class="n">priority</span><span class="p">}</span>
+                <span class="p">)</span>
+                <span class="n">sender</span><span class="p">.</span><span class="n">send_messages</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">sent</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s">"document_id"</span><span class="p">:</span> <span class="sa">f</span><span class="s">"doc-</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="mi">03</span><span class="n">d</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+                    <span class="s">"priority"</span><span class="p">:</span> <span class="n">priority</span>
+                <span class="p">})</span>
+
+        <span class="c1"># Receive from the notifications subscription, which has no filter
+</span>        <span class="c1"># and therefore receives all messages sent to the topic
+</span>        <span class="k">with</span> <span class="n">client</span><span class="p">.</span><span class="n">get_subscription_receiver</span><span class="p">(</span>
+            <span class="n">topic_name</span><span class="o">=</span><span class="n">TOPIC_NAME</span><span class="p">,</span>
+            <span class="n">subscription_name</span><span class="o">=</span><span class="s">"notifications"</span><span class="p">,</span>
+            <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">5</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">receiver</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">receiver</span><span class="p">:</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+                <span class="c1"># Application properties may arrive as bytes depending
+</span>                <span class="c1"># on the AMQP encoding, so handle both str and bytes keys
+</span>                <span class="n">props</span> <span class="o">=</span> <span class="n">msg</span><span class="p">.</span><span class="n">application_properties</span> <span class="ow">or</span> <span class="p">{}</span>
+                <span class="n">priority_val</span> <span class="o">=</span> <span class="n">props</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"priority"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">props</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s">"priority"</span><span class="p">,</span> <span class="sa">b</span><span class="s">"unknown"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">priority_val</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                    <span class="n">priority_val</span> <span class="o">=</span> <span class="n">priority_val</span><span class="p">.</span><span class="n">decode</span><span class="p">(</span><span class="s">"utf-8"</span><span class="p">)</span>
+                <span class="n">notifications</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s">"document_id"</span><span class="p">:</span> <span class="n">body</span><span class="p">[</span><span class="s">"document_id"</span><span class="p">],</span>
+                    <span class="s">"priority"</span><span class="p">:</span> <span class="n">priority_val</span>
+                <span class="p">})</span>
+                <span class="n">receiver</span><span class="p">.</span><span class="n">complete_message</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Receive from the high-priority subscription, which only delivers
+</span>        <span class="c1"># messages where the SQL filter "priority = 'high'" matches
+</span>        <span class="k">with</span> <span class="n">client</span><span class="p">.</span><span class="n">get_subscription_receiver</span><span class="p">(</span>
+            <span class="n">topic_name</span><span class="o">=</span><span class="n">TOPIC_NAME</span><span class="p">,</span>
+            <span class="n">subscription_name</span><span class="o">=</span><span class="s">"high-priority"</span><span class="p">,</span>
+            <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">5</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">receiver</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">receiver</span><span class="p">:</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+                <span class="n">props</span> <span class="o">=</span> <span class="n">msg</span><span class="p">.</span><span class="n">application_properties</span> <span class="ow">or</span> <span class="p">{}</span>
+                <span class="n">priority_val</span> <span class="o">=</span> <span class="n">props</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"priority"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">props</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="sa">b</span><span class="s">"priority"</span><span class="p">,</span> <span class="sa">b</span><span class="s">"unknown"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">priority_val</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                    <span class="n">priority_val</span> <span class="o">=</span> <span class="n">priority_val</span><span class="p">.</span><span class="n">decode</span><span class="p">(</span><span class="s">"utf-8"</span><span class="p">)</span>
+                <span class="n">high_priority</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s">"document_id"</span><span class="p">:</span> <span class="n">body</span><span class="p">[</span><span class="s">"document_id"</span><span class="p">],</span>
+                    <span class="s">"priority"</span><span class="p">:</span> <span class="n">priority_val</span>
+                <span class="p">})</span>
+                <span class="n">receiver</span><span class="p">.</span><span class="n">complete_message</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"sent"</span><span class="p">:</span> <span class="n">sent</span><span class="p">,</span>
+        <span class="s">"notifications"</span><span class="p">:</span> <span class="n">notifications</span><span class="p">,</span>
+        <span class="s">"high_priority"</span><span class="p">:</span> <span class="n">high_priority</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes and take a few minutes to review the code.</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">Configure the Python environment</h2>
+<p>In this section, you navigate to the client app directory, create the Python environment, and install the dependencies.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to navigate to the <em>client</em> directory.</p>
+<pre><code>cd client
+</code></pre></li>
+<li>
+<p>Run the following command to create the Python environment.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to install the dependencies.</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h2 id="run-the-app">Run the app</h2>
+<p>In this section, you run the completed Flask application to perform various Service Bus messaging operations. The app provides a web interface that lets you send messages, process them with peek-lock delivery, inspect the dead-letter queue, and test topic messaging with filtered subscriptions.</p>
+<ol>
+<li>
+<p>Run the following command in the terminal to start the app. Refer to the commands from earlier in the exercise to activate the environment, if needed, before running the command. If you navigated away from the <em>client</em> directory, run <strong>cd client</strong> first.</p>
+<pre><code>python app.py
+</code></pre></li>
+<li>
+<p>Open a browser and navigate to <code>http://localhost:5000</code> to access the app.</p>
+</li>
+<li>
+<p>Select <strong>Send Messages</strong> in the left panel. This sends three messages to the queue: two with valid JSON payloads representing inference requests, and one with intentionally malformed JSON. The results in the right panel confirm each message was sent along with its correlation ID and type.</p>
+</li>
+<li>
+<p>Select <strong>Process Messages</strong>. This receives the three messages from the queue using peek-lock delivery. The processor validates each message's JSON payload, completes the two valid messages, and dead-letters the malformed message with a reason of <strong>MalformedPayload</strong>. The results show the status of each message after processing.</p>
+</li>
+<li>
+<p>Select <strong>Inspect Dead-Letter Queue</strong>. This reads the dead-lettered message and displays its diagnostic information, including the dead-letter reason, error description, and delivery count. The dead-letter queue captures messages that couldn't be processed so you can investigate failures.</p>
+</li>
+<li>
+<p>Select <strong>Send &amp; Receive Topic Messages</strong>. This sends five messages to the <strong>inference-results</strong> topic, each with a different priority level. It then reads from both subscriptions to demonstrate filtered delivery. The <strong>notifications</strong> subscription receives all five messages, while the <strong>high-priority</strong> subscription receives only the messages where the <strong>priority</strong> property equals <strong>high</strong>.</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Verify Azure Service Bus namespace deployment</strong></p>
+<ul>
+<li>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your resource group.</li>
+<li>Confirm that the Service Bus namespace shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong>.</li>
+<li>Verify the namespace tier is <strong>Standard</strong> (required for topics and subscriptions).</li>
+</ul>
+<p><strong>Check messaging entities</strong></p>
+<ul>
+<li>Run the deployment script's <strong>Check deployment status</strong> option to verify the queue, topic, subscriptions, and SQL filter were all created successfully.</li>
+<li>If any entities are missing, run the <strong>Create messaging entities</strong> option again.</li>
+</ul>
+<p><strong>Check code completeness and indentation</strong></p>
+<ul>
+<li>Ensure all code blocks were added to the correct sections in <em>service_bus_functions.py</em> between the appropriate BEGIN/END comment markers.</li>
+<li>Verify that Python indentation is consistent (use spaces, not tabs) and that all code aligns properly within functions.</li>
+<li>Confirm that no code was accidentally removed or modified outside the designated sections.</li>
+</ul>
+<p><strong>Verify environment variables</strong></p>
+<ul>
+<li>Check that both the <em>.env</em> and <em>.env.ps1</em> files exist in the project root and contain the <strong>SERVICE_BUS_FQDN</strong> value.</li>
+<li>Run <strong>source .env</strong> in Bash or <strong>. ..env.ps1</strong> in PowerShell to load the environment variables into your terminal session.</li>
+</ul>
+<p><strong>Check authentication</strong></p>
+<ul>
+<li>Confirm you are logged in to Azure CLI by running <strong>az account show</strong>.</li>
+<li>Verify the Azure Service Bus Data Owner role is assigned to your account by checking the role assignments in the Azure portal or running the deployment script's option to assign the role again.</li>
+</ul>
+<p><strong>Check Python environment and dependencies</strong></p>
+<ul>
+<li>Confirm the virtual environment is activated before running the app.</li>
+<li>Verify that all packages from <em>requirements.txt</em> were installed successfully by running <strong>pip list</strong>.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

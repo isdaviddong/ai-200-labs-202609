@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        在 Azure Cosmos DB for NoSQL 上建置 RAG 文件存放區 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-door-fill" viewbox="0 0 16 16">
+                        <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"></path>
+                    </svg>
+                     首頁
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color->
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="">
+            <article class="col-sm-10 mb-5">
+                <h1 id="build-a-rag-document-store-on-azure-cosmos-db-for-nosql">在 Azure Cosmos DB for NoSQL 上建置 RAG 文件存放區</h1>
+<p>在本練習中，您將建立一個 Azure Cosmos DB for NoSQL 用作擷取增強生成的文件儲存的資料庫（RAG)應用程式。資料庫儲存分割文件 metadata 那一個 AI 應用程式可以擷取以向語言模型提供上下文。您設計一個針對文件擷取進行最佳化的模式，構建 Python 儲存和查詢文件區塊的函數，並使用 Flask Web 應用程式測試完整的工作流程。此模式為構建提供了基礎 AI 對組織文件中的回應進行語言建模的應用程式。</p>
+<p>本練習執行的工作：</p>
+<ul>
+<li>下載專案啟動檔案並設定部署腳本</li>
+<li>部署一個 Azure Cosmos DB for NoSQL 帳戶 帶有資料庫和容器</li>
+<li>建造 Python 用於儲存和擷取文件區塊的函數</li>
+<li>測試 RAG 函數使用 Flask Web 應用程式</li>
+<li>使用 Cosmos 查詢文件上下文 DB SQL API</li>
+</ul>
+<p>本練習大約需要 <strong>30</strong> 分鐘即可完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>要完成練習，您需要：</p>
+<ul>
+<li>具有部署必要 Azure 服務權限的 Azure 訂閱。如果您還沒有，您可以 <a href="https://azure.microsoft.com/">註冊一個</a>.</li>
+<li>
+<a href="https://code.visualstudio.com/">Visual Studio Code</a> 在其支援的平台之一上 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>.</li>
+<li>最新版本的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>
+<a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案啟動檔案並部署 Azure 服務</h2>
+<p>在本部分中，您將下載專案入門檔案並使用腳本將必要的服務部署至 Azure 訂閱。宇宙 DB 帳戶 部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入以下內容 URL 下載啟動檔。該文件將保存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/cosmosdb-build-query-python.zip
+</code></pre>
+</li>
+<li>
+<p>將文件複製或移動到您的位置 system 您想在哪裡從事該專案。然後將檔案解壓縮到一個資料夾中。</p>
+</li>
+<li>
+<p>發射 Visual Studio Code (VS Code）並選擇 <strong>File &gt; Open Folder...</strong> 在選單中，然後選擇包含項目文件的資料夾。</p>
+</li>
+<li>
+<p>打開 <em>azdeploy.py</em> 部署腳本並依您的需求變更腳本頂端的兩個值，然後儲存變更。 <strong>注意：</strong> 不要更改腳本中的任何其他內容。</p>
+<pre><code>"&lt;your-resource-group-name&gt;" # Resource Group name
+"&lt;your-azure-region&gt;" # Azure region for the resources
+</code></pre>
+</li>
+<li>
+<p>在功能表列中選擇 <strong>終端機 &gt; 新增終端機</strong> 打開終端機視窗 VS Code.</p>
+</li>
+<li>
+<p>執行以下命令登入您的 Azure account。回答提示以選擇您的 Azure 帳戶 並訂閱該練習。</p>
+<pre><code>az login
+</code></pre>
+</li>
+<li>
+<p>執行以下命令以確保您的訂閱具有練習所需的資源提供者。</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DocumentDB
+</code></pre>
+</li>
+</ol>
+<h3 id="create-resources-in-azure">在 Azure 中建立資源</h3>
+<p>在本部分中，您將執行部署腳本來部署 Cosmos DB 帳戶。</p>
+<ol>
+<li>
+<p>請確定您位於專案的根目錄中，並在終端機執行下列命令以啟動部署腳本。</p>
+<pre><code>python azdeploy.py
+</code></pre>
+</li>
+<li>
+<p>當腳本選單出現時，輸入 <strong>1</strong> 啟動 <strong>Create Cosmos DB account</strong> 選項。這創造了宇宙 DB 為了 NoSQL 帳戶 帶有資料庫和容器。 <strong>注意：</strong> 部署可能需要 5-10 分鐘才能完成。</p>
+<blockquote>
+<p><strong>重要：</strong> 在練習期間，使運行部署的終端保持開啟狀態。您可以繼續練習的下一部分，同時在終端機中繼續部署。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-rag-document-functions">完成 RAG 文件功能</h2>
+<p>在本節中，您將完成 <em>rag_functions.py</em> 文件透過添加功能 AI 應用程式可以呼叫來儲存和擷取文件區塊。這些函數充當應用程式與文件儲存的介面。您稍後在本練習中執行的應用程式會匯入這些函數來示範如何 AI 應用程式將使用它們。</p>
+<ol>
+<li>打開 <em>client/rag_functions.py</em> 文件輸入 VS Code.</li>
+</ol>
+<blockquote>
+<p><strong>提示：</strong> 若要維持正確的程式碼縮排，請從左邊界（第 1 欄）開始貼上程式碼，選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 取消縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>搜尋 <strong>BEGIN STORE DOCUMENT CHUNK FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數儲存一個文件區塊及其 metadata，使用 upsert 處理插入和更新。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">store_document_chunk</span><span class="p">(</span>
+    <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">chunk_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Store a document chunk with metadata and optional embedding placeholder."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># Build the document structure following our RAG schema
+</span>    <span class="c1"># The 'id' field is required by Cosmos DB and must be unique within the partition
+</span>    <span class="c1"># The 'documentId' field is our partition key - chunks from the same source document
+</span>    <span class="c1"># are stored together for efficient retrieval
+</span>    <span class="n">chunk</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"id"</span><span class="p">:</span> <span class="n">chunk_id</span><span class="p">,</span>
+        <span class="s">"documentId"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">,</span>
+        <span class="s">"content"</span><span class="p">:</span> <span class="n">content</span><span class="p">,</span>
+        <span class="s">"metadata"</span><span class="p">:</span> <span class="n">metadata</span> <span class="ow">or</span> <span class="p">{},</span>
+        <span class="s">"embedding"</span><span class="p">:</span> <span class="n">embedding</span> <span class="ow">or</span> <span class="p">[],</span>  <span class="c1"># Placeholder for vector embeddings
+</span>        <span class="s">"createdAt"</span><span class="p">:</span> <span class="n">datetime</span><span class="p">.</span><span class="n">utcnow</span><span class="p">().</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s">"chunkIndex"</span><span class="p">:</span> <span class="n">metadata</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"chunkIndex"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">metadata</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="p">}</span>
+
+    <span class="c1"># upsert_item inserts if new, updates if exists (based on id + partition key)
+</span>    <span class="c1"># This is idempotent - safe to call multiple times with the same data
+</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">upsert_item</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
+
+    <span class="c1"># Request Units (RUs) measure the cost of database operations in Cosmos DB
+</span>    <span class="c1"># Tracking RU consumption helps optimize queries and estimate costs
+</span>    <span class="n">ru_charge</span> <span class="o">=</span> <span class="n">response</span><span class="p">.</span><span class="n">get_response_headers</span><span class="p">()[</span><span class="s">'x-ms-request-charge'</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">chunk_id</span><span class="p">,</span>
+        <span class="s">"document_id"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">,</span>
+        <span class="s">"ru_charge"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">ru_charge</span><span class="p">)</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN GET CHUNKS BY DOCUMENT FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數會擷取特定文件的所有區塊，按區塊索引排序以便順序讀取。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_chunks_by_document</span><span class="p">(</span><span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""Retrieve all chunks for a specific document, ordered by chunk index."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># SQL query using parameterized values (@documentId, @limit) to prevent injection
+</span>    <span class="c1"># The 'c' alias represents each document in the container
+</span>    <span class="n">query</span> <span class="o">=</span> <span class="s">"""
+        SELECT c.id, c.content, c.metadata, c.chunkIndex, c.createdAt
+        FROM c
+        WHERE c.documentId = @documentId
+        ORDER BY c.chunkIndex
+        OFFSET 0 LIMIT @limit
+    """</span>
+
+    <span class="c1"># Single-partition query: providing partition_key limits the query to one partition
+</span>    <span class="c1"># This is more efficient than cross-partition queries because Cosmos DB only
+</span>    <span class="c1"># needs to read from one physical partition instead of fanning out to all partitions
+</span>    <span class="n">items</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">query_items</span><span class="p">(</span>
+        <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@documentId"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">},</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@limit"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">limit</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="n">partition_key</span><span class="o">=</span><span class="n">document_id</span>  <span class="c1"># Scopes query to a single partition
+</span>    <span class="p">)</span>
+
+    <span class="c1"># Transform Cosmos DB items into a consistent response format
+</span>    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"chunk_index"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"chunkIndex"</span><span class="p">],</span>
+            <span class="s">"created_at"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"createdAt"</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN SEARCH CHUNKS BY METADATA FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數使用以下方式搜尋跨文件的區塊 metadata 過濾器，這對於根據標籤、類別或其他屬性查找相關上下文很有用。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">search_chunks_by_metadata</span><span class="p">(</span>
+    <span class="n">filters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""Search for chunks across documents using metadata filters."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># Build WHERE clauses dynamically based on provided filters
+</span>    <span class="c1"># This allows flexible querying by any combination of metadata fields
+</span>    <span class="n">where_clauses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="s">"source"</span> <span class="ow">in</span> <span class="n">filters</span> <span class="ow">and</span> <span class="n">filters</span><span class="p">[</span><span class="s">"source"</span><span class="p">]:</span>
+        <span class="n">where_clauses</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">"c.metadata.source = @source"</span><span class="p">)</span>
+        <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@source"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">filters</span><span class="p">[</span><span class="s">"source"</span><span class="p">]})</span>
+
+    <span class="k">if</span> <span class="s">"category"</span> <span class="ow">in</span> <span class="n">filters</span> <span class="ow">and</span> <span class="n">filters</span><span class="p">[</span><span class="s">"category"</span><span class="p">]:</span>
+        <span class="n">where_clauses</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">"c.metadata.category = @category"</span><span class="p">)</span>
+        <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@category"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">filters</span><span class="p">[</span><span class="s">"category"</span><span class="p">]})</span>
+
+    <span class="k">if</span> <span class="s">"tags"</span> <span class="ow">in</span> <span class="n">filters</span> <span class="ow">and</span> <span class="n">filters</span><span class="p">[</span><span class="s">"tags"</span><span class="p">]:</span>
+        <span class="c1"># ARRAY_CONTAINS checks if a value exists within an array field
+</span>        <span class="c1"># This is useful for searching tags, keywords, or other list-based metadata
+</span>        <span class="n">where_clauses</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">"ARRAY_CONTAINS(c.metadata.tags, @tag)"</span><span class="p">)</span>
+        <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@tag"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">filters</span><span class="p">[</span><span class="s">"tags"</span><span class="p">][</span><span class="mi">0</span><span class="p">]})</span>
+
+    <span class="c1"># Default to "1=1" (always true) if no filters provided
+</span>    <span class="n">where_clause</span> <span class="o">=</span> <span class="s">" AND "</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_clauses</span><span class="p">)</span> <span class="k">if</span> <span class="n">where_clauses</span> <span class="k">else</span> <span class="s">"1=1"</span>
+    <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@limit"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">limit</span><span class="p">})</span>
+
+    <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s">"""
+        SELECT c.id, c.documentId, c.content, c.metadata, c.chunkIndex
+        FROM c
+        WHERE </span><span class="si">{</span><span class="n">where_clause</span><span class="si">}</span><span class="s">
+        OFFSET 0 LIMIT @limit
+    """</span>
+
+    <span class="c1"># Cross-partition query: searches across ALL partitions in the container
+</span>    <span class="c1"># Required when you don't know which partition contains the data you need
+</span>    <span class="c1"># More expensive than single-partition queries but necessary for metadata searches
+</span>    <span class="n">items</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">query_items</span><span class="p">(</span>
+        <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">enable_cross_partition_query</span><span class="o">=</span><span class="bp">True</span>  <span class="c1"># Fan out to all partitions
+</span>    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"document_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"documentId"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"chunk_index"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"chunkIndex"</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN GET CHUNK BY ID FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。該函數執行有效的點讀取，透過其擷取特定區塊 ID 和文件 ID.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_chunk_by_id</span><span class="p">(</span><span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">chunk_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Retrieve a specific chunk using a point read (most efficient)."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Point read: the most efficient Cosmos DB operation
+</span>        <span class="c1"># By providing both the item ID and partition key, Cosmos DB can go
+</span>        <span class="c1"># directly to the exact location of the document without any query execution
+</span>        <span class="c1"># This results in the lowest latency and RU cost (typically 1 RU for small docs)
+</span>        <span class="n">item</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">read_item</span><span class="p">(</span>
+            <span class="n">item</span><span class="o">=</span><span class="n">chunk_id</span><span class="p">,</span>         <span class="c1"># The unique ID within the partition
+</span>            <span class="n">partition_key</span><span class="o">=</span><span class="n">document_id</span>  <span class="c1"># The partition where this item lives
+</span>        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"document_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"documentId"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"chunk_index"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"chunkIndex"</span><span class="p">],</span>
+            <span class="s">"created_at"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"createdAt"</span><span class="p">],</span>
+            <span class="s">"embedding"</span><span class="p">:</span> <span class="n">item</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"embedding"</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="p">}</span>
+    <span class="k">except</span> <span class="n">exceptions</span><span class="p">.</span><span class="n">CosmosResourceNotFoundError</span><span class="p">:</span>
+        <span class="c1"># Return None if the item doesn't exist rather than raising an exception
+</span>        <span class="c1"># This allows the caller to handle missing items gracefully
+</span>        <span class="k">return</span> <span class="bp">None</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>將您的變更儲存到 <em>rag_functions.py</em> file.</p>
+</li>
+<li>
+<p>花幾分鐘查看應用程式中的所有程式碼。</p>
+</li>
+</ol>
+<p>接下來，完成 Azure 資源部署。</p>
+<h2 id="complete-the-azure-resource-deployment">完成 Azure 資源部署</h2>
+<p>在本節中，您將返回部署腳本來設定 Entra ID 存取並擷取 Cosmos 的連線資訊 DB 帳戶。</p>
+<ol>
+<li>
+<p>當 <strong>Create Cosmos DB account</strong> 操作有 completed， 輸入 <strong>2</strong> 啟動 <strong>Configure Entra ID access</strong> 選項。這將分配您的 user 帳戶 訪問 Cosmos 的必要角色 DB 資料平面。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 啟動 <strong>Check deployment status</strong> 選項。這將驗證所有資源是否已準備就緒。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 啟動 <strong>Retrieve connection info</strong> 選項。這將建立一個包含必要環境變數的檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>5</strong> 結束部署腳本。</p>
+</li>
+<li>
+<p>執行以下命令將環境變數從上一個步驟建立的檔案載入到終端會話中。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 保持終端打開。如果關閉它並建立新終端，則可能需要執行命令來再次建立環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<p>接下來，您將探索用於 RAG 文件儲存。</p>
+<h2 id="understand-the-rag-document-schema">了解 RAG 文件模式</h2>
+<p>在本節中，您將了解為以下目的而設計的文件架構： RAG 應用程式。與關聯式資料庫不同，Cosmos DB 為了 NoSQL 使用靈活的 JSON 文件模型。該容器是用以下命令建立的 <strong>documentId</strong> 作為分區鍵，它將來自相同來源文件的所有區塊分組在一起以進行高效擷取。</p>
+<p>每個區塊的文件架構包括：</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>id</strong></td>
+<td>區塊的唯一識別碼（Cosmos 需要） DB)</td>
+</tr>
+<tr>
+<td><strong>documentId</strong></td>
+<td>來源文件識別碼（分區鍵）</td>
+</tr>
+<tr>
+<td><strong>content</strong></td>
+<td>區塊的實際文字內容</td>
+</tr>
+<tr>
+<td><strong>metadata</strong></td>
+<td>來源、類別、標籤和自訂屬性的靈活對象</td>
+</tr>
+<tr>
+<td><strong>embedding</strong></td>
+<td>向量的陣列佔位符 embeddings （用於向量搜尋場景）</td>
+</tr>
+<tr>
+<td><strong>chunkIndex</strong></td>
+<td>來源文件中區塊的位置</td>
+</tr>
+<tr>
+<td><strong>createdAt</strong></td>
+<td>儲存區塊的時間戳</td>
+</tr>
+</tbody>
+</table>
+<p>該架構支援常見的 RAG 模式：</p>
+<ul>
+<li>
+<strong>Point reads</strong>：擷取特定區塊 ID 和文件 ID （最低延遲）</li>
+<li>
+<strong>Single-partition queries</strong>：高效率取得文件的所有區塊</li>
+<li>
+<strong>Cross-partition queries</strong>：跨文件搜尋 metadata</li>
+<li>
+<strong>Vector search</strong>：與向量索引結合使用時</li>
+</ul>
+<h2 id="test-the-rag-functions-with-the-flask-app">測試 RAG 函數與 Flask 應用程式</h2>
+<p>在本節中，您將開始 Flask Web 應用程式並使用其介面來測試 RAG 您建立的函數。該應用程式提供了一種可視化的方式來載入資料、運行測試、查詢區塊和執行自訂 SQL 查詢。</p>
+<ol>
+<li>
+<p>運行以下命令導航到 <em>client</em> 目錄。</p>
+<pre><code>cd client
+</code></pre>
+</li>
+<li>
+<p>執行以下命令建立虛擬環境 Flask 應用程式.根據您的環境，命令可能是 <strong>python</strong> or <strong>python3</strong>.</p>
+<pre><code>python -m venv .venv
+</code></pre>
+</li>
+<li>
+<p>運行以下命令來激活 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，使用 Bash 命令。在 Windows 上，使用 PowerShell 命令。如果使用 Git Bash 在 Windows 上，使用 <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令來安裝 Python 應用程式的依賴項。這將安裝 <strong>flask</strong> 和 <strong>azure-cosmos</strong> libraries.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-r</span> requirements.txt
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令來啟動 Flask 應用。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python app.py
+</code></pre></div></div>
+</li>
+<li>
+<p>打開瀏覽器並導航至 <code>http://127.0.0.1:5000</code> 查看應用程式。</p>
+</li>
+</ol>
+<h3 id="load-sample-data">載入範例資料</h3>
+<p>在本節中，您將使用該應用程式將範例文件區塊載入到 Cosmos 中 DB 容器。該應用程式調用 <strong>store_document_chunk()</strong> 您建立的函數 <em>rag_functions.py</em> 插入每個區塊。</p>
+<ol>
+<li>
+<p>在 <strong>Load Sample Data</strong> 部分，選擇 <strong>Load Sample Chunks</strong>。這將在四個文件中插入 12 個範例區塊，代表虛構的 Azure 文件文章中的內容。</p>
+</li>
+<li>
+<p>驗證成功訊息是否出現在 <strong>Results</strong> 顯示載入的區塊數和總數的部分 RU (Request Unit） 收費。</p>
+</li>
+</ol>
+<h3 id="run-test-workflow">執行測試工作流程</h3>
+<p>在本節中，您將執行自動化測試來驗證 RAG 您建立的函數 <em>rag_functions.py</em> 正常工作。</p>
+<ol>
+<li>
+<p>在 <strong>Run Test Workflow</strong> 部分，選擇 <strong>Run Tests</strong>。這將執行五個測試來執行每個功能。</p>
+</li>
+<li>
+<p>查看測試結果 <strong>Results</strong> 控制板。每個測試應該顯示一個 <strong>passed</strong> 地位：</p>
+<ul>
+<li>儲存文件區塊</li>
+<li>按文件取得區塊 ID</li>
+<li>按類別搜尋</li>
+<li>按標籤搜尋</li>
+<li>點讀取者 ID</li>
+</ul>
+</li>
+</ol>
+<h3 id="get-chunks-by-document">按文件取得區塊</h3>
+<p>在本部分中，您將擷取特定文件的所有區塊。該應用程式調用 <strong>get_chunks_by_document()</strong> 您建立的函數 <em>rag_functions.py</em>.</p>
+<ol>
+<li>
+<p>在 <strong>Get Chunks by Document</strong> 部分，從下拉清單中選擇一個文件（例如， <strong>doc-azure-overview</strong>).</p>
+</li>
+<li>
+<p>選擇 <strong>Get Chunks</strong> 擷取該文件的所有區塊。</p>
+</li>
+<li>
+<p>查看結果，顯示按索引排序的區塊及其內容和 metadata 標籤。</p>
+</li>
+</ol>
+<h3 id="search-by-metadata">搜尋依據 metadata</h3>
+<p>在本節中，您將使用以下命令在所有文件中搜尋區塊 metadata 過濾器。該應用程式調用 <strong>search_chunks_by_metadata()</strong> 您建立的函數 <em>rag_functions.py</em>。您會觀察組合篩選器如何縮小結果範圍。</p>
+<ol>
+<li>
+<p>在 <strong>Search by Metadata</strong> 部分，選擇 <strong>ai-applications</strong> 從 <strong>Category</strong> 下拉式選單。留下 <strong>Tag</strong> 字段空。</p>
+</li>
+<li>
+<p>選擇 <strong>Search</strong> 尋找該類別的所有區塊。</p>
+</li>
+<li>
+<p>查看結果 <strong>Results</strong> 控制板。您應該看到返回 4 個區塊，每個區塊都有不同的標籤，例如 <strong>rag</strong>, <strong>embeddings</strong>, <strong>chunking</strong>， 和 <strong>metadata</strong>.</p>
+</li>
+<li>
+<p>現在新增標籤過濾器來縮小結果範圍。輸入 <strong>embeddings</strong> 在 <strong>Tag</strong> 字段並選擇 <strong>Search</strong> 。</p>
+</li>
+<li>
+<p>請注意，返回的結果較少 - 僅返回與 <strong>ai-applications</strong> 類別並包含 <strong>embeddings</strong> 標籤。這示範如何結合 metadata 過濾器有幫助 RAG 應用程式擷取更有針對性的上下文。</p>
+</li>
+</ol>
+<h2 id="query-document-context">查詢文件上下文</h2>
+<p>在本節中，您練習寫作 SQL 針對 Cosmos 的查詢 DB 使用查詢資源管理器的容器。這些查詢展示了以下模式： RAG 應用程式通常用於擷取文件上下文。</p>
+<ol>
+<li>
+<p>在 <strong>Query Explorer</strong> 部分，在 <strong>SQL Query</strong> 欄位來尋找特定文件的所有區塊。此查詢會擷取按索引排序的區塊以進行順序讀取。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">chunkIndex</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span>
+<span class="k">FROM</span> <span class="k">c</span>
+<span class="k">WHERE</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span> <span class="o">=</span> <span class="s1">'doc-azure-overview'</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="k">c</span><span class="p">.</span><span class="n">chunkIndex</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>選擇 <strong>Execute Query</strong> 並審查結果。</p>
+</li>
+<li>
+<p>在查詢中輸入以下查詢 <strong>SQL Query</strong> 欄位用於在所有文件中搜尋具有特定類別的區塊。這演示了搜尋的跨分區查詢 metadata.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">category</span>
+<span class="k">FROM</span> <span class="k">c</span>
+<span class="k">WHERE</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">category</span> <span class="o">=</span> <span class="s1">'cloud-services'</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>選擇 <strong>Execute Query</strong> 並審查結果。</p>
+</li>
+<li>
+<p>在查詢中輸入以下查詢 <strong>SQL Query</strong> 用於查看容器中儲存的文件及其類別和來源的字段 metadata。這有助於了解哪些內容可用 RAG 擷取。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">DISTINCT</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">category</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="k">source</span>
+<span class="k">FROM</span> <span class="k">c</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>選擇 <strong>Execute Query</strong> 並審查結果。</p>
+</li>
+<li>
+<p>在查詢中輸入以下查詢 <strong>SQL Query</strong> 欄位來尋找其中包含特定標籤的區塊 metadata。這演示了使用以下方法在數組中進行搜索 <strong>ARRAY_CONTAINS</strong>.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">tags</span>
+<span class="k">FROM</span> <span class="k">c</span>
+<span class="k">WHERE</span> <span class="n">ARRAY_CONTAINS</span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">tags</span><span class="p">,</span> <span class="s1">'compute'</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>選擇 <strong>Execute Query</strong> 並審查結果。</p>
+</li>
+<li>
+<p>返回終端並按 <strong>Ctrl+C</strong> 停止 Flask 應用。</p>
+</li>
+</ol>
+<h2 id="summary">摘要</h2>
+<p>在本練習中，您建立了一個 Cosmos DB基於文件存儲 RAG 應用程式.您部署了一個 Azure Cosmos DB for NoSQL 帳戶 具有針對文件擷取模式最佳化的資料庫和容器。你創造了 Python 儲存文件區塊的函數 metadata, 依文件擷取區塊 ID，使用跨文件搜索 metadata 過濾器，並執行有效的點讀取。您使用以下命令測試了工作流程 Flask Web 應用程式執行每個功能，然後使用 Cosmos 查詢儲存的資料 DB SQL API。這種模式使 AI 用於儲存分塊文件並擷取地面語言模型回應的相關上下文的應用程式。</p>
+<h2 id="clean-up-resources">清理資源</h2>
+<p>現在您已完成練習，您應該刪除您建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在中運行以下命令 VS Code 終端刪除資源組以及該組中的所有資源。代替 <strong>&lt;rg-name&gt;</strong> 使用您之前在練習中選擇的名稱。該命令將在 Azure 中啟動背景任務以刪除資源組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre>
+</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源組會刪除其中包含的所有資源。如果您為此練習選擇了現有資源組，則本練習範圍之外的任何現有資源也將被刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在此練習中遇到問題，請嘗試以下步驟：</p>
+<p><strong>Flask app fails to start</strong></p>
+<ul>
+<li>確保 Python 虛擬環境已啟動（您應該看到 <strong>(.venv)</strong> 在你的終端機提示中）</li>
+<li>確保安裝了依賴項： <strong>pip install -r requirements.txt</strong>
+</li>
+<li>確保透過運行載入環境變量 <strong>source .env</strong> (Bash） 或者 <strong>. ..env.ps1</strong> (PowerShell)</li>
+<li>確保您在 <em>client</em> 運行時目錄 <strong>python app.py</strong>
+</li>
+</ul>
+<p><strong>Authentication or access denied errors</strong></p>
+<ul>
+<li>確保 Entra ID 透過執行部署腳本選項設定存取權限 <strong>2</strong>
+</li>
+<li>驗證您的 user 兩者都有 <strong>Contributor</strong> 角色和 <strong>Cosmos DB Built-in Data Contributor</strong> 角色</li>
+<li>確保 <strong>COSMOS_ENDPOINT</strong> 在您的終端會話中設定正確</li>
+</ul>
+<p><strong>Cosmos DB operations fail</strong></p>
+<ul>
+<li>驗證宇宙 DB 帳戶 透過執行部署腳本選項已準備就緒 <strong>3</strong>
+</li>
+<li>確保在部署期間建立資料庫和容器</li>
+<li>檢查容器是否使用 <strong>/documentId</strong> 作為分區鍵</li>
+</ul>
+<p><strong>Environment variable issues</strong></p>
+<ul>
+<li>確保 <em>.env</em> 文件是透過運行部署腳本選項創建的 <strong>4</strong>
+</li>
+<li>跑步 <strong>source .env</strong> (Bash） 或者 <strong>. ..env.ps1</strong> (PowerShell）建立新終端後</li>
+<li>透過運行驗證變數是否已設定 <strong>echo $COSMOS_ENDPOINT</strong> (Bash） 或者 <strong>$env:COSMOS_ENDPOINT</strong> (PowerShell)</li>
+</ul>
+<p><strong>Python venv activation issues</strong></p>
+<ul>
+<li>在 Linux/macOS 上，使用： <strong>source .venv/bin/activate</strong>
+</li>
+<li>在 Windows 上 PowerShell， 使用： <strong>.\venv\Scripts\Activate.ps1</strong>
+</li>
+<li>如果 <strong>activate</strong> 腳本遺失，重新安裝 <strong>python3-venv</strong> 打包並重新建立 venv</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 微軟| 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">隱私權 </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">消費者健康隱私權 </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">使用條款 </a> | 
+                  <a href="https://www.microsoft.com/trademarks">商標 </a> | 
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    原始碼
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

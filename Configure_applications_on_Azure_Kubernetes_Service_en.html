@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Configure apps on Azure Kubernetes Service |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="configure-apps-on-azure-kubernetes-service">Configure apps on Azure Kubernetes Service</h1>
+<p>In this exercise, you learn how to configure Kubernetes deployments with ConfigMaps for non-sensitive settings, Secrets for sensitive credentials, and PersistentVolumeClaims for persistent storage. You deploy a containerized API to Azure Kubernetes Service (AKS), configure it with various Kubernetes resources, and interact with it using a Python client application.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Deploy resources to Azure (ACR, AKS cluster)</li>
+<li>Build and push a container image to Azure Container Registry</li>
+<li>Configure kubectl credentials for AKS cluster access</li>
+<li>Apply updated YAML files to AKS to create the pod and expose the API with a LoadBalancer</li>
+<li>Run the client app to test the API endpoints</li>
+<li>View API logs stored on persistent volume</li>
+<li>Clean up Azure resources</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<blockquote>
+<p><strong>IMPORTANT:</strong> The persistent storage implementation in this exercise is for demonstration purposes only. For logging, production applications should use a centralized logging solution like Azure Monitor or Application Insights instead of storing logs on persistent volumes. If persistent storage is required, implement log rotation policies to prevent storage from filling up, which can cause container failures and pod evictions.</p>
+</blockquote>
+<blockquote>
+<p><strong>Important:</strong> Azure Container Registry task runs are temporarily paused from Azure free credits. This exercise requires a Pay-As-You-Go, or another paid plan.</p>
+</blockquote>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>The Kubernetes command-line tool, <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the starter files for the console app and use a script to deploy the necessary services to your Azure subscription. The Azure resource deployments can take 10-15 minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/aks-configure-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the resource group and location values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">rg</span> <span class="o">=</span> <span class="s">"&lt;your-resource-group-name&gt;"</span>  <span class="c1"># Resource Group name
+</span><span class="n">location</span> <span class="o">=</span> <span class="s">"&lt;your-azure-region&gt;"</span>   <span class="c1"># Azure region for the resources
+</span></code></pre></div></div>
+</li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers to install AKS and ACR. The <strong>Microsoft.Compute</strong>, <strong>Microsoft.Network</strong>, and <strong>Microsoft.Storage</strong> providers are dependencies of AKS that Azure usually registers automatically, but explicitly registering them avoids occasional cluster creation failures on new subscriptions.</p>
+<pre><code>az provider register --namespace Microsoft.ContainerService
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Storage
+</code></pre></li>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Depending on your system configuration, the Python command might be <strong>python3</strong> instead of <strong>python</strong>.</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="deploy-resources-to-azure">Deploy resources to Azure</h3>
+<p>With the deployment script running, follow these steps to create the needed resources in Azure.</p>
+<ol>
+<li>
+<p>Enter <strong>1</strong> to launch <strong>Create Azure Container Registry (ACR)</strong>. This creates the resource where the API container will be stored, and later pulled into the AKS resource.</p>
+<p>When the operation is complete it will return the ACR endpoint. Copy the information, you need it later in the exercise.</p>
+</li>
+<li>
+<p>After the ACR resource has been created, enter <strong>2</strong> to launch <strong>Build and push API image to ACR</strong>. This option uses ACR tasks to build the image and add it to the ACR repository. This operation can take 3-5 minutes to complete.</p>
+</li>
+<li>
+<p>After the image has been built and pushed to ACR, enter <strong>3</strong> to launch the <strong>Create AKS cluster</strong> option. This creates the AKS resource configured with a managed identity, gives the service permission to pull images from the ACR resource, and assigns the needed RBAC role to write to the persistent storage. This operation can take 5-10 minutes to complete.</p>
+</li>
+<li>
+<p>After the AKS cluster deployment has completed, enter <strong>4</strong> to launch the <strong>Get AKS credentials for kubectl</strong> option. This uses the <strong>az aks get-credentials</strong> command to retrieve credentials and configure <strong>kubectl</strong>.</p>
+</li>
+<li>
+<p>After the credentials have been configured, enter <strong>5</strong> to launch the <strong>Check deployment status</strong> option. This option reports if each of the resources have been successfully deployed.</p>
+<p>If all of the services return a <strong>successful</strong> message, enter <strong>7</strong> to exit the deployment script.</p>
+<p>If the AKS cluster is in a <strong>Failed</strong> or <strong>Canceled</strong> state, correct the reported issue, then enter <strong>6</strong> to launch the <strong>Delete failed AKS deployment</strong> option before running option <strong>3</strong> again. This guarded option does not delete a healthy or in-progress cluster.</p>
+</li>
+</ol>
+<p>Next, you complete the YAML files necessary to deploy the API to AKS.</p>
+<h2 id="complete-the-yaml-deployment-files-and-deploy-to-aks">Complete the YAML deployment files and deploy to AKS</h2>
+<p>In this section you complete YAML files, located in the <em>k8s</em> folder, needed to configure Kubernetes deployments with persistent storage, and store sensitive and non-sensitive settings.</p>
+<h3 id="complete-the-configmap-yaml-file">Complete the ConfigMap YAML file</h3>
+<p>ConfigMaps store non-sensitive configuration data as key-value pairs that can be consumed by pods. In this section, you create a ConfigMap to store application settings like the student name, API version, and log path.</p>
+<ol>
+<li>
+<p>Open the empty <em>k8s/configmap.yaml</em> file and add the following code. You can update the value for <strong>STUDENT_NAME</strong> with your name if you want to.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">ConfigMap</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">api-config</span>
+  <span class="na">labels</span><span class="pi">:</span>
+    <span class="na">app</span><span class="pi">:</span> <span class="s">aks-config-api</span> <span class="c1"># Label for the AKS configuration API</span>
+<span class="na">data</span><span class="pi">:</span>
+  <span class="c1"># Store non-sensitive configuration values</span>
+  <span class="na">STUDENT_NAME</span><span class="pi">:</span> <span class="s2">"</span><span class="s">YourNameHere"</span>
+  <span class="na">API_VERSION</span><span class="pi">:</span> <span class="s2">"</span><span class="s">1.0.0"</span>
+  <span class="na">LOG_PATH</span><span class="pi">:</span> <span class="s2">"</span><span class="s">/var/log/api"</span> <span class="c1"># Path for API logs</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Review the comments in the code, then save your changes.</p>
+</li>
+</ol>
+<h3 id="complete-the-secrets-yaml-file">Complete the Secrets YAML file</h3>
+<p>Secrets store sensitive information like passwords, tokens, and keys in a base64-encoded format. In this section, you create a Secret to store sensitive credentials that the API will access at runtime.</p>
+<ol>
+<li>
+<p>Open the empty <em>k8s/secrets.yaml</em> file and add the following code.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Secret</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">api-secrets</span>
+  <span class="na">labels</span><span class="pi">:</span>
+    <span class="na">app</span><span class="pi">:</span> <span class="s">aks-config-api</span>
+<span class="na">type</span><span class="pi">:</span> <span class="s">Opaque</span>
+<span class="na">stringData</span><span class="pi">:</span>
+  <span class="c1"># Store sensitive credentials as base64-encoded values</span>
+  <span class="na">secret-endpoint</span><span class="pi">:</span> <span class="s2">"</span><span class="s">SecretEndpointValue"</span>
+  <span class="na">secret-access-key</span><span class="pi">:</span> <span class="s2">"</span><span class="s">SecretAccessKey123456"</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Take a few minutes to review the comments in the code, then save your changes.</p>
+</li>
+</ol>
+<h3 id="complete-the-pvc-yaml-file">Complete the PVC YAML file</h3>
+<p>A PersistentVolumeClaim (PVC) requests storage resources from Azure that can be mounted to pods. In this section, you create a PVC that uses Azure Disk storage to persist API log files across pod restarts.</p>
+<ol>
+<li>
+<p>Open the empty <em>k8s/pvc.yaml</em> file and add the following code.</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">PersistentVolumeClaim</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">api-logs-pvc</span>
+  <span class="na">labels</span><span class="pi">:</span>
+    <span class="na">app</span><span class="pi">:</span> <span class="s">aks-config-api</span> <span class="c1"># Label for the AKS configuration API</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">accessModes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">ReadWriteOnce</span>  <span class="c1"># Allow single pod to mount volume for read/write</span>
+  <span class="na">resources</span><span class="pi">:</span>
+    <span class="na">requests</span><span class="pi">:</span>
+      <span class="na">storage</span><span class="pi">:</span> <span class="s">1Gi</span>  <span class="c1"># Request minimum Azure Disk size</span>
+  <span class="na">storageClassName</span><span class="pi">:</span> <span class="s">managed-csi</span>  <span class="c1"># Use Azure Disk CSI driver (default)</span>
+  <span class="na">volumeMode</span><span class="pi">:</span> <span class="s">Filesystem</span>  <span class="c1"># Default mode</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Take a few minutes to review the comments in the code, then save your changes.</p>
+</li>
+</ol>
+<h3 id="update-the-deployment-yaml-file">Update the Deployment YAML file</h3>
+<p>The deployment manifest is already partially configured with environment variables, volume mounts, and probes. You just need to update the container image reference with your specific ACR endpoint.</p>
+<ol>
+<li>
+<p>Open the <em>k8s/deployment.yaml</em> file and locate the <strong>image: &lt;YOUR_ACR_ENDPOINT&gt;/aks-config-api:latest</strong> line.</p>
+</li>
+<li>
+<p>Replace <strong>&lt;YOUR_ACR_ENDPOINT&gt;</strong> with the value you recorded earlier in the exercise.</p>
+</li>
+<li>
+<p>Take a few minutes to review the comments in the code, then save your changes.</p>
+</li>
+</ol>
+<h2 id="apply-the-manifests-to-aks">Apply the manifests to AKS</h2>
+<p>In this section you apply the manifests to AKS. The following steps are performed in the VS Code terminal. Ensure you are in the root of the project before running the commands.</p>
+<ol>
+<li>
+<p>Run the following command to apply the ConfigMap.</p>
+<pre><code>kubectl apply -f k8s/configmap.yaml
+</code></pre></li>
+<li>
+<p>Run the following command to apply the Secrets.</p>
+<pre><code>kubectl apply -f k8s/secrets.yaml
+</code></pre></li>
+<li>
+<p>Run the following command to apply the PersistentVolumeClaim.</p>
+<pre><code>kubectl apply -f k8s/pvc.yaml
+</code></pre></li>
+<li>
+<p>Run the following command to apply the Deployment.</p>
+<pre><code>kubectl apply -f k8s/deployment.yaml
+</code></pre></li>
+<li>
+<p>Run the following command to create the Service.</p>
+<pre><code>kubectl apply -f k8s/service.yaml
+</code></pre></li>
+<li>
+<p>After you create the Service it can take a few minutes for the deployment to complete. The following command will monitor the service and update the external IP address of the pod when it's available. Enter <strong>ctrl + c</strong> to exit the command after the IP address appears.</p>
+<pre><code>kubectl get svc aks-config-api-service -w
+</code></pre></li>
+<li>
+<p>Run the following command from the project root to launch the deployment script again.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>Enter <strong>5</strong> to run the <strong>Check deployment status</strong> option. The script reads the LoadBalancer IP and writes it to <em>client/.env</em> as <strong>API_ENDPOINT</strong>. When the status check completes, enter <strong>7</strong> to exit the deployment script.</p>
+</li>
+</ol>
+<h2 id="run-the-client-app">Run the client app</h2>
+<p>In this section, you configure the Python environment and then perform operations on the API using the client app</p>
+<h3 id="configure-the-python-environment">Configure the Python environment</h3>
+<p>In this section, you create the Python environment and install the dependencies.</p>
+<ol>
+<li>
+<p>Ensure you are in the <em>client</em> folder of the project in the terminal.</p>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to create the Python environment.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to install the dependencies.</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h3 id="perform-operations-with-the-app">Perform operations with the app</h3>
+<p>With the Python environment configured and dependencies installed, you can now run the client application to test the deployed API. The API logs all operations to the persistent volume, and the client provides a menu-driven interface to interact with various endpoints.</p>
+<ol>
+<li>
+<p>Run the following command in the terminal to start the console app. Refer to the commands from earlier in the exercise to activate the environment, if needed, before running the command.</p>
+<pre><code>python main.py
+</code></pre></li>
+<li>
+<p>Enter <strong>1</strong> to start the <strong>Check API Health (Liveness)</strong> option. This verifies that the API container is running and responds to health checks, which is the same endpoint used by the Kubernetes liveness probe. Note the information it returns contains the non-sensitive student name set in ConfigMap.</p>
+<pre><code>[*] Checking API health...
+✓ API is healthy
+  Service: aks-config-api
+  Version: 1.0.0
+  Student: YourNameHere
+</code></pre></li>
+<li>
+<p>Enter <strong>2</strong> to start the <strong>Check API Readiness</strong> option. This confirms that the student name from the ConfigMap is loaded, displays the configured API version, and reports whether the Kubernetes Secrets are loaded and the persistent log storage is writable.</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to start the <strong>View Secrets Information</strong> option. This functionality exists only so you can confirm your secrets were set in the pod and is for demonstration purposes only. In the output you can view information about the secrets, the output is masked.</p>
+<pre><code>Secret Details:
+
+  secret_endpoint:
+    Loaded: True
+    Value: SecretEndp...
+    Length: 19 characters
+
+  secret_access_key:
+    Loaded: True
+    Value: ***3456
+    Length: 21 characters
+</code></pre></li>
+<li>
+<p>Enter <strong>4</strong> to start the <strong>Get Single Product</strong> option. Enter a product ID from <strong>1</strong> through <strong>10</strong> to retrieve one of the mock products from the API.</p>
+</li>
+<li>
+<p>Enter <strong>5</strong> to start the <strong>List All Products</strong> option. This displays the mock data included in the API.</p>
+</li>
+<li>
+<p>Now that the API has logged operations for several different endpoints, it's time to view the logs. Enter <strong>6</strong> to start the <strong>View Log Summary</strong> option and see a summary of the different operations. Note the total number of requests, and the requests to the <strong>/readyz</strong> and <strong>/healthz</strong> endpoints. Those two operations are executing automatically based on the schedule set in the <em>deployment.yaml</em> file.</p>
+<pre><code>✓ Log summary retrieved
+
+Log file: /var/log/api/api-requests-2025-12-21.log
+Total requests: 220
+Student: YourNameHere
+
+First request: 2025-12-21T02:19:48.953308
+Last request: 2025-12-21T02:46:08.952772
+
+Requests by endpoint:
+  /readyz: 160
+  /healthz: 56
+  /secrets: 1
+  /products: 1
+</code></pre></li>
+<li>
+<p>You can continue to generate log information and when you're finished enter <strong>7</strong> to exit the app.</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Check deployment status with the deployment script</strong></p>
+<ul>
+<li>Run the deployment script and select option <strong>5. Check deployment status</strong> to verify the state of all deployed resources.</li>
+<li>This command checks:
+<ul>
+<li>ACR provisioning state and readiness</li>
+<li>AKS cluster provisioning state</li>
+<li>Kubernetes resources (ConfigMap, Secrets, PVC, Deployment availability, Service LoadBalancer IP)</li>
+</ul>
+</li>
+<li>Use this output to identify which component may be causing issues.</li>
+</ul>
+<p><strong>Resolve AKS cluster creation failures</strong></p>
+<ul>
+<li>Quota validation can fail before an AKS resource is created, while failures later in provisioning can leave the cluster in a <strong>Failed</strong> or <strong>Canceled</strong> state.</li>
+<li>If the error reports that <strong>Standard_D2s_v7</strong> is unavailable or that the region has insufficient capacity, exit with option <strong>7</strong>. Change <strong>AKS_VM_SIZE</strong> to one of the v5 or v6 fallback sizes listed near the top of the deployment script, or change the <strong>location</strong> value, and then run option <strong>3. Create AKS cluster</strong> again.</li>
+<li>If the error reports insufficient quota, select a region where your subscription has available Dsv5-family quota or request a quota increase. Changing regions only helps when the other region has sufficient quota.</li>
+<li>The AKS cluster uses the <strong>location</strong> configured in the script even when the resource group already exists in another region.</li>
+<li>If option <strong>5</strong> reports <strong>Failed</strong> or <strong>Canceled</strong>, correct the underlying issue and run option <strong>6. Delete failed AKS deployment</strong> before retrying option <strong>3</strong>. If no AKS resource was created, no deletion is needed.</li>
+</ul>
+<p><strong>Verify YAML file completeness</strong></p>
+<ul>
+<li>Ensure all YAML content was added correctly to <em>configmap.yaml</em>, <em>secrets.yaml</em>, and <em>pvc.yaml</em> and that indentation is correct.</li>
+<li>Confirm the ACR endpoint was properly updated in <em>deployment.yaml</em> (replace <strong>&lt;YOUR_ACR_ENDPOINT&gt;</strong> with your actual ACR endpoint).</li>
+<li>If you make changes to any YAML file after initial deployment, reapply the file with <strong>kubectl apply -f k8s/&lt;filename&gt;.yaml</strong>.</li>
+<li>After updating ConfigMap or Secret files, perform a rolling restart to reload the configuration: <strong>kubectl rollout restart deployment aks-config-api</strong>.</li>
+</ul>
+<p><strong>Verify client configuration</strong></p>
+<ul>
+<li>Check that <em>client/.env</em> exists and contains <strong>API_ENDPOINT</strong> set to the LoadBalancer's external IP (for example, <strong><a href="http://20.xxx.xxx.xxx">http://20.xxx.xxx.xxx</a></strong>).</li>
+<li>If the file is missing or shows a stale IP, run the deployment script and select option <strong>5. Check deployment status</strong> after the Service has an external IP to rewrite <em>client/.env</em>.</li>
+<li>Verify you can reach the API endpoint by running <strong>curl http://&lt;external-ip&gt;/healthz</strong> from the terminal.</li>
+</ul>
+<p><strong>Check Python environment and dependencies</strong></p>
+<ul>
+<li>Confirm the virtual environment is activated before running the client app.</li>
+<li>Verify that all packages from <em>requirements.txt</em> were installed successfully by running <strong>pip list</strong>.</li>
+<li>Ensure you're running the client from the <em>client</em> directory.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

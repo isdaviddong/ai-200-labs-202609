@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        將容器化後端 API 部署至 Azure Container Apps |
+        
+        在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="deploy-a-containerized-backend-api-to-azure-container-apps">將容器化後端 API 部署到 Azure Container Apps</h1>
+<p>在本練習中，您會將容器化後端 API 部署到 Azure Container Apps。您會使用受控識別，安全地從 Azure Container Registry 提取映像，並將祕密設定為環境變數。</p>
+<p>本練習中將完成下列工作：</p>
+<ul>
+<li>下載專案起始檔並部署 Azure 服務</li>
+<li>使用受控識別驗證部署容器應用程式</li>
+<li>設定祕密並從環境變數參考它們</li>
+<li>透過呼叫 API 端點與檢視記錄來驗證部署</li>
+</ul>
+<p>本練習約需 <strong>30</strong> 分鐘完成。</p>
+<blockquote>
+<p><strong>重要：</strong> Azure Container Registry task runs 目前不支援 Azure 免費額度。本練習需要 Pay-As-You-Go 或其他付費方案。</p>
+</blockquote>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>具備部署所需 Azure 服務權限的 Azure 訂閱。如果您還沒有，可以 <a href="https://azure.microsoft.com/">註冊一個</a>。</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> ，可在下列其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台上執行</a>。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案起始檔並部署 Azure 服務</h2>
+<p>在本節中，您會下載專案起始檔，並使用指令碼將所需服務部署到 Azure 訂閱。Azure Container Registry 與 Container Apps 環境的部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載起始檔。檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/aca-deploy-python.zip
+</code></pre></li>
+<li>
+<p>將檔案複製或移動到您希望進行專案作業的系統位置，然後將其解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟 <em>azdeploy.py</em> 部署指令碼，並將指令碼頂端的兩個值修改為符合您的需求，然後儲存變更。 <strong>注意：</strong> 不要變更指令碼中的其他任何內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong> ，在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依照提示選取本練習要使用的 Azure 帳戶與訂閱。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令以確認您已安裝 Azure CLI 的 <strong>containerapp</strong> 延伸模組。</p>
+<pre><code class="language-azurecli">az extension add --name containerapp
+az extension add --name log-analytics
+</code></pre></li>
+<li>
+<p>執行下列命令，以確保您的訂閱具有本練習所需的資源提供者。</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.OperationalInsights
+az provider register --namespace Microsoft.ContainerRegistry
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">在 Azure 中建立資源</h3>
+<p>在本節中，您會執行部署指令碼，將所需服務部署到您的 Azure 訂閱。</p>
+<ol>
+<li>
+<p>請確認您位於專案根目錄，並在終端機中執行下列命令以啟動部署指令碼。部署指令碼會部署 ACR，並建立本練習所需的環境變數檔案。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>當指令碼執行時，輸入 <strong>1</strong> 以啟動 <strong>Create Azure Container Registry and build container image</strong> 選項。此選項會建立 ACR 服務，並使用 ACR Tasks 建置與推送映像到登錄。</p>
+</li>
+<li>
+<p>前一個作業完成後，輸入 <strong>2</strong> 以啟動 <strong>Create Container Apps environment</strong> 選項。部署容器之前必須先建立環境。</p>
+<blockquote>
+<p><strong>注意：</strong> 建立 Container Apps 環境後，系統會產生一個包含環境變數的檔案。您會在整個練習中使用這些變數。</p>
+</blockquote>
+</li>
+<li>
+<p>前一個作業完成後，輸入 <strong>4</strong> 以結束部署指令碼。</p>
+</li>
+<li>
+<p>執行對應命令，從前一步建立的檔案中將環境變數載入目前的終端機工作階段。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 請保持終端機開啟。如果您將它關閉並建立新的終端機，可能需要再次執行命令來建立環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="deploy-the-container-app-and-configure-secrets">部署容器應用程式並設定祕密</h2>
+<p>在本節中，您會將 API 以啟用外部輸入的容器應用程式形式部署。由於映像位於私人登錄中，您必須在建立時設定登錄驗證，讓第一個修訂可以提取映像。接著，您會設定祕密並從環境變數參考它。此模式反映了 AI 應用程式儲存提供者 API 金鑰的方式。</p>
+<ol>
+<li>
+<p>使用系統指派的受控識別建立容器應用程式，並在建立時設定登錄驗證。 <strong>--registry-identity</strong> 旗標會指示 Container Apps 使用應用程式的受控識別，從指定的登錄提取映像。當您搭配 Azure Container Registry 使用此旗標時，CLI 會自動指派 <strong>AcrPull</strong> 角色。</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp create \
+    --name $CONTAINER_APP_NAME \
+    --resource-group $RESOURCE_GROUP \
+    --environment $ACA_ENVIRONMENT \
+    --image &quot;$ACR_SERVER/$CONTAINER_IMAGE&quot; \
+    --ingress external \
+    --target-port $TARGET_PORT \
+    --env-vars MODEL_NAME=$MODEL_NAME \
+    --registry-server &quot;$ACR_SERVER&quot; \
+    --registry-identity system
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--environment</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACA_ENVIRONMENT</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--image</span><span class="w"> </span><span class="s2">"</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_SERVER</span><span class="s2">/</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_IMAGE</span><span class="s2">"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--ingress</span><span class="w"> </span><span class="nx">external</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--target-port</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">TARGET_PORT</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--env-vars</span><span class="w"> </span><span class="nx">MODEL_NAME</span><span class="o">=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">MODEL_NAME</span><span class="w"> </span><span class="err">`</span><span class="w">
+    </span><span class="nt">--registry-server</span><span class="w"> </span><span class="s2">"</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ACR_SERVER</span><span class="s2">"</span><span class="w"> </span><span class="err">`</span><span class="w">
+    </span><span class="nt">--registry-identity</span><span class="w"> </span><span class="n">system</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>建立祕密並從環境變數參考它。</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp secret set -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP \
+    --secrets embeddings-api-key=$EMBEDDINGS_API_KEY
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">secret</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--secrets</span><span class="w"> </span><span class="nx">embeddings-api-key</span><span class="o">=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">EMBEDDINGS_API_KEY</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>從環境變數參考該祕密。此命令會建立新的修訂，並重新啟動應用程式，讓祕密變更生效。</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp update -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP \
+    --set-env-vars EMBEDDINGS_API_KEY=secretref:embeddings-api-key
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--set-env-vars</span><span class="w"> </span><span class="nx">EMBEDDINGS_API_KEY</span><span class="o">=</span><span class="n">secretref:embeddings-api-key</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以列出修訂，確認已建立新的修訂。</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp revision list -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP -o table
+</code></pre>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">revision</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>修訂名稱會以類似 <code>--0000002</code>的尾碼結尾，表示這是第二個修訂。每當您變更環境變數或祕密時，Container Apps 都會建立新的修訂，並使用更新後的設定重新啟動應用程式。舊的非作用中修訂可能會隨時間被清理。</p>
+</li>
+</ol>
+<h2 id="verify-the-deployment">驗證部署</h2>
+<p>您應驗證應用程式是否已啟動，且輸入設定是否正常運作。您也會使用記錄來確認應用程式的行為符合預期。</p>
+<ol>
+<li>
+<p>執行下列命令以取得應用程式的 FQDN，並將結果儲存到變數中。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">FQDN</span><span class="o">=</span><span class="si">$(</span>az containerapp show <span class="nt">-n</span> <span class="nv">$CONTAINER_APP_NAME</span> <span class="nt">-g</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--query</span> properties.configuration.ingress.fqdn <span class="nt">-o</span> tsv<span class="si">)</span>
+
+<span class="nb">echo</span> <span class="s2">"</span><span class="nv">$FQDN</span><span class="s2">"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$FQDN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="nx">properties.configuration.ingress.fqdn</span><span class="w"> </span><span class="nt">-o</span><span class="w"> </span><span class="nx">tsv</span><span class="w">
+
+</span><span class="n">Write-Output</span><span class="w"> </span><span class="nv">$FQDN</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以呼叫健康狀態端點。此命令應回傳 <strong>{&quot;status&quot;: &quot;healthy&quot;}</strong>。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/health"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令，透過呼叫根端點來驗證祕密是否已設定。該端點會回傳 JSON，其中包含應用程式資訊，例如已設定的模型名稱，以及 API 金鑰祕密是否已設定。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以測試文件處理端點。此命令會將 <em>document.txt</em> 檔案傳送到該端點。作業會回傳包含模擬資料分析資訊的 JSON。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-s</span> <span class="nt">-X</span> POST <span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/process"</span> <span class="se">\</span>
+    <span class="nt">-H</span> <span class="s2">"Content-Type: text/plain"</span> <span class="se">\</span>
+    <span class="nt">-d</span> @document.txt
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Invoke-RestMethod</span><span class="w"> </span><span class="nt">-Uri</span><span class="w"> </span><span class="s2">"https://</span><span class="nv">$FQDN</span><span class="s2">/process"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-Method</span><span class="w"> </span><span class="nx">Post</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-ContentType</span><span class="w"> </span><span class="s2">"text/plain"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">-Body</span><span class="w"> </span><span class="p">(</span><span class="n">Get-Content</span><span class="w"> </span><span class="nt">-Raw</span><span class="w"> </span><span class="nx">document.txt</span><span class="p">)</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以檢閱啟動與執行階段訊號的記錄。此命令只會顯示最近的主控台輸出。若要進行歷史記錄檢視與進階疑難排解，記錄會保留在與您的 Container Apps 環境相關聯的 Log Analytics 工作區中。</p>
+<p><strong>Bash</strong></p>
+<pre><code class="language-azurecli">az containerapp logs show -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP
+</code></pre>
+<p><strong>Powershell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">containerapp</span><span class="w"> </span><span class="nx">logs</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-n</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">CONTAINER_APP_NAME</span><span class="w"> </span><span class="nt">-g</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w">
+</span></code></pre></div></div>
+<p>請尋找 <strong>gunicorn</strong> 啟動訊息，內容會顯示工作程序已啟動並正在接聽連接埠 8000。您也應該能看到來自 curl 命令的 HTTP 要求記錄（GET /health、POST /process 等）。</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>完成本練習後，您應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及其中所有資源。將 <strong>&lt;rg-name&gt;</strong> 替換為您在本練習稍早選擇的名稱。此命令會在 Azure 中啟動背景工作來刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源群組會刪除其中包含的所有資源。如果您在本練習中選擇的是現有資源群組，則本練習範圍外的現有資源也會一併被刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>若您在完成本練習時遇到問題，請嘗試下列疑難排解步驟：</p>
+<p><strong>使用指令碼檢查部署狀態</strong></p>
+<ul>
+<li>執行部署指令碼並選取選項 <strong>3</strong> 以檢查您的 ACR 與 Container Apps 環境狀態。這可驗證基礎基礎結構已部署，且容器映像存在。</li>
+</ul>
+<p><strong>驗證 Azure 驗證與環境變數</strong></p>
+<ul>
+<li>執行 <strong>az account show</strong> 以確認您已登入正確的 Azure 訂閱。</li>
+<li>執行下列命令以確認環境變數已設定： <strong>echo $ACR_NAME</strong> （Bash）或 <strong>$env:ACR_NAME</strong> （PowerShell）。</li>
+<li>如果變數為空，請重新執行 <strong>source .env</strong> （Bash）或 <strong>. ..env.ps1</strong> （PowerShell）。</li>
+</ul>
+<p><strong>驗證 ACR 部署</strong></p>
+<ul>
+<li>前往 <a href="https://portal.azure.com">Azure portal</a> 並找到您的資源群組。</li>
+<li>確認 Azure Container Registry 存在，且 <strong>Provisioning State</strong> 為 <strong>Succeeded</strong>。</li>
+<li>執行 <strong>az acr list --output table</strong> 以確認您的登錄可供存取。</li>
+</ul>
+<p><strong>排解建置失敗</strong></p>
+<ul>
+<li>部署指令碼會抑制冗長的 <strong>az acr build</strong> 輸出。若要排解失敗，請檢查最近一次 ACR Task 執行的狀態與記錄。</li>
+<li>確認您是從專案根目錄執行部署指令碼（ <em>api</em> 資料夾所在的位置）。</li>
+<li>列出最近的 ACR Task 執行：
+<ul>
+<li><strong>Bash：</strong> <strong>az acr task list-runs --registry $ACR_NAME --output table</strong></li>
+<li><strong>PowerShell：</strong> <strong>az acr task list-runs --registry $env:ACR_NAME --output table</strong></li>
+</ul>
+</li>
+<li>檢視特定執行的記錄（將 <strong>&lt;run-id&gt;</strong> 替換為上一個命令中的值）：
+<ul>
+<li><strong>Bash：</strong> <strong>az acr task logs --registry $ACR_NAME --run-id &lt;run-id&gt;</strong></li>
+<li><strong>PowerShell：</strong> <strong>az acr task logs --registry $env:ACR_NAME --run-id &lt;run-id&gt;</strong></li>
+</ul>
+</li>
+</ul>
+<p><strong>排解容器提取失敗（ImagePullBackOff / unauthorized / 403）</strong></p>
+<ul>
+<li>確認容器應用程式已啟用系統指派的受控識別：
+<ul>
+<li><strong>Bash：</strong> <strong>az containerapp identity show -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP</strong></li>
+<li><strong>PowerShell：</strong> <strong>az containerapp identity show -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP</strong></li>
+</ul>
+</li>
+<li>確認容器應用程式具有 <strong>AcrPull</strong> 且角色指派已套用到登錄範圍。角色指派建立後可能需要一到兩分鐘才會完成傳播。</li>
+</ul>
+<p><strong>排解容器啟動與應用程式錯誤</strong></p>
+<ul>
+<li>串流檢視容器記錄以診斷啟動問題：
+<ul>
+<li><strong>Bash：</strong> <strong>az containerapp logs show -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP --follow</strong></li>
+<li><strong>PowerShell：</strong> <strong>az containerapp logs show -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP --follow</strong></li>
+</ul>
+</li>
+<li>如果應用程式在部署後不久回傳 502/503，請等一分鐘後再試。首次啟動可能需要較長時間，因為 Container Apps 正在提取並啟動容器。</li>
+<li>檢查修訂狀態以確認是否有佈建錯誤：
+<ul>
+<li><strong>Bash：</strong> <strong>az containerapp revision list -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP -o table</strong></li>
+<li><strong>PowerShell：</strong> <strong>az containerapp revision list -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP -o table</strong></li>
+</ul>
+</li>
+</ul>
+<p><strong>排解祕密設定</strong></p>
+<ul>
+<li>驗證祕密已建立：
+<ul>
+<li><strong>Bash：</strong> <strong>az containerapp secret list -n $CONTAINER_APP_NAME -g $RESOURCE_GROUP -o table</strong></li>
+<li><strong>PowerShell：</strong> <strong>az containerapp secret list -n $env:CONTAINER_APP_NAME -g $env:RESOURCE_GROUP -o table</strong></li>
+</ul>
+</li>
+<li>呼叫根端點（<strong>/</strong>），以確認環境變數是否正確參考祕密，並查看 API 金鑰是否已設定。</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

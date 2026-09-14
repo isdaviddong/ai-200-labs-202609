@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Create an MCP server with Azure Functions |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="create-an-mcp-server-with-azure-functions">Create an MCP server with Azure Functions</h1>
+<p>The Model Context Protocol (MCP) is an open standard that defines how AI agents and language models discover and invoke external tools. Azure Functions includes an MCP extension that lets you expose function apps as MCP servers, where each function becomes a tool that MCP clients can call.</p>
+<p>In this exercise, you create an Azure Functions project with the MCP extension, define tool trigger functions for document processing, configure the MCP server settings, and test the server locally by connecting to it from GitHub Copilot in agent mode.</p>
+<blockquote>
+<p><strong>Note:</strong> This exercise uses the Azure Functions MCP extension, which is actively evolving. Visit the <a href="https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-mcp">Azure Functions MCP extension documentation</a> for the most up-to-date setup instructions, API surface, and configuration options.</p>
+</blockquote>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Create a new Azure Functions project with the MCP extension</li>
+<li>Configure the MCP server settings in <em>host.json</em></li>
+<li>Define MCP tool trigger functions in <em>function_app.py</em></li>
+<li>Configure the Python environment</li>
+<li>Test the MCP server locally using GitHub Copilot in agent mode</li>
+</ul>
+<p>This exercise takes approximately <strong>25</strong> minutes to complete.</p>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The <a href="https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions">Azure Functions extension</a> for Visual Studio Code.</li>
+<li><a href="https://learn.microsoft.com/azure/azure-functions/functions-run-local">Azure Functions Core Tools</a> v4 or later.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.9</a> or later.</li>
+<li>A <a href="https://github.com/">GitHub account</a> with access to GitHub Copilot.</li>
+<li>The <a href="https://marketplace.visualstudio.com/items?itemName=GitHub.copilot">GitHub Copilot</a> extension for Visual Studio Code.</li>
+</ul>
+<h2 id="create-a-new-functions-project-with-the-mcp-extension">Create a new Functions project with the MCP extension</h2>
+<p>In this section you create a new Azure Functions project in Visual Studio Code using the Azure Functions extension and configure the MCP server settings in <em>host.json</em>. The extension scaffolds the project structure, generates the <em>.vscode</em> configuration files for integrated debugging, and sets up the Python v2 programming model.</p>
+<ol>
+<li>
+<p>Create a folder for the project (for example, <em>mcp-server-functions</em>) and open it in Visual Studio Code by selecting <strong>File &gt; Open Folder...</strong> in the menu.</p>
+</li>
+<li>
+<p>Select <strong>View &gt; Command Palette...&quot;</strong> to open the Command Palette. Run the <strong>Azure Functions: Create Function...</strong> command and choose the following options when prompted:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Select the folder...</td>
+<td>Select the folder you opened in the previous step</td>
+</tr>
+<tr>
+<td>Select a project type</td>
+<td>Select <strong>Python</strong></td>
+</tr>
+<tr>
+<td>Select a Python interpreter...</td>
+<td>Select <strong>Skip virtual environment</strong></td>
+</tr>
+<tr>
+<td>Select a template...</td>
+<td>Select <strong>HTTP trigger</strong></td>
+</tr>
+<tr>
+<td>Function name</td>
+<td>Accept the default <strong>http_trigger</strong></td>
+</tr>
+<tr>
+<td>Authorization level</td>
+<td>Select <strong>ANONYMOUS</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The extension creates the project structure including <em>function_app.py</em>, <em>host.json</em>, <em>local.settings.json</em>, <em>requirements.txt</em>, and the <em>.vscode</em> folder with <em>launch.json</em>, <em>tasks.json</em>, and <em>extensions.json</em>. The scaffolded HTTP trigger function in <em>function_app.py</em> is replaced in the next section.</p>
+</li>
+<li>
+<p>Open <em>host.json</em> and replace its contents with the following code, then save your changes. The <strong>extensionBundle</strong> must use the <strong>Preview</strong> bundle because the <strong>mcpToolTrigger</strong> binding type is a preview feature not included in the stable extension bundle. The <strong>mcpToolTrigger</strong> section defines the MCP server name, version, and instructions that MCP clients display when connecting.</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2.0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"extensionBundle"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Microsoft.Azure.Functions.ExtensionBundle.Preview"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"[4.*, 5.0.0)"</span><span class="w">
+    </span><span class="p">},</span><span class="w">
+    </span><span class="nl">"extensions"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"mcpToolTrigger"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"serverName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"document-tools"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"serverVersion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.0.0"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"serverInstructions"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Tools for document processing and classification"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Open <em>local.settings.json</em> and replace its contents with the following code.</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"IsEncrypted"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"Values"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nl">"AzureWebJobsStorage"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"FUNCTIONS_WORKER_RUNTIME"</span><span class="p">:</span><span class="w"> </span><span class="s2">"python"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"AzureWebJobsSecretStorageType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Files"</span><span class="w">
+  </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Create a <em>.vscode/mcp.json</em> file in the project to register the local MCP endpoint with Visual Studio Code. This file tells Visual Studio Code where to find MCP servers and how to connect to them. Add the following code to the file, then save your changes.</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"servers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="nl">"document-tools-local"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sse"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://localhost:7071/runtime/webhooks/mcp/sse"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+</li>
+</ol>
+<h2 id="define-mcp-tool-trigger-functions">Define MCP tool trigger functions</h2>
+<p>In this section you define two MCP tool trigger functions that become discoverable tools for MCP clients. Each function uses the <strong>@app.generic_trigger()</strong> decorator with the <strong>mcpToolTrigger</strong> type. You define the tool name, description, and input properties through the trigger configuration, and the function receives tool invocation requests from connected MCP clients.</p>
+<ol>
+<li>
+<p>Open <em>function_app.py</em> in the Visual Studio Code Explorer sidebar and replace its contents with the following code that defines two MCP tool trigger functions:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">azure.functions</span> <span class="k">as</span> <span class="n">func</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="c1"># Initialize the FunctionApp instance that registers all trigger functions
+</span><span class="n">app</span> <span class="o">=</span> <span class="n">func</span><span class="p">.</span><span class="n">FunctionApp</span><span class="p">()</span>
+
+<span class="c1"># Define an MCP tool trigger that exposes "summarize_text" to MCP clients.
+# toolProperties defines the input schema: a single "text" string parameter.
+</span><span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">generic_trigger</span><span class="p">(</span>
+    <span class="n">arg_name</span><span class="o">=</span><span class="s">"context"</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s">"mcpToolTrigger"</span><span class="p">,</span>
+    <span class="n">toolName</span><span class="o">=</span><span class="s">"summarize_text"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">"Summarize a block of text into key points"</span><span class="p">,</span>
+    <span class="n">toolProperties</span><span class="o">=</span><span class="s">'[{"propertyName": "text", "propertyType": "string", "description": "The text to summarize"}]'</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">summarize_text</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># Log the raw payload for debugging
+</span>    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"summarize_text raw context: </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Parse the outer request envelope sent by the MCP client
+</span>    <span class="n">request</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"summarize_text parsed request: </span><span class="si">{</span><span class="n">request</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Extract the tool arguments from the request
+</span>    <span class="n">arguments</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"arguments"</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="c1"># Retrieve the "text" property defined in toolProperties
+</span>    <span class="n">text</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"text"</span><span class="p">,</span> <span class="s">""</span><span class="p">)</span>
+
+    <span class="c1"># In a real implementation, call an Azure AI service here
+</span>    <span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s">"Summary of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">.</span><span class="n">split</span><span class="p">())</span><span class="si">}</span><span class="s"> words: </span><span class="si">{</span><span class="n">text</span><span class="p">[</span><span class="si">:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s">..."</span>
+
+    <span class="c1"># Return a JSON response; the "content" field is displayed to the MCP client
+</span>    <span class="k">return</span> <span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span><span class="s">"content"</span><span class="p">:</span> <span class="n">summary</span><span class="p">})</span>
+
+<span class="c1"># Define a second MCP tool trigger that exposes "classify_document" to MCP clients.
+# toolProperties defines two input parameters: "text" and "categories".
+</span><span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">generic_trigger</span><span class="p">(</span>
+    <span class="n">arg_name</span><span class="o">=</span><span class="s">"context"</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s">"mcpToolTrigger"</span><span class="p">,</span>
+    <span class="n">toolName</span><span class="o">=</span><span class="s">"classify_document"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">"Classify a document into a category"</span><span class="p">,</span>
+    <span class="n">toolProperties</span><span class="o">=</span><span class="s">'[{"propertyName": "text", "propertyType": "string", "description": "The document text to classify"}, {"propertyName": "categories", "propertyType": "string", "description": "Comma-separated list of possible categories"}]'</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">classify_document</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># Log the raw payload for debugging
+</span>    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"classify_document raw context: </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Parse the outer request envelope sent by the MCP client
+</span>    <span class="n">request</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">loads</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+    <span class="n">logging</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"classify_document parsed request: </span><span class="si">{</span><span class="n">request</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="c1"># Extract the tool arguments from the request
+</span>    <span class="n">arguments</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"arguments"</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="c1"># Retrieve the "text" and "categories" properties defined in toolProperties
+</span>    <span class="n">text</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"text"</span><span class="p">,</span> <span class="s">""</span><span class="p">)</span>
+    <span class="n">categories</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"categories"</span><span class="p">,</span> <span class="s">"general"</span><span class="p">)</span>
+
+    <span class="c1"># In a real implementation, call an Azure AI service here
+</span>    <span class="c1"># Split the comma-separated categories string into a list
+</span>    <span class="n">category_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">","</span><span class="p">)]</span>
+    <span class="c1"># Select the first category as the classification result
+</span>    <span class="n">selected_category</span> <span class="o">=</span> <span class="n">category_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">category_list</span> <span class="k">else</span> <span class="s">"unknown"</span>
+
+    <span class="c1"># Return a JSON response with the classification result
+</span>    <span class="k">return</span> <span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">({</span>
+        <span class="s">"content"</span><span class="p">:</span> <span class="sa">f</span><span class="s">"Classification: </span><span class="si">{</span><span class="n">selected_category</span><span class="si">}</span><span class="s">"</span><span class="p">,</span>
+        <span class="s">"category"</span><span class="p">:</span> <span class="n">selected_category</span>
+    <span class="p">})</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save the file and take a few minutes to review the code. Each function uses the <strong>@app.generic_trigger()</strong> decorator with the <strong>mcpToolTrigger</strong> type. The <strong>toolName</strong> appears in the MCP client's tool list, and <strong>description</strong> helps language models understand when to use each tool. The <strong>toolProperties</strong> parameter defines the input schema as a JSON array of property definitions.</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">Configure the Python environment</h2>
+<p>In this section you create and activate a Python virtual environment, install the project dependencies, and configure Visual Studio Code to use the virtual environment.</p>
+<ol>
+<li>
+<p>In Visual Studio Code, select <strong>Terminal &gt; New Terminal</strong> to open an integrated terminal in the project directory.</p>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to create the Python environment.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command in the VS Code terminal to install the dependencies.</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+<li>
+<p>Select <strong>View &gt; Command Palette...</strong> to open the Command Palette and run the <strong>Python: Select Interpreter</strong> command. Select the interpreter from the <em>.venv</em> folder in the project directory. This ensures the debugger uses the correct environment when you start the Functions runtime with <strong>F5</strong>.</p>
+</li>
+</ol>
+<h2 id="test-the-mcp-server-locally">Test the MCP server locally</h2>
+<p>In this section you start the local Functions runtime and connect to the MCP server from GitHub Copilot in agent mode to verify that the tools are discoverable and return the expected results.</p>
+<ol>
+<li>
+<p>Press <strong>F5</strong> to start the Functions runtime with the debugger attached. If you receive a warning about a required storage account, select <strong>Skip for now</strong> . Visual Studio Code launches Core Tools, attaches the debugger, and opens the terminal panel showing the function endpoints.</p>
+<blockquote>
+<p><strong>Note:</strong> You can also start the runtime without the debugger by running <code>func start</code> in the integrated terminal.</p>
+</blockquote>
+<p>The terminal output shows the registered MCP tool trigger functions. Verify you see output similar to:</p>
+<pre><code>Functions:
+    classify_document: mcpToolTrigger
+    summarize_text: mcpToolTrigger
+</code></pre>
+<p>If both functions appear, the MCP server is running and ready for connections.</p>
+</li>
+<li>
+<p>Visual Studio Code detects the <em>.vscode/mcp.json</em> file you created earlier and connects to the MCP server. Open GitHub Copilot chat and switch to <strong>Agent</strong> mode. Select the tools icon (wrench) and look for the <strong>document-tools-local</strong> group — this matches the server key name from <em>.vscode/mcp.json</em>. Verify that both <strong>summarize_text</strong> and <strong>classify_document</strong> appear under that group with their descriptions.</p>
+</li>
+</ol>
+<h3 id="test-with-explicit-prompts">Test with explicit prompts</h3>
+<p>Explicit prompts that name a tool directly are the most reliable way to trigger an MCP tool. The model will usually invoke the tool, but it may still rephrase or summarize the tool's raw output in its response. If a tool is not invoked, check the terminal output to confirm, then try submitting the prompt again.</p>
+<ol>
+<li>
+<p>Test the <strong>classify_document</strong> tool by entering the following prompt in the Copilot chat. <strong>Note:</strong> When Copilot invokes an MCP tool for the first time, you may see a permission prompt. Select <strong>Allow</strong> to let Copilot call the tool.</p>
+<pre><code>Use the classify_document tool to classify this text: 'This agreement is entered into by Party A and Party B'  with categories: contract, invoice, memo
+</code></pre>
+<p>Copilot invokes the tool and returns a response. Verify the result contains a classification of <strong>contract</strong>. The stub implementation selects the first category from the comma-separated list, so the result matches the first category you provided in the prompt. Check the terminal output for the function invocation log entry.</p>
+</li>
+<li>
+<p>Test the <strong>summarize_text</strong> tool by entering the following prompt in the Copilot chat.</p>
+<pre><code>Use the summarize_text tool to summarize this text: 'Azure Functions is a serverless compute service that lets you run event-triggered code without having to explicitly provision or manage infrastructure.'
+</code></pre>
+<p>Verify the result contains a summary string starting with <strong>Summary of</strong> followed by the word count and a truncated preview of the input text.</p>
+</li>
+</ol>
+<h3 id="test-with-natural-language-prompts">Test with natural language prompts</h3>
+<p>Natural language prompts are more likely to answer a prompt directly without invoking a tool, since the model must decide on its own whether a tool is relevant. Check the terminal output for logging entries to confirm whether a tool was actually invoked. If it was not, try rephrasing the prompt or explicitly naming the tool.</p>
+<ol>
+<li>
+<p>Enter the following prompt in the Copilot chat:</p>
+<pre><code>Is the following text an invoice, contract, or memo?
+'Invoice B1234 for services rendered in January 2026. Total amount due: $5,000.'
+</code></pre>
+<p>Copilot should recognize that the <strong>classify_document</strong> tool matches this request and invoke it automatically. Verify the result returns a classification. Check the terminal output to confirm the function was invoked.</p>
+</li>
+<li>
+<p>Enter the following prompt to test natural tool discovery for the <strong>summarize_text</strong> tool:</p>
+<pre><code>Give me a brief summary of this text: 'Machine learning models require large datasets for training. The quality of the training data directly impacts model accuracy. Data preprocessing steps include cleaning, normalization, and feature extraction.'
+</code></pre>
+<p>Copilot should invoke the <strong>summarize_text</strong> tool and return a summary. Verify the terminal output shows the function invocation.</p>
+</li>
+<li>
+<p>Press <strong>Shift+F5</strong> to stop the debugger and shut down the Functions runtime.</p>
+</li>
+</ol>
+<h2 id="next-steps">Next steps</h2>
+<p>In a production scenario, you would deploy the function app to Azure using the Flex Consumption plan, authenticate MCP client connections with the <strong>mcp_extension</strong> system key, and replace the placeholder logic in each tool function with calls to Azure AI services using <strong>DefaultAzureCredential</strong> and the function app's managed identity. For more details, see the <a href="/azure/azure-functions/functions-bindings-mcp">Azure Functions MCP extension documentation</a>.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Azure Functions Core Tools not starting</strong></p>
+<ul>
+<li>Confirm that Azure Functions Core Tools v4 or later is installed by running <strong>func --version</strong> in the terminal.</li>
+<li>Verify that port 7071 is not in use by another process.</li>
+<li>Ensure <em>local.settings.json</em> exists in the project root. The Azure Functions extension generates this file during project creation.</li>
+</ul>
+<p><strong>MCP tools not appearing in Copilot</strong></p>
+<ul>
+<li>Verify that <em>.vscode/mcp.json</em> is saved and the URL matches the local endpoint (<code>http://localhost:7071/runtime/webhooks/mcp/sse</code>).</li>
+<li>Confirm the Functions runtime is running and shows both tool trigger functions in the terminal output.</li>
+<li>Try restarting Visual Studio Code if the MCP server configuration is not detected after saving the file.</li>
+</ul>
+<p><strong>Function invocation returns errors</strong></p>
+<ul>
+<li>Check the terminal output for Python exceptions or stack traces.</li>
+<li>Verify <em>function_app.py</em> has correct indentation and that all code was entered as shown.</li>
+<li>Confirm the virtual environment is activated and all dependencies from <em>requirements.txt</em> are installed.</li>
+</ul>
+<p><strong>Check Python environment and dependencies</strong></p>
+<ul>
+<li>Confirm that Visual Studio Code is using the Python interpreter from the <em>.venv</em> folder by running the <strong>Python: Select Interpreter</strong> command.</li>
+<li>Verify that all packages from <em>requirements.txt</em> were installed successfully by running <strong>pip list</strong> in the integrated terminal.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

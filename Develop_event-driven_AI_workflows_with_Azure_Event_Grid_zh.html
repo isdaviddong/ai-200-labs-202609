@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        使用 Azure Event Grid 發佈與接收事件 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="publish-and-receive-events-with-azure-event-grid">使用 Azure Event Grid 發佈與接收事件</h1>
+<p>AI 內容審核系統在分類與檢閱提交內容時會產生大量事件。Azure Event Grid 提供路由層，根據事件類型將這些事件導向正確的下游取用者，因此每個處理常式都只會收到所需事件，而不必輪詢或手動篩選。</p>
+<p>在此練習中，您將部署具有 namespace topic 與篩選事件訂用帳戶的 Event Grid Namespace，然後建置一個 Python Flask 應用程式，以發佈內容審核事件並使用 pull delivery 接收它們。Event Grid 訂用帳戶會將已標記內容、已核准內容及所有事件路由至不同的訂用帳戶，讓您能觀察篩選在實務上的運作方式。您也會使用 pull delivery 提供的 receive、acknowledge 與 reject 作業來控制應用程式處理事件的方式。</p>
+<p>此練習中執行的工作：</p>
+<ul>
+<li>下載專案起始檔案</li>
+<li>部署包含命名空間主題的 Event Grid 命名空間</li>
+<li>建立具有類型篩選器的事件訂用帳戶</li>
+<li>將程式碼新增至起始檔案以完成應用程式</li>
+<li>執行應用程式以發佈、接收及處理審核事件</li>
+</ul>
+<p>此練習大約需要 <strong>30</strong> 分鐘完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>Azure 訂用帳戶。若您尚未擁有，可 <a href="https://azure.microsoft.com/">註冊一個</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> 安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-resources">下載專案起始檔案並部署資源</h2>
+<p>在本節中，您將下載應用程式的起始檔案，並使用指令碼將 Event Grid Namespace 部署到您的訂用帳戶。此命名空間包含一個 topic，供您的應用程式發佈審核事件，以及會為 pull delivery 篩選並保留事件的事件訂用帳戶。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載入門檔案。檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/event-grid-python.zip
+</code></pre></li>
+<li>
+<p>將檔案複製或移動到您系統中要進行專案作業的位置，然後將其解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟 <em>azdeploy.py</em> 部署指令碼，並變更指令碼頂端的兩個值以符合您的需求，然後儲存變更。 <strong>注意：</strong> 請勿變更指令碼中的其他任何內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong> ，在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依提示選取此練習要使用的 Azure 帳戶與訂用帳戶。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令，以確保您的訂用帳戶具有此練習所需的資源提供者。</p>
+<pre><code>az provider register --namespace Microsoft.EventGrid
+</code></pre></li>
+<li>
+<p>執行下列命令以安裝 Event Grid CLI extension。部署指令碼所使用的 namespace 命令需要此 extension。</p>
+<pre><code>az extension add --name eventgrid --yes
+</code></pre></li>
+<li>
+<p>在終端機中執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>指令碼執行後，輸入 <strong>1</strong> 以啟動 <strong>1. Create Event Grid namespace and topic</strong> option.</p>
+<p>此選項會在資源群組尚不存在時建立它、部署 Standard SKU 的 Event Grid Namespace，並建立名為 <strong>moderation-events</strong> 且設定為 CloudEvents v1.0 輸入的 namespace topic。此命名空間是您的 topic 與 event subscriptions 的容器，而 pull delivery 讓您的應用程式可以直接連線到 Event Grid 以接收事件，而不需要額外的訊息服務。</p>
+</li>
+<li>
+<p>輸入 <strong>2</strong> 以執行 <strong>2. Create event subscriptions</strong> option.</p>
+<p>此選項會在 namespace topic 上建立三個 event subscriptions。 <strong>sub-flagged</strong> subscription 使用 event type filter，只傳遞 <strong>com.contoso.ai.ContentFlagged</strong> 事件。 <strong>sub-approved</strong> subscription 只會傳遞 <strong>com.contoso.ai.ContentApproved</strong> 事件。 <strong>sub-all-events</strong> subscription 沒有篩選器，會傳遞發佈到該 topic 的每個事件，作為稽核記錄。每個 subscription 都設定為 pull delivery 模式、60 秒的接收鎖定時間、最大傳遞次數 10，以及 1 天的事件存留時間。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 以執行 <strong>3. Assign user roles</strong> 選項。這會在命名空間上指派 EventGrid Data Sender 與 EventGrid Data Receiver 角色，讓您的帳戶可以使用 Microsoft Entra 驗證發佈與接收事件。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 以執行 <strong>4. Retrieve connection info</strong> 選項。這會建立包含資源群組名稱、命名空間名稱、主題名稱與命名空間端點的環境變數檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>6</strong> 以結束部署指令碼。</p>
+<blockquote>
+<p><strong>注意：</strong> 若您稍後在本練習中遇到問題，可以重新執行指令碼並輸入 <strong>5</strong> 以執行 <strong>5. Check deployment status</strong>。此疑難排解選項會確認命名空間顯示 <strong>Succeeded</strong>、topic 已建立、角色已指派，且所有 event subscriptions 都已佈建。</p>
+</blockquote>
+</li>
+<li>
+<p>執行適當的命令，從前一步建立的檔案將環境變數載入至目前的終端機工作階段。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 請保持終端機開啟。若您關閉後又建立新的終端機，則需要再次執行此命令以重新載入環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-app">完成應用程式</h2>
+<p>在本節中，您將在 <em>event_grid_functions.py</em> 檔案以完成 Event Grid 發佈與 pull delivery 函式。 <em>app.py</em> 呼叫這些函式，並在瀏覽器中顯示結果。您會在稍後的練習中執行此應用程式。</p>
+<ol>
+<li>開啟 <em>client/event_grid_functions.py</em> 檔案以開始新增程式碼。</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 您新增至應用程式的程式碼區塊應與該程式碼區段的註解對齊。</p>
+</blockquote>
+<h3 id="add-code-to-publish-moderation-events">加入發佈審核事件的程式碼</h3>
+<p>在本節中，您將加入程式碼，將五個內容審核事件發佈到 Event Grid namespace topic。這些事件使用 CloudEvents v1.0 結構描述，並代表不同的審核結果——已標記內容、已核准內容與升級審查——讓您觀察每個 subscription 的 event type filter 如何決定它傳遞哪些事件。</p>
+<p>此函式會從 <em>moderation_events.json</em> 檔案載入事件定義，其中包含 CloudEvent envelope 欄位（<strong>type</strong>, <strong>source</strong>, <strong>subject</strong>）以及 <strong>data</strong> 承載。發佈時，函式會為每個事件加入唯一的 <strong>id</strong> 以及目前 UTC <strong>timestamp</strong> ，接著建立 <strong>CloudEvent</strong> 物件，並以 <strong>send()</strong> 方法在單一要求中發佈它們。 <strong>EventGridPublisherClient</strong> 是以 <strong>namespace_topic</strong> 參數建構，以指向 namespace topic endpoint，並使用 <strong>DefaultAzureCredential</strong> 作為 Microsoft Entra 驗證。</p>
+<blockquote>
+<p><strong>提示：</strong> 若要維持正確的程式碼縮排，請將程式碼貼齊左邊界（第 1 欄），選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 減少縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>找出 <strong># BEGIN PUBLISH EVENTS FUNCTION</strong> 註解，並在註解下方新增下列程式碼。請務必檢查程式碼是否正確對齊。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">publish_moderation_events</span><span class="p">():</span>
+    <span class="s">"""Publish content moderation events to the Event Grid namespace topic."""</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">get_publisher_client</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Load event definitions from the JSON file. Each entry contains the
+</span>    <span class="c1"># CloudEvent envelope fields (type, source, subject) and the data
+</span>    <span class="c1"># payload that mirrors a realistic AI content moderation pipeline.
+</span>    <span class="n">json_path</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s">"moderation_events.json"</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_path</span><span class="p">,</span> <span class="s">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">event_definitions</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># Build CloudEvent objects from the definitions, adding a unique id
+</span>    <span class="c1"># and a current UTC timestamp to each event at publish time.
+</span>    <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">defn</span> <span class="ow">in</span> <span class="n">event_definitions</span><span class="p">:</span>
+        <span class="n">defn</span><span class="p">[</span><span class="s">"data"</span><span class="p">][</span><span class="s">"timestamp"</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="p">.</span><span class="n">utc</span><span class="p">).</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="n">events</span><span class="p">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">CloudEvent</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="n">defn</span><span class="p">[</span><span class="s">"type"</span><span class="p">],</span>
+                <span class="n">source</span><span class="o">=</span><span class="n">defn</span><span class="p">[</span><span class="s">"source"</span><span class="p">],</span>
+                <span class="n">subject</span><span class="o">=</span><span class="n">defn</span><span class="p">[</span><span class="s">"subject"</span><span class="p">],</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">defn</span><span class="p">[</span><span class="s">"data"</span><span class="p">],</span>
+                <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># send() publishes all events to the Event Grid namespace topic in a
+</span>    <span class="c1"># single request. Event Grid then evaluates each subscription's
+</span>    <span class="c1"># filters and routes matching events to the configured subscriptions.
+</span>    <span class="n">client</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+        <span class="n">results</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"content_id"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">[</span><span class="s">"contentId"</span><span class="p">],</span>
+            <span class="s">"event_type"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="nb">type</span><span class="p">.</span><span class="n">split</span><span class="p">(</span><span class="s">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="s">"category"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">[</span><span class="s">"category"</span><span class="p">],</span>
+            <span class="s">"confidence"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">[</span><span class="s">"confidence"</span><span class="p">],</span>
+            <span class="s">"status"</span><span class="p">:</span> <span class="s">"published"</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存變更，並花幾分鐘檢閱程式碼。</p>
+</li>
+</ol>
+<h3 id="add-code-to-receive-and-acknowledge-events">加入接收與確認事件的程式碼</h3>
+<p>在本節中，您將加入程式碼，從每個 subscription 接收事件並加以確認，以驗證篩選是否正常運作。Pull delivery 表示您的應用程式會連線到 Event Grid 並主動要求事件，而不是由 Event Grid 將事件推送到端點。每個收到的事件都包含一個 lock token，您必須加以確認，才能將該事件從 subscription 中永久移除；否則事件會在鎖定時間到期後重新傳遞。</p>
+<p>此函式會建立 <strong>EventGridConsumerClient</strong> ，對應三個 subscriptions。 <strong>receive()</strong> 方法會傳回 <strong>ReceiveDetails</strong> 物件清單，每個物件都包含 <strong>CloudEvent</strong> (<strong>.event</strong>）以及含有 <strong>lock_token</strong>的 broker properties。處理後，函式會呼叫 <strong>acknowledge()</strong> ，並傳入收集到的 lock tokens，以確認事件已成功處理。</p>
+<ol>
+<li>
+<p>找出 <strong># BEGIN CHECK DELIVERY FUNCTION</strong> 註解，並在註解下方新增下列程式碼。請務必檢查程式碼是否正確對齊。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">check_filtered_delivery</span><span class="p">():</span>
+    <span class="s">"""Receive and acknowledge events from each subscription to verify filtering."""</span>
+    <span class="n">flagged</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">approved</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_events</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Receive from the sub-flagged subscription, which only delivers
+</span>    <span class="c1"># events where the event type is com.contoso.ai.ContentFlagged.
+</span>    <span class="c1"># receive() returns a list of ReceiveDetails, each containing
+</span>    <span class="c1"># the CloudEvent and a lock token for acknowledgment.
+</span>    <span class="n">consumer</span> <span class="o">=</span> <span class="n">get_consumer_client</span><span class="p">(</span><span class="n">SUB_FLAGGED</span><span class="p">)</span>
+    <span class="n">details</span> <span class="o">=</span> <span class="n">consumer</span><span class="p">.</span><span class="n">receive</span><span class="p">(</span><span class="n">max_events</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">detail</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">detail</span><span class="p">.</span><span class="n">event</span>
+        <span class="n">flagged</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"content_id"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"contentId"</span><span class="p">),</span>
+            <span class="s">"category"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"category"</span><span class="p">),</span>
+            <span class="s">"severity"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"severity"</span><span class="p">),</span>
+            <span class="s">"confidence"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"confidence"</span><span class="p">)</span>
+        <span class="p">})</span>
+        <span class="n">tokens</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">detail</span><span class="p">.</span><span class="n">broker_properties</span><span class="p">.</span><span class="n">lock_token</span><span class="p">)</span>
+    <span class="c1"># acknowledge() removes the events from the subscription so they
+</span>    <span class="c1"># are not delivered again on the next receive call.
+</span>    <span class="k">if</span> <span class="n">tokens</span><span class="p">:</span>
+        <span class="n">consumer</span><span class="p">.</span><span class="n">acknowledge</span><span class="p">(</span><span class="n">lock_tokens</span><span class="o">=</span><span class="n">tokens</span><span class="p">)</span>
+
+    <span class="c1"># Receive from the sub-approved subscription, which only delivers
+</span>    <span class="c1"># events where the event type is com.contoso.ai.ContentApproved.
+</span>    <span class="n">consumer</span> <span class="o">=</span> <span class="n">get_consumer_client</span><span class="p">(</span><span class="n">SUB_APPROVED</span><span class="p">)</span>
+    <span class="n">details</span> <span class="o">=</span> <span class="n">consumer</span><span class="p">.</span><span class="n">receive</span><span class="p">(</span><span class="n">max_events</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">detail</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">detail</span><span class="p">.</span><span class="n">event</span>
+        <span class="n">approved</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"content_id"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"contentId"</span><span class="p">),</span>
+            <span class="s">"category"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"category"</span><span class="p">),</span>
+            <span class="s">"severity"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"severity"</span><span class="p">),</span>
+            <span class="s">"confidence"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"confidence"</span><span class="p">)</span>
+        <span class="p">})</span>
+        <span class="n">tokens</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">detail</span><span class="p">.</span><span class="n">broker_properties</span><span class="p">.</span><span class="n">lock_token</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tokens</span><span class="p">:</span>
+        <span class="n">consumer</span><span class="p">.</span><span class="n">acknowledge</span><span class="p">(</span><span class="n">lock_tokens</span><span class="o">=</span><span class="n">tokens</span><span class="p">)</span>
+
+    <span class="c1"># Receive from the sub-all-events subscription, which has no filter
+</span>    <span class="c1"># and delivers every event published to the topic (audit log).
+</span>    <span class="n">consumer</span> <span class="o">=</span> <span class="n">get_consumer_client</span><span class="p">(</span><span class="n">SUB_ALL</span><span class="p">)</span>
+    <span class="n">details</span> <span class="o">=</span> <span class="n">consumer</span><span class="p">.</span><span class="n">receive</span><span class="p">(</span><span class="n">max_events</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">detail</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">detail</span><span class="p">.</span><span class="n">event</span>
+        <span class="n">all_events</span><span class="p">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s">"content_id"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"contentId"</span><span class="p">),</span>
+            <span class="s">"event_type"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"modelName"</span><span class="p">,</span> <span class="s">"unknown"</span><span class="p">),</span>
+            <span class="s">"category"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"category"</span><span class="p">),</span>
+            <span class="s">"confidence"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"confidence"</span><span class="p">)</span>
+        <span class="p">})</span>
+        <span class="n">tokens</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">detail</span><span class="p">.</span><span class="n">broker_properties</span><span class="p">.</span><span class="n">lock_token</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tokens</span><span class="p">:</span>
+        <span class="n">consumer</span><span class="p">.</span><span class="n">acknowledge</span><span class="p">(</span><span class="n">lock_tokens</span><span class="o">=</span><span class="n">tokens</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"flagged"</span><span class="p">:</span> <span class="n">flagged</span><span class="p">,</span>
+        <span class="s">"approved"</span><span class="p">:</span> <span class="n">approved</span><span class="p">,</span>
+        <span class="s">"all_events"</span><span class="p">:</span> <span class="n">all_events</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存變更，並花幾分鐘檢閱程式碼。</p>
+</li>
+</ol>
+<h3 id="add-code-to-inspect-and-reject-an-event">加入檢查並拒絕事件的程式碼</h3>
+<p>在本節中，您將加入程式碼，發佈單一測試事件、接收它、檢查完整的 CloudEvent envelope，然後拒絕它。拒絕事件表示告知 Event Grid 該事件無法處理。這與 acknowledging 不同；acknowledging 是用來確認處理成功。被拒絕的事件會被捨棄，或在有設定時移至 dead-letter 目的地。</p>
+<p>此函式會先使用 <strong>EventGridPublisherClient</strong> 來發佈測試事件，因此無論先前事件是否已被確認，都一定會有可用事件。接著它會從 <strong>sub-flagged</strong> subscription 接收事件，擷取 CloudEvent 屬性與 broker properties（包括 <strong>delivery_count</strong>），並呼叫 <strong>reject()</strong> 並傳入 lock token。</p>
+<ol>
+<li>
+<p>找出 <strong># BEGIN INSPECT AND REJECT FUNCTION</strong> 註解，並在註解下方新增下列程式碼。請務必檢查程式碼是否正確對齊。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">inspect_and_reject</span><span class="p">():</span>
+    <span class="s">"""Publish one event, receive it, inspect the CloudEvent envelope, then reject it."""</span>
+    <span class="n">publisher</span> <span class="o">=</span> <span class="n">get_publisher_client</span><span class="p">()</span>
+
+    <span class="c1"># Publish a single test event so there is always something to inspect,
+</span>    <span class="c1"># regardless of whether the student already acknowledged earlier events.
+</span>    <span class="n">test_event</span> <span class="o">=</span> <span class="n">CloudEvent</span><span class="p">(</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s">"com.contoso.ai.ContentFlagged"</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s">"/services/content-moderation"</span><span class="p">,</span>
+        <span class="n">subject</span><span class="o">=</span><span class="s">"/content/text/test-inspect"</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+            <span class="s">"contentId"</span><span class="p">:</span> <span class="s">"test-inspect"</span><span class="p">,</span>
+            <span class="s">"contentType"</span><span class="p">:</span> <span class="s">"text"</span><span class="p">,</span>
+            <span class="s">"modelName"</span><span class="p">:</span> <span class="s">"text-moderator-v2"</span><span class="p">,</span>
+            <span class="s">"modelVersion"</span><span class="p">:</span> <span class="s">"2.4.0"</span><span class="p">,</span>
+            <span class="s">"confidence"</span><span class="p">:</span> <span class="mf">0.76</span><span class="p">,</span>
+            <span class="s">"category"</span><span class="p">:</span> <span class="s">"misinformation"</span><span class="p">,</span>
+            <span class="s">"severity"</span><span class="p">:</span> <span class="s">"medium"</span><span class="p">,</span>
+            <span class="s">"reviewRequired"</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+            <span class="s">"timestamp"</span><span class="p">:</span> <span class="n">datetime</span><span class="p">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="p">.</span><span class="n">utc</span><span class="p">).</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="p">},</span>
+        <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">())</span>
+    <span class="p">)</span>
+    <span class="n">publisher</span><span class="p">.</span><span class="n">send</span><span class="p">([</span><span class="n">test_event</span><span class="p">])</span>
+
+    <span class="c1"># Receive from the sub-flagged subscription to pick up the test event.
+</span>    <span class="n">consumer</span> <span class="o">=</span> <span class="n">get_consumer_client</span><span class="p">(</span><span class="n">SUB_FLAGGED</span><span class="p">)</span>
+    <span class="n">details</span> <span class="o">=</span> <span class="n">consumer</span><span class="p">.</span><span class="n">receive</span><span class="p">(</span><span class="n">max_events</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_wait_time</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">details</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="n">detail</span> <span class="o">=</span> <span class="n">details</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">event</span> <span class="o">=</span> <span class="n">detail</span><span class="p">.</span><span class="n">event</span>
+    <span class="n">lock_token</span> <span class="o">=</span> <span class="n">detail</span><span class="p">.</span><span class="n">broker_properties</span><span class="p">.</span><span class="n">lock_token</span>
+    <span class="n">delivery_count</span> <span class="o">=</span> <span class="n">detail</span><span class="p">.</span><span class="n">broker_properties</span><span class="p">.</span><span class="n">delivery_count</span>
+
+    <span class="c1"># Capture the full CloudEvent envelope before rejecting.
+</span>    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"specversion"</span><span class="p">:</span> <span class="s">"1.0"</span><span class="p">,</span>
+        <span class="s">"type"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="nb">type</span><span class="p">,</span>
+        <span class="s">"source"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">source</span><span class="p">,</span>
+        <span class="s">"subject"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">subject</span><span class="p">,</span>
+        <span class="s">"id"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="nb">id</span><span class="p">,</span>
+        <span class="s">"time"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="n">time</span><span class="p">)</span> <span class="k">if</span> <span class="n">event</span><span class="p">.</span><span class="n">time</span> <span class="k">else</span> <span class="s">""</span><span class="p">,</span>
+        <span class="s">"data"</span><span class="p">:</span> <span class="n">event</span><span class="p">.</span><span class="n">data</span><span class="p">,</span>
+        <span class="s">"delivery_count"</span><span class="p">:</span> <span class="n">delivery_count</span><span class="p">,</span>
+        <span class="s">"action"</span><span class="p">:</span> <span class="s">"rejected"</span>
+    <span class="p">}</span>
+
+    <span class="c1"># reject() tells Event Grid this event cannot be processed. The event
+</span>    <span class="c1"># is moved to the dead-letter location if configured, or discarded
+</span>    <span class="c1"># if max delivery count has been reached.
+</span>    <span class="n">consumer</span><span class="p">.</span><span class="n">reject</span><span class="p">(</span><span class="n">lock_tokens</span><span class="o">=</span><span class="p">[</span><span class="n">lock_token</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存變更，並花幾分鐘檢閱程式碼。</p>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">設定 Python 環境</h2>
+<p>在本節中，您將瀏覽至用戶端應用程式目錄、建立 Python 環境並安裝相依性。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令，以瀏覽至 <em>client</em> 目錄。</p>
+<pre><code>cd client
+</code></pre></li>
+<li>
+<p>執行下列命令以建立 Python 環境。</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>執行下列命令以啟用 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，請使用 Bash 命令。在 Windows 上，請使用 PowerShell 命令。若在 Windows 上使用 Git Bash，請使用 <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令以安裝相依性。</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h2 id="run-the-app">執行應用程式</h2>
+<p>在本節中，您將執行完成的 Flask 應用程式，以發佈內容審核事件並驗證篩選訂用帳戶是否正確傳遞它們。此應用程式提供 Web 介面，讓您可以發佈事件、從篩選訂用帳戶接收並確認事件，以及檢查並拒絕事件，以探索完整的 CloudEvent 結構與 pull delivery 作業。</p>
+<ol>
+<li>
+<p>在終端機中執行下列命令以啟動應用程式。執行命令之前，如有需要，請參閱練習稍早的命令來啟用環境。如果您已離開 <em>client</em> 目錄，請執行 <strong>cd client</strong> first.</p>
+<pre><code>python app.py
+</code></pre></li>
+<li>
+<p>開啟瀏覽器並瀏覽至 <code>http://localhost:5000</code> 以存取應用程式。</p>
+</li>
+<li>
+<p>選取 <strong>Publish Moderation Events</strong> 在左側面板中。這會將五個內容審核事件發佈到 Event Grid namespace topic：兩個已標記內容事件、兩個已核准內容事件，以及一個升級審查事件。右側面板中的結果會確認每個事件都已發佈，並顯示其 content ID、event type 與 category。</p>
+</li>
+<li>
+<p>選取 <strong>Receive &amp; Acknowledge Events</strong> 在左側面板中。這會使用 pull delivery 從三個 subscriptions 接收事件，並在處理後加以確認。請根據每個 subscription 所設定的篩選器，驗證下列傳遞行為：</p>
+<ul>
+<li><strong>Flagged Subscription：</strong> 應包含兩個事件，且 category 值都表示違反政策（violence 與 hate-speech）。這些是 <strong>ContentFlagged</strong> events.</li>
+<li><strong>Approved Subscription：</strong> 應包含兩個事件，且 category 都是 <strong>safe</strong>。這些是 <strong>ContentApproved</strong> events.</li>
+<li><strong>All Events Subscription：</strong> 無論類型為何，都應包含全部五個事件，作為稽核記錄。</li>
+</ul>
+<p>升級審查事件（<strong>ReviewEscalated</strong>）只會出現在 all-events subscription 中，因為 flagged 與 approved subscriptions 的篩選器都未包含此事件類型。由於事件已被確認，再次選取此按鈕時會顯示零個事件，直到您再發佈更多事件為止。</p>
+</li>
+<li>
+<p>選取 <strong>Inspect &amp; Reject Event</strong> 在左側面板中。這會發佈新的測試事件、從 flagged subscription 接收它，並顯示完整的 CloudEvent envelope，其中包括 <strong>delivery_count</strong> （來自 broker properties），然後拒絕該事件。此拒絕會告知 Event Grid 該事件無法處理，因此 Event Grid 會將其捨棄，或在有設定時移至 dead-letter 目的地。</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>現在您已完成此練習，應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及其中所有資源。將 <strong>&lt;rg-name&gt;</strong> 替換為您在本練習稍早選擇的名稱。此命令會在 Azure 中啟動背景工作來刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源群組會刪除其中包含的所有資源。若您為此練習選擇的是既有資源群組，則該資源群組中任何不屬於本練習範圍的既有資源也會一併刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在完成此練習時遇到問題，請嘗試下列疑難排解步驟：</p>
+<p><strong>驗證 Event Grid Namespace 部署</strong></p>
+<ul>
+<li>瀏覽至 <a href="https://portal.azure.com">Azure portal</a> 並找出您的資源群組。</li>
+<li>確認 Event Grid Namespace 的 <strong>Provisioning State</strong> of <strong>Succeeded</strong>.</li>
+<li>確認 namespace topic <strong>moderation-events</strong> 存在於該命名空間內。</li>
+</ul>
+<p><strong>檢查事件訂用帳戶</strong></p>
+<ul>
+<li>請執行部署指令碼的狀態檢查（選項 5），確認三個事件訂用帳戶都已建立。</li>
+<li>確認訂用帳戶顯示 <strong>Succeeded</strong> status： <strong>sub-flagged</strong>, <strong>sub-approved</strong>, and <strong>sub-all-events</strong>.</li>
+<li>如果在發佈後未收到任何事件，請確認訂用帳戶是在 topic 建立之後才建立的。必要時請重新執行部署指令碼的選項 2。</li>
+</ul>
+<p><strong>檢查程式碼完整性與縮排</strong></p>
+<ul>
+<li>確認所有程式碼區塊皆已新增至下列檔案中的正確區段： <em>event_grid_functions.py</em> ，並位於適當的 BEGIN/END 註解標記之間。</li>
+<li>請確認 Python 縮排一致（使用空格而非定位字元），且所有程式碼在函式內都正確對齊。</li>
+<li>請確認指定區段之外的程式碼未被意外刪除或修改。</li>
+</ul>
+<p><strong>確認環境變數</strong></p>
+<ul>
+<li>確認專案根目錄中同時存在 <em>.env</em> 和 <em>.env.ps1</em> 檔案，且其中包含 <strong>EVENTGRID_ENDPOINT</strong>, <strong>EVENTGRID_TOPIC_NAME</strong>, <strong>RESOURCE_GROUP</strong>, and <strong>NAMESPACE_NAME</strong> values.</li>
+<li>執行 <strong>source .env</strong> （Bash）或 <strong>. ..env.ps1</strong> （PowerShell），以將環境變數載入終端機工作階段。</li>
+</ul>
+<p><strong>檢查驗證</strong></p>
+<ul>
+<li>執行下列命令，確認您已登入 Azure CLI： <strong>az account show</strong>.</li>
+<li>請確認 EventGrid Data Sender 與 EventGrid Data Receiver 角色已指派在該命名空間上。必要時請再次執行部署指令碼的角色指派選項（選項 3）。</li>
+</ul>
+<p><strong>檢查 Python 環境與相依性</strong></p>
+<ul>
+<li>請確認在執行應用程式之前已啟用虛擬環境。</li>
+<li>請確認來自 <em>requirements.txt</em> 的所有套件都已透過執行 <strong>pip list</strong>.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 Microsoft |
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>|
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>|
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>|
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>|
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

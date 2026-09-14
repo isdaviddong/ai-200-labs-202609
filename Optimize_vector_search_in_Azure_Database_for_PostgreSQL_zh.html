@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        最佳化 Azure Database for PostgreSQL 中的向量搜尋效能 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="optimize-vector-search-performance-in-azure-database-for-postgresql">最佳化 Azure Database for PostgreSQL 中的向量搜尋效能</h1>
+<p>在本練習中，您將部署 Azure Database for PostgreSQL 執行個體，並將其最佳化以支援向量搜尋工作負載。您會建立帶有向量嵌入的測試資料、分析基準效能、建置並比較 IVFFlat 與 HNSW 索引，並調整搜尋參數。對於需要在大型資料集上快速執行相似度搜尋的正式環境 AI 應用程式而言，這些技術至關重要。</p>
+<p>本練習將執行的工作：</p>
+<ul>
+<li>下載專案起始檔案並設定部署指令碼</li>
+<li>部署使用 Microsoft Entra 驗證的 Azure Database for PostgreSQL Flexible Server</li>
+<li>建立含向量嵌入的測試資料集</li>
+<li>分析未使用索引時的向量搜尋基準效能</li>
+<li>建立並比較 IVFFlat 與 HNSW 向量索引</li>
+<li>調整索引參數以平衡速度與召回率</li>
+</ul>
+<p>本練習約需 <strong>30</strong> 分鐘完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>具備部署所需 Azure 服務權限的 Azure 訂用帳戶。如果您尚未擁有，您可以 <a href="https://azure.microsoft.com/">註冊一個</a>。</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> 安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+<li><a href="https://www.postgresql.org/download/">PostgreSQL command-line tools</a> (<strong>psql</strong>)</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案起始檔案並部署 Azure 服務</h2>
+<p>在本節中，您將下載專案起始檔案，並使用指令碼將所需服務部署到您的 Azure 訂用帳戶。PostgreSQL 伺服器部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載起始檔案。該檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/postgresql-optimize-vector-search-python.zip
+</code></pre></li>
+<li>
+<p>將該檔案複製或移動到系統中您想要進行專案作業的位置，然後將它解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並在選單中選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟 <em>azdeploy.py</em> 部署指令碼，並變更指令碼頂端的兩個值以符合您的需求，然後儲存變更。 <strong>Note:</strong> 請勿變更指令碼中的其他任何內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong> ，以在 VS Code 中開啟終端機視窗。</p>
+<blockquote>
+<p><strong>提示：</strong> 本練習的所有操作都在終端機中完成。請將面板放大，以便更輕鬆地查看命令的結果。</p>
+</blockquote>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依照提示選取要用於本練習的 Azure 帳戶與訂用帳戶。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令，確認您的訂用帳戶具有本練習所需的資源提供者。</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DBforPostgreSQL
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">在 Azure 中建立資源</h3>
+<p>在本節中，您將執行部署指令碼以部署 PostgreSQL 伺服器並設定驗證。</p>
+<ol>
+<li>
+<p>在終端機中執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>當指令碼選單出現時，輸入 <strong>1</strong> 以啟動 <strong>Create PostgreSQL server with Entra authentication</strong> 選項。這會建立已啟用僅限 Entra 驗證的伺服器。 <strong>Note:</strong> 部署可能需要 5 到 10 分鐘才能完成。</p>
+<blockquote>
+<p><strong>IMPORTANT:</strong> 在整個練習期間，請讓執行部署的終端機保持開啟。當部署在終端機中繼續進行時，您可以先進行下一節。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="review-vector-index-concepts">檢閱向量索引概念</h2>
+<p>在本節中，您將檢閱稍後會在練習中實際應用的向量索引關鍵概念。理解這些取捨有助於您在最佳化向量搜尋時做出更明智的決策。</p>
+<h3 id="ivfflat-indexes">IVFFlat 索引</h3>
+<p>IVFFlat（Inverted File with Flat compression）會將向量分成稱為 <strong>lists</strong>的叢集。搜尋時，它只會掃描附近叢集中的向量，而不是整個資料集。</p>
+<p>主要參數：</p>
+<ul>
+<li><strong>lists</strong>：要建立的叢集數。對於最多 100 萬筆資料，良好的起始值為 <code>rows / 1000</code> 。lists 越多，搜尋越快，但索引建置越慢。</li>
+<li><strong>probes</strong>：查詢時要搜尋的叢集數。值越高，召回率（找出真正最近鄰的能力）越好，但延遲也會增加。</li>
+</ul>
+<h3 id="hnsw-indexes">HNSW 索引</h3>
+<p>HNSW（Hierarchical Navigable Small World）會建立多層圖形結構。上層包含較少節點以利快速導覽；下層包含較多節點以利精準搜尋。</p>
+<p>主要參數：</p>
+<ul>
+<li><strong>m</strong>：每個節點的最大連線數。值越高可提升召回率，但也會增加記憶體使用量與建置時間。預設值為 16。</li>
+<li><strong>ef_construction</strong>：索引建置期間動態候選清單的大小。值越高可建立品質更佳的圖形，但建置時間也更長。預設值為 64。</li>
+<li><strong>ef_search</strong>：搜尋期間動態候選清單的大小。值越高可提升召回率，但也會增加延遲。預設值為 40。</li>
+</ul>
+<h3 id="when-to-use-each">何時使用各者</h3>
+<table>
+<thead>
+<tr>
+<th>考量項目</th>
+<th>IVFFlat</th>
+<th>HNSW</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>建置時間</td>
+<td>較快</td>
+<td>較慢</td>
+</tr>
+<tr>
+<td>查詢速度</td>
+<td>快速</td>
+<td>較快</td>
+</tr>
+<tr>
+<td>記憶體使用量</td>
+<td>較低</td>
+<td>較高</td>
+</tr>
+<tr>
+<td>召回率準確性</td>
+<td>調整後表現良好</td>
+<td>預設情況更佳</td>
+</tr>
+<tr>
+<td>更新效能</td>
+<td>需要重建</td>
+<td>支援增量更新</td>
+</tr>
+</tbody>
+</table>
+<p>在本練習中，您將實際測試兩種索引類型，並親自衡量其取捨。</p>
+<h2 id="complete-the-azure-resource-deployment">完成 Azure 資源部署</h2>
+<p>在本節中，您將返回部署指令碼，以擷取 PostgreSQL 伺服器的連線資訊。</p>
+<ol>
+<li>
+<p>當 <strong>Create PostgreSQL server with Entra authentication</strong> 作業完成後，輸入 <strong>2</strong> 以啟動 <strong>Configure vector extension allow-list</strong> 選項。這會將 <strong>vector</strong> 擴充功能加入伺服器的 <strong>azure.extensions</strong> 允許清單，讓您可以在下一節啟用 pgvector。伺服器會重新啟動以套用變更。 <strong>Note:</strong> 重新啟動可能需要 1 到 2 分鐘才能完成。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 以啟動 <strong>Check deployment status</strong> 選項。這會確認伺服器已就緒。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 以啟動 <strong>Retrieve connection info and access token</strong> 選項。這會建立一個包含必要環境變數的檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>5</strong> 以結束部署指令碼。</p>
+</li>
+<li>
+<p>執行下列命令，從先前步驟建立的檔案中將環境變數載入目前的終端機工作階段。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> 請保持終端機開啟。如果您將它關閉並建立新的終端機，可能需要再次執行載入環境變數的命令。</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> 存取權杖約在一小時後過期。如果之後需要重新連線，請再次執行指令碼並選擇選項 <strong>4</strong> 以產生新的權杖，然後再次匯出變數。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="create-the-database-schema-and-test-data">建立資料庫結構描述與測試資料</h2>
+<p>在本節中，您將連線到 PostgreSQL 伺服器，並建立一個包含產品資料與向量嵌入、供測試使用的資料表。</p>
+<ol>
+<li>
+<p>執行下列命令以使用環境變數連線到伺服器。 <strong>PGPASSWORD</strong> 環境變數會自動用於驗證。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>psql <span class="s2">"host=</span><span class="nv">$DB_HOST</span><span class="s2"> port=5432 dbname=</span><span class="nv">$DB_NAME</span><span class="s2"> user=</span><span class="nv">$DB_USER</span><span class="s2"> sslmode=require"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">psql</span><span class="w"> </span><span class="s2">"host=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_HOST</span><span class="s2"> port=5432 dbname=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_NAME</span><span class="s2"> user=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_USER</span><span class="s2"> sslmode=require"</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>提示：</strong> 顯示查詢結果時，如果目前終端機視窗無法容納全部內容，psql 會使用分頁器。若發生此情況，請按 <strong>q</strong> 以退出分頁器並返回 psql 提示字元。將終端機視窗放大可減少這種情況發生，也能更輕鬆檢閱命令結果。</p>
+</blockquote>
+</li>
+<li>
+<p>執行下列命令以啟用 pgvector 擴充功能。PostgreSQL 擴充功能必須先明確啟用才能使用。pgvector 擴充功能新增了 <strong>vector</strong> 資料型別，以及像 <strong>&lt;=&gt;</strong> （cosine distance）這類您會在本練習中持續使用的運算子。Azure Database for PostgreSQL 內含 pgvector，但預設不會啟用。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="n">EXTENSION</span> <span class="n">IF</span> <span class="k">NOT</span> <span class="k">EXISTS</span> <span class="n">vector</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以建立含有向量欄位的 products 資料表。 <strong>vector(384)</strong> 資料型別可儲存 384 維嵌入向量，這是 sentence embedding 模型常見的大小。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">products</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="n">BIGSERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">name</span> <span class="nb">TEXT</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">category_id</span> <span class="nb">INTEGER</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">price</span> <span class="nb">NUMERIC</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">in_stock</span> <span class="nb">BOOLEAN</span> <span class="k">DEFAULT</span> <span class="k">true</span><span class="p">,</span>
+    <span class="n">embedding</span> <span class="n">vector</span><span class="p">(</span><span class="mi">384</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以產生含有隨機嵌入向量的測試資料。這會建立 100,000 個具有隨機 384 維向量的產品。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">products</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">category_id</span><span class="p">,</span> <span class="n">price</span><span class="p">,</span> <span class="n">in_stock</span><span class="p">,</span> <span class="n">embedding</span><span class="p">)</span>
+<span class="k">SELECT</span>
+    <span class="s1">'Product '</span> <span class="o">||</span> <span class="n">i</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)::</span><span class="nb">int</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)::</span><span class="nb">numeric</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">random</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">.</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">'['</span> <span class="o">||</span> <span class="n">array_to_string</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span>
+        <span class="k">SELECT</span> <span class="p">(</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)::</span><span class="n">float4</span>
+        <span class="k">FROM</span> <span class="n">generate_series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">384</span><span class="p">)</span>
+    <span class="p">),</span> <span class="s1">','</span><span class="p">)</span> <span class="o">||</span> <span class="s1">']'</span><span class="p">)::</span><span class="n">vector</span>
+<span class="k">FROM</span> <span class="n">generate_series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100000</span><span class="p">)</span> <span class="k">AS</span> <span class="n">i</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以確認資料已建立。您應該會看到 100,000 筆資料列。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="k">FROM</span> <span class="n">products</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以建立供一致性測試使用的查詢向量。這個暫存資料表會儲存您在整個練習中使用的隨機嵌入向量。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TEMP</span> <span class="k">TABLE</span> <span class="n">query_vectors</span> <span class="k">AS</span>
+<span class="k">SELECT</span> <span class="p">(</span><span class="s1">'['</span> <span class="o">||</span> <span class="n">array_to_string</span><span class="p">(</span><span class="n">ARRAY</span><span class="p">(</span>
+    <span class="k">SELECT</span> <span class="p">(</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)::</span><span class="n">float4</span>
+    <span class="k">FROM</span> <span class="n">generate_series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">384</span><span class="p">)</span>
+<span class="p">),</span> <span class="s1">','</span><span class="p">)</span> <span class="o">||</span> <span class="s1">']'</span><span class="p">)::</span><span class="n">vector</span> <span class="k">AS</span> <span class="n">embedding</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h2 id="analyze-baseline-performance">分析基準效能</h2>
+<p>在本節中，您將量測沒有任何索引時的向量搜尋效能，以建立基準。</p>
+<ol>
+<li>
+<p>執行下列命令以執行向量相似度查詢並擷取執行計畫。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>檢查輸出內容。您應該會看到 <strong>Seq Scan</strong> 出現在計畫中，表示 PostgreSQL 正在掃描全部 100,000 筆資料列。請記下底部的 <strong>Execution Time</strong> 值。</p>
+</li>
+<li>
+<p>再執行此查詢兩次，以取得較一致的量測結果。第一次執行可能因為快取尚未預熱而較慢。請將最後一次的執行時間記錄為您的基準值。</p>
+</li>
+</ol>
+<h2 id="create-and-compare-ivfflat-and-hnsw-indexes">建立並比較 IVFFlat 與 HNSW 索引</h2>
+<p>在本節中，您將建立這兩種索引類型並比較其效能。</p>
+<h3 id="create-an-ivfflat-index">建立 IVFFlat 索引</h3>
+<ol>
+<li>
+<p>執行下列命令以建立 IVFFlat 索引。對於 100,000 筆資料列而言，100 個 lists 是合理的起始值（依據 <code>rows / 1000</code> 準則）。請記下建置索引所花的時間。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_products_embedding_ivfflat</span>
+<span class="k">ON</span> <span class="n">products</span> <span class="k">USING</span> <span class="n">ivfflat</span> <span class="p">(</span><span class="n">embedding</span> <span class="n">vector_cosine_ops</span><span class="p">)</span>
+<span class="k">WITH</span> <span class="p">(</span><span class="n">lists</span> <span class="o">=</span> <span class="mi">100</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以在 IVFFlat 索引下執行相同的查詢。確認計畫顯示 <strong>Index Scan using idx_products_embedding_ivfflat</strong>。請記錄執行時間。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以使用較低的 probes 進行測試。這樣會更快，但因為只搜尋一個叢集，與完整掃描相比可能會漏掉真正的最近鄰。召回率的影響無法從時間輸出中直接看出，您需要比較實際結果才能衡量。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SET</span> <span class="n">ivfflat</span><span class="p">.</span><span class="n">probes</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以使用較高的 probes 進行測試（較慢、較高召回率）。請記錄執行時間。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SET</span> <span class="n">ivfflat</span><span class="p">.</span><span class="n">probes</span> <span class="o">=</span> <span class="mi">50</span><span class="p">;</span>
+<span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="create-an-hnsw-index">建立 HNSW 索引</h3>
+<ol>
+<li>
+<p>執行下列命令以刪除 IVFFlat 索引，讓您可以獨立測試 HNSW。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">DROP</span> <span class="k">INDEX</span> <span class="n">idx_products_embedding_ivfflat</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以增加索引建置可用的記憶體。HNSW 在建置期間比 IVFFlat 需要更多記憶體。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SET</span> <span class="n">maintenance_work_mem</span> <span class="o">=</span> <span class="s1">'256MB'</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以建立 HNSW 索引。請記下建置時間，通常會比 IVFFlat 更長。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_products_embedding_hnsw</span>
+<span class="k">ON</span> <span class="n">products</span> <span class="k">USING</span> <span class="n">hnsw</span> <span class="p">(</span><span class="n">embedding</span> <span class="n">vector_cosine_ops</span><span class="p">)</span>
+<span class="k">WITH</span> <span class="p">(</span><span class="n">m</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">ef_construction</span> <span class="o">=</span> <span class="mi">64</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以在 HNSW 索引下執行查詢。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以使用較低的 ef_search 進行測試。這樣會更快，但因為搜尋探索的候選路徑較少，可能會漏掉部分真正的最近鄰。召回率的影響不會顯示在時間輸出中。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SET</span> <span class="n">hnsw</span><span class="p">.</span><span class="n">ef_search</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+<span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以使用較高的 ef_search 進行測試（較高召回率）。請記錄執行時間。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SET</span> <span class="n">hnsw</span><span class="p">.</span><span class="n">ef_search</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+<span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h3 id="compare-your-results">比較您的結果</h3>
+<p>比較不同設定下的執行時間。您應該會觀察到：</p>
+<ul>
+<li><strong>Sequential scan</strong> 最慢，因為它會檢查全部 100,000 筆資料列</li>
+<li><strong>IVFFlat with probes=1</strong> 是最快的索引化選項，但可能會漏掉部分真正的最近鄰</li>
+<li><strong>HNSW</strong> 在相近的召回率下，通常能提供比 IVFFlat 更快的查詢</li>
+<li>提高 <strong>probes</strong> （IVFFlat）或 <strong>ef_search</strong> （HNSW）可提升準確度，但也會增加延遲</li>
+</ul>
+<h2 id="implement-metadata-filtering-with-indexes">使用索引實作中繼資料篩選</h2>
+<p>在本節中，您將測試結合向量相似度與中繼資料篩選的查詢。在正式環境應用程式中，純向量搜尋並不常見；您通常會先依類別、日期範圍、價格或其他屬性進行篩選，再尋找相似項目。要最佳化這類複合查詢，就必須理解 PostgreSQL 如何同時使用多種索引類型。</p>
+<ol>
+<li>
+<p>執行下列命令以在 category 欄位上建立 B-tree 索引。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_products_category</span> <span class="k">ON</span> <span class="n">products</span> <span class="p">(</span><span class="n">category_id</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以執行帶有篩選條件的向量搜尋。檢查執行計畫，您應該會看到 PostgreSQL 先使用 HNSW 索引處理向量相似度，再套用 category 篩選。請記下執行時間。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">WHERE</span> <span class="n">category_id</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以用更具選擇性的篩選條件進行測試。當有多個篩選條件時，您可能會看到 <strong>Bitmap Index Scan</strong> 出現在 B-tree 索引上並搭配後續篩選，或者規劃器可能會選擇不同策略。請將執行時間與前一個查詢比較。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">WHERE</span> <span class="n">category_id</span> <span class="o">=</span> <span class="mi">5</span> <span class="k">AND</span> <span class="n">price</span> <span class="k">BETWEEN</span> <span class="mi">100</span> <span class="k">AND</span> <span class="mi">200</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以為此篩選組合建立複合索引。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_products_category_price</span> <span class="k">ON</span> <span class="n">products</span> <span class="p">(</span><span class="n">category_id</span><span class="p">,</span> <span class="n">price</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>重新執行前一個查詢並比較執行計畫。複合索引可能讓 PostgreSQL 在向量搜尋之前或同時更有效率地篩選，進而降低執行時間。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">EXPLAIN</span> <span class="k">ANALYZE</span>
+<span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span> <span class="k">AS</span> <span class="n">distance</span>
+<span class="k">FROM</span> <span class="n">products</span>
+<span class="k">WHERE</span> <span class="n">category_id</span> <span class="o">=</span> <span class="mi">5</span> <span class="k">AND</span> <span class="n">price</span> <span class="k">BETWEEN</span> <span class="mi">100</span> <span class="k">AND</span> <span class="mi">200</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">embedding</span> <span class="o">&lt;=&gt;</span> <span class="p">(</span><span class="k">SELECT</span> <span class="n">embedding</span> <span class="k">FROM</span> <span class="n">query_vectors</span><span class="p">)</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+</ol>
+<h2 id="summary">總結</h2>
+<p>在本練習中，您已：</p>
+<ul>
+<li>部署使用 Microsoft Entra 驗證的 Azure Database for PostgreSQL Flexible Server</li>
+<li>建立包含 100,000 筆向量嵌入的測試資料集</li>
+<li>建立未使用索引之向量查詢的基準效能</li>
+<li>建立並比較 IVFFlat 與 HNSW 索引</li>
+<li>調整索引參數（<strong>probes</strong> 與 <strong>ef_search</strong>）以平衡準確度與速度</li>
+<li>使用 B-tree 索引實作中繼資料篩選</li>
+</ul>
+<p>這些技術可讓您針對正式環境的向量搜尋工作負載最佳化 Azure Database for PostgreSQL。</p>
+<h1 id="clean-up-resources">清除資源</h1>
+<p>既然您已完成本練習，應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及群組中的所有資源。請將 <strong>&lt;rg-name&gt;</strong> 替換為您稍早在練習中選擇的名稱。此命令會在 Azure 中啟動背景工作以刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> 刪除資源群組會刪除其中包含的所有資源。如果您為本練習選用了現有的資源群組，則此練習範圍外的任何既有資源也會一併刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在本練習期間遇到問題，請嘗試下列步驟：</p>
+<p><strong>部署失敗</strong></p>
+<ul>
+<li>再次執行部署指令碼並選取選項 <strong>1</strong>。</li>
+<li>如果指令碼偵測到現有的 PostgreSQL 伺服器，會警告您重新部署將永久刪除伺服器及其所有資料。輸入 <code>yes</code> 以確認您要刪除並重新部署伺服器。</li>
+<li>選項 <strong>1</strong> 完成後，選取選項 <strong>2</strong> 以將 <strong>vector</strong> 擴充功能加入伺服器的 <strong>azure.extensions</strong> 允許清單。</li>
+<li>如果 Azure 未在五分鐘內釋出 PostgreSQL 伺服器名稱，請結束部署指令碼，等待五分鐘，然後再次執行指令碼並選取選項 <strong>1</strong> 。</li>
+</ul>
+<p><strong>psql 連線失敗</strong></p>
+<ul>
+<li>確認 <em>.env</em> 與 <em>.env.ps1</em> 檔案都已透過執行部署指令碼選項建立 <strong>4</strong></li>
+<li>確認您已執行 <strong>source .env</strong> （Bash）或 <strong>. ..env.ps1</strong> （PowerShell）以載入環境變數</li>
+<li>存取權杖約在一小時後過期；請再次執行部署指令碼選項 <strong>4</strong> 以產生新的權杖</li>
+<li>執行部署指令碼選項以確認伺服器已就緒 <strong>3</strong></li>
+</ul>
+<p><strong>存取遭拒或驗證錯誤</strong></p>
+<ul>
+<li>選項 <strong>1</strong> 建立伺服器時，會自動設定 Microsoft Entra 系統管理員。如果存取仍遭拒，請執行選項 <strong>3</strong> 以確認系統管理員。如果缺少系統管理員，請執行選項 <strong>1</strong> 並確認您要刪除並重新部署伺服器。</li>
+<li>確認 <strong>PGPASSWORD</strong> 已在您的終端機工作階段中正確設定</li>
+<li>確認您使用正確的 <strong>DB_USER</strong> 值（您的 Azure 帳戶電子郵件）</li>
+</ul>
+<p><strong>索引建置耗時過久或失敗</strong></p>
+<ul>
+<li>HNSW 索引的建置時間比 IVFFlat 更長；對於 100,000 個向量，請預留 1 到 2 分鐘</li>
+<li>如果建置逾時，請檢查 Azure Monitor 中的 CPU 與記憶體計量</li>
+<li>請考慮縮小資料集大小以進行測試</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">隱私權 </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">消費者健康隱私權 </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">使用規定 </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">商標 </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    來源
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Build a RAG document store on Azure Cosmos DB for NoSQL |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-door-fill" viewbox="0 0 16 16">
+                        <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"></path>
+                    </svg>
+                     Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color->
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="">
+            <article class="col-sm-10 mb-5">
+                <h1 id="build-a-rag-document-store-on-azure-cosmos-db-for-nosql">Build a RAG document store on Azure Cosmos DB for NoSQL</h1>
+<p>In this exercise, you create an Azure Cosmos DB for NoSQL database that serves as a document store for retrieval-augmented generation (RAG) applications. The database stores chunked documents with metadata that an AI application can retrieve to provide context to language models. You design a schema optimized for document retrieval, build Python functions that store and query document chunks, and test the complete workflow using a Flask web application. This pattern provides a foundation for building AI applications that ground language model responses in your organization's documents.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download project starter files and configure the deployment script</li>
+<li>Deploy an Azure Cosmos DB for NoSQL account with a database and container</li>
+<li>Build Python functions for storing and retrieving document chunks</li>
+<li>Test the RAG functions using a Flask web application</li>
+<li>Query document context using the Cosmos DB SQL API</li>
+</ul>
+<p>This exercise takes approximately <strong>30</strong> minutes to complete.</p>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription with the permissions to deploy the necessary Azure services. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li>
+<a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>
+<a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">Download project starter files and deploy Azure services</h2>
+<p>In this section you download the project starter files and use a script to deploy the necessary services to your Azure subscription. The Cosmos DB account deployment takes a few minutes to complete.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/cosmosdb-build-query-python.zip
+</code></pre>
+</li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>"&lt;your-resource-group-name&gt;" # Resource Group name
+"&lt;your-azure-region&gt;" # Azure region for the resources
+</code></pre>
+</li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre>
+</li>
+<li>
+<p>Run the following command to ensure your subscription has the necessary resource provider for the exercise.</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DocumentDB
+</code></pre>
+</li>
+</ol>
+<h3 id="create-resources-in-azure">Create resources in Azure</h3>
+<p>In this section you run the deployment script to deploy the Cosmos DB account.</p>
+<ol>
+<li>
+<p>Make sure you are in the root directory of the project and run the following command in the terminal to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre>
+</li>
+<li>
+<p>When the script menu appears, enter <strong>1</strong> to launch the <strong>Create Cosmos DB account</strong> option. This creates the Cosmos DB for NoSQL account with a database and container. <strong>Note:</strong> Deployment can take 5-10 minutes to complete.</p>
+<blockquote>
+<p><strong>IMPORTANT:</strong> Leave the terminal running the deployment open for the duration of the exercise. You can move on to the next section of the exercise while the deployment continues in the terminal.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-rag-document-functions">Complete the RAG document functions</h2>
+<p>In this section you complete the <em>rag_functions.py</em> file by adding functions that an AI application can call to store and retrieve document chunks. These functions serve as the application's interface to the document store. The app you run later in this exercise imports these functions to demonstrate how an AI application would use them.</p>
+<ol>
+<li>Open the <em>client/rag_functions.py</em> file in VS Code.</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> To maintain proper code indentation, paste the code flush with the left margin (column 1), select all of the pasted lines, and press <strong>Tab</strong> to align the block with the <strong>BEGIN / END</strong> markers. Press <strong>Shift+Tab</strong> to outdent if needed.</p>
+</blockquote>
+<ol>
+<li>
+<p>Search for the <strong>BEGIN STORE DOCUMENT CHUNK FUNCTION</strong> comment and add the following code directly after the comment. This function stores a document chunk with its metadata, using upsert to handle both inserts and updates.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">store_document_chunk</span><span class="p">(</span>
+    <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">chunk_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Store a document chunk with metadata and optional embedding placeholder."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># Build the document structure following our RAG schema
+</span>    <span class="c1"># The 'id' field is required by Cosmos DB and must be unique within the partition
+</span>    <span class="c1"># The 'documentId' field is our partition key - chunks from the same source document
+</span>    <span class="c1"># are stored together for efficient retrieval
+</span>    <span class="n">chunk</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">"id"</span><span class="p">:</span> <span class="n">chunk_id</span><span class="p">,</span>
+        <span class="s">"documentId"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">,</span>
+        <span class="s">"content"</span><span class="p">:</span> <span class="n">content</span><span class="p">,</span>
+        <span class="s">"metadata"</span><span class="p">:</span> <span class="n">metadata</span> <span class="ow">or</span> <span class="p">{},</span>
+        <span class="s">"embedding"</span><span class="p">:</span> <span class="n">embedding</span> <span class="ow">or</span> <span class="p">[],</span>  <span class="c1"># Placeholder for vector embeddings
+</span>        <span class="s">"createdAt"</span><span class="p">:</span> <span class="n">datetime</span><span class="p">.</span><span class="n">utcnow</span><span class="p">().</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s">"chunkIndex"</span><span class="p">:</span> <span class="n">metadata</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"chunkIndex"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">metadata</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="p">}</span>
+
+    <span class="c1"># upsert_item inserts if new, updates if exists (based on id + partition key)
+</span>    <span class="c1"># This is idempotent - safe to call multiple times with the same data
+</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">upsert_item</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
+
+    <span class="c1"># Request Units (RUs) measure the cost of database operations in Cosmos DB
+</span>    <span class="c1"># Tracking RU consumption helps optimize queries and estimate costs
+</span>    <span class="n">ru_charge</span> <span class="o">=</span> <span class="n">response</span><span class="p">.</span><span class="n">get_response_headers</span><span class="p">()[</span><span class="s">'x-ms-request-charge'</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">chunk_id</span><span class="p">,</span>
+        <span class="s">"document_id"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">,</span>
+        <span class="s">"ru_charge"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">ru_charge</span><span class="p">)</span>
+    <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Search for the <strong>BEGIN GET CHUNKS BY DOCUMENT FUNCTION</strong> comment and add the following code directly after the comment. This function retrieves all chunks for a specific document, ordered by chunk index for sequential reading.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_chunks_by_document</span><span class="p">(</span><span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""Retrieve all chunks for a specific document, ordered by chunk index."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># SQL query using parameterized values (@documentId, @limit) to prevent injection
+</span>    <span class="c1"># The 'c' alias represents each document in the container
+</span>    <span class="n">query</span> <span class="o">=</span> <span class="s">"""
+        SELECT c.id, c.content, c.metadata, c.chunkIndex, c.createdAt
+        FROM c
+        WHERE c.documentId = @documentId
+        ORDER BY c.chunkIndex
+        OFFSET 0 LIMIT @limit
+    """</span>
+
+    <span class="c1"># Single-partition query: providing partition_key limits the query to one partition
+</span>    <span class="c1"># This is more efficient than cross-partition queries because Cosmos DB only
+</span>    <span class="c1"># needs to read from one physical partition instead of fanning out to all partitions
+</span>    <span class="n">items</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">query_items</span><span class="p">(</span>
+        <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@documentId"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">document_id</span><span class="p">},</span>
+            <span class="p">{</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@limit"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">limit</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="n">partition_key</span><span class="o">=</span><span class="n">document_id</span>  <span class="c1"># Scopes query to a single partition
+</span>    <span class="p">)</span>
+
+    <span class="c1"># Transform Cosmos DB items into a consistent response format
+</span>    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"chunk_index"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"chunkIndex"</span><span class="p">],</span>
+            <span class="s">"created_at"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"createdAt"</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Search for the <strong>BEGIN SEARCH CHUNKS BY METADATA FUNCTION</strong> comment and add the following code directly after the comment. This function searches for chunks across documents using metadata filters, which is useful for finding relevant context based on tags, categories, or other attributes.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">search_chunks_by_metadata</span><span class="p">(</span>
+    <span class="n">filters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""Search for chunks across documents using metadata filters."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="c1"># Build WHERE clauses dynamically based on provided filters
+</span>    <span class="c1"># This allows flexible querying by any combination of metadata fields
+</span>    <span class="n">where_clauses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="s">"source"</span> <span class="ow">in</span> <span class="n">filters</span> <span class="ow">and</span> <span class="n">filters</span><span class="p">[</span><span class="s">"source"</span><span class="p">]:</span>
+        <span class="n">where_clauses</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">"c.metadata.source = @source"</span><span class="p">)</span>
+        <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@source"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">filters</span><span class="p">[</span><span class="s">"source"</span><span class="p">]})</span>
+
+    <span class="k">if</span> <span class="s">"category"</span> <span class="ow">in</span> <span class="n">filters</span> <span class="ow">and</span> <span class="n">filters</span><span class="p">[</span><span class="s">"category"</span><span class="p">]:</span>
+        <span class="n">where_clauses</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">"c.metadata.category = @category"</span><span class="p">)</span>
+        <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@category"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">filters</span><span class="p">[</span><span class="s">"category"</span><span class="p">]})</span>
+
+    <span class="k">if</span> <span class="s">"tags"</span> <span class="ow">in</span> <span class="n">filters</span> <span class="ow">and</span> <span class="n">filters</span><span class="p">[</span><span class="s">"tags"</span><span class="p">]:</span>
+        <span class="c1"># ARRAY_CONTAINS checks if a value exists within an array field
+</span>        <span class="c1"># This is useful for searching tags, keywords, or other list-based metadata
+</span>        <span class="n">where_clauses</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="s">"ARRAY_CONTAINS(c.metadata.tags, @tag)"</span><span class="p">)</span>
+        <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@tag"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">filters</span><span class="p">[</span><span class="s">"tags"</span><span class="p">][</span><span class="mi">0</span><span class="p">]})</span>
+
+    <span class="c1"># Default to "1=1" (always true) if no filters provided
+</span>    <span class="n">where_clause</span> <span class="o">=</span> <span class="s">" AND "</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_clauses</span><span class="p">)</span> <span class="k">if</span> <span class="n">where_clauses</span> <span class="k">else</span> <span class="s">"1=1"</span>
+    <span class="n">parameters</span><span class="p">.</span><span class="n">append</span><span class="p">({</span><span class="s">"name"</span><span class="p">:</span> <span class="s">"@limit"</span><span class="p">,</span> <span class="s">"value"</span><span class="p">:</span> <span class="n">limit</span><span class="p">})</span>
+
+    <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s">"""
+        SELECT c.id, c.documentId, c.content, c.metadata, c.chunkIndex
+        FROM c
+        WHERE </span><span class="si">{</span><span class="n">where_clause</span><span class="si">}</span><span class="s">
+        OFFSET 0 LIMIT @limit
+    """</span>
+
+    <span class="c1"># Cross-partition query: searches across ALL partitions in the container
+</span>    <span class="c1"># Required when you don't know which partition contains the data you need
+</span>    <span class="c1"># More expensive than single-partition queries but necessary for metadata searches
+</span>    <span class="n">items</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">query_items</span><span class="p">(</span>
+        <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">enable_cross_partition_query</span><span class="o">=</span><span class="bp">True</span>  <span class="c1"># Fan out to all partitions
+</span>    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"document_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"documentId"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"chunk_index"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"chunkIndex"</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Search for the <strong>BEGIN GET CHUNK BY ID FUNCTION</strong> comment and add the following code directly after the comment. This function performs an efficient point read to retrieve a specific chunk by its ID and document ID.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_chunk_by_id</span><span class="p">(</span><span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">chunk_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Retrieve a specific chunk using a point read (most efficient)."""</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">get_container</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Point read: the most efficient Cosmos DB operation
+</span>        <span class="c1"># By providing both the item ID and partition key, Cosmos DB can go
+</span>        <span class="c1"># directly to the exact location of the document without any query execution
+</span>        <span class="c1"># This results in the lowest latency and RU cost (typically 1 RU for small docs)
+</span>        <span class="n">item</span> <span class="o">=</span> <span class="n">container</span><span class="p">.</span><span class="n">read_item</span><span class="p">(</span>
+            <span class="n">item</span><span class="o">=</span><span class="n">chunk_id</span><span class="p">,</span>         <span class="c1"># The unique ID within the partition
+</span>            <span class="n">partition_key</span><span class="o">=</span><span class="n">document_id</span>  <span class="c1"># The partition where this item lives
+</span>        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s">"chunk_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"id"</span><span class="p">],</span>
+            <span class="s">"document_id"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"documentId"</span><span class="p">],</span>
+            <span class="s">"content"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"content"</span><span class="p">],</span>
+            <span class="s">"metadata"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"metadata"</span><span class="p">],</span>
+            <span class="s">"chunk_index"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"chunkIndex"</span><span class="p">],</span>
+            <span class="s">"created_at"</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s">"createdAt"</span><span class="p">],</span>
+            <span class="s">"embedding"</span><span class="p">:</span> <span class="n">item</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"embedding"</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="p">}</span>
+    <span class="k">except</span> <span class="n">exceptions</span><span class="p">.</span><span class="n">CosmosResourceNotFoundError</span><span class="p">:</span>
+        <span class="c1"># Return None if the item doesn't exist rather than raising an exception
+</span>        <span class="c1"># This allows the caller to handle missing items gracefully
+</span>        <span class="k">return</span> <span class="bp">None</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Save your changes to the <em>rag_functions.py</em> file.</p>
+</li>
+<li>
+<p>Take a few minutes to review all of the code in the app.</p>
+</li>
+</ol>
+<p>Next, you finalize the Azure resource deployment.</p>
+<h2 id="complete-the-azure-resource-deployment">Complete the Azure resource deployment</h2>
+<p>In this section you return to the deployment script to configure Entra ID access and retrieve the connection information for the Cosmos DB account.</p>
+<ol>
+<li>
+<p>When the <strong>Create Cosmos DB account</strong> operation has completed, enter <strong>2</strong> to launch the <strong>Configure Entra ID access</strong> option. This assigns your user account the necessary role to access the Cosmos DB data plane.</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to launch the <strong>Check deployment status</strong> option. This verifies all resources are ready.</p>
+</li>
+<li>
+<p>Enter <strong>4</strong> to launch the <strong>Retrieve connection info</strong> option. This creates a file with the necessary environment variables.</p>
+</li>
+<li>
+<p>Enter <strong>5</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the following command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you might need to run the command to create the environment variable again.</p>
+</blockquote>
+</li>
+</ol>
+<p>Next, you explore the document schema used for the RAG document store.</p>
+<h2 id="understand-the-rag-document-schema">Understand the RAG document schema</h2>
+<p>In this section you learn about the document schema designed for RAG applications. Unlike relational databases, Cosmos DB for NoSQL uses a flexible JSON document model. The container was created with <strong>documentId</strong> as the partition key, which groups all chunks from the same source document together for efficient retrieval.</p>
+<p>The document schema for each chunk includes:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>id</strong></td>
+<td>Unique identifier for the chunk (required by Cosmos DB)</td>
+</tr>
+<tr>
+<td><strong>documentId</strong></td>
+<td>Source document identifier (partition key)</td>
+</tr>
+<tr>
+<td><strong>content</strong></td>
+<td>The actual text content of the chunk</td>
+</tr>
+<tr>
+<td><strong>metadata</strong></td>
+<td>Flexible object for source, category, tags, and custom attributes</td>
+</tr>
+<tr>
+<td><strong>embedding</strong></td>
+<td>Array placeholder for vector embeddings (used in vector search scenarios)</td>
+</tr>
+<tr>
+<td><strong>chunkIndex</strong></td>
+<td>Position of the chunk within the source document</td>
+</tr>
+<tr>
+<td><strong>createdAt</strong></td>
+<td>Timestamp for when the chunk was stored</td>
+</tr>
+</tbody>
+</table>
+<p>This schema supports common RAG patterns:</p>
+<ul>
+<li>
+<strong>Point reads</strong>: Retrieve a specific chunk by ID and document ID (lowest latency)</li>
+<li>
+<strong>Single-partition queries</strong>: Get all chunks for a document efficiently</li>
+<li>
+<strong>Cross-partition queries</strong>: Search across documents by metadata</li>
+<li>
+<strong>Vector search</strong>: When combined with vector indexing</li>
+</ul>
+<h2 id="test-the-rag-functions-with-the-flask-app">Test the RAG functions with the Flask app</h2>
+<p>In this section you start the Flask web application and use its interface to test the RAG functions you created. The app provides a visual way to load data, run tests, query chunks, and execute custom SQL queries.</p>
+<ol>
+<li>
+<p>Run the following command to navigate to the <em>client</em> directory.</p>
+<pre><code>cd client
+</code></pre>
+</li>
+<li>
+<p>Run the following command to create a virtual environment for the Flask app. Depending on your environment the command might be <strong>python</strong> or <strong>python3</strong>.</p>
+<pre><code>python -m venv .venv
+</code></pre>
+</li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to install the Python dependencies for the app. This installs the <strong>flask</strong> and <strong>azure-cosmos</strong> libraries.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-r</span> requirements.txt
+</code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to start the Flask application.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python app.py
+</code></pre></div></div>
+</li>
+<li>
+<p>Open a browser and navigate to <code>http://127.0.0.1:5000</code> to view the application.</p>
+</li>
+</ol>
+<h3 id="load-sample-data">Load sample data</h3>
+<p>In this section you use the app to load sample document chunks into the Cosmos DB container. The app calls the <strong>store_document_chunk()</strong> function you created in <em>rag_functions.py</em> to insert each chunk.</p>
+<ol>
+<li>
+<p>In the <strong>Load Sample Data</strong> section, select <strong>Load Sample Chunks</strong>. This inserts 12 sample chunks across four documents, representing content from fictional Azure documentation articles.</p>
+</li>
+<li>
+<p>Verify that the success message appears in the <strong>Results</strong> section showing the number of chunks loaded and the total RU (Request Unit) charge.</p>
+</li>
+</ol>
+<h3 id="run-test-workflow">Run test workflow</h3>
+<p>In this section you run automated tests that verify the RAG functions you created in <em>rag_functions.py</em> work correctly.</p>
+<ol>
+<li>
+<p>In the <strong>Run Test Workflow</strong> section, select <strong>Run Tests</strong>. This executes five tests that exercise each function.</p>
+</li>
+<li>
+<p>Review the test results in the <strong>Results</strong> panel. Each test should show a <strong>passed</strong> status:</p>
+<ul>
+<li>Store document chunks</li>
+<li>Get chunks by document ID</li>
+<li>Search by category</li>
+<li>Search by tag</li>
+<li>Point read by ID</li>
+</ul>
+</li>
+</ol>
+<h3 id="get-chunks-by-document">Get chunks by document</h3>
+<p>In this section you retrieve all chunks for a specific document. The app calls the <strong>get_chunks_by_document()</strong> function you created in <em>rag_functions.py</em>.</p>
+<ol>
+<li>
+<p>In the <strong>Get Chunks by Document</strong> section, select a document from the dropdown (for example, <strong>doc-azure-overview</strong>).</p>
+</li>
+<li>
+<p>Select <strong>Get Chunks</strong> to retrieve all chunks for that document.</p>
+</li>
+<li>
+<p>Review the results showing the chunks ordered by their index, along with their content and metadata tags.</p>
+</li>
+</ol>
+<h3 id="search-by-metadata">Search by metadata</h3>
+<p>In this section you search for chunks across all documents using metadata filters. The app calls the <strong>search_chunks_by_metadata()</strong> function you created in <em>rag_functions.py</em>. You observe how combining filters narrows the results.</p>
+<ol>
+<li>
+<p>In the <strong>Search by Metadata</strong> section, select <strong>ai-applications</strong> from the <strong>Category</strong> dropdown. Leave the <strong>Tag</strong> field empty.</p>
+</li>
+<li>
+<p>Select <strong>Search</strong> to find all chunks with that category.</p>
+</li>
+<li>
+<p>Review the results in the <strong>Results</strong> panel. You should see 4 chunks returned, each with different tags such as <strong>rag</strong>, <strong>embeddings</strong>, <strong>chunking</strong>, and <strong>metadata</strong>.</p>
+</li>
+<li>
+<p>Now add a tag filter to narrow the results. Enter <strong>embeddings</strong> in the <strong>Tag</strong> field and select <strong>Search</strong> again.</p>
+</li>
+<li>
+<p>Notice that fewer results are returned - only chunks that match both the <strong>ai-applications</strong> category and contain the <strong>embeddings</strong> tag. This demonstrates how combining metadata filters helps RAG applications retrieve more targeted context.</p>
+</li>
+</ol>
+<h2 id="query-document-context">Query document context</h2>
+<p>In this section you practice writing SQL queries against the Cosmos DB container using the Query Explorer. These queries demonstrate patterns that RAG applications commonly use to retrieve document context.</p>
+<ol>
+<li>
+<p>In the <strong>Query Explorer</strong> section, enter the following query in the <strong>SQL Query</strong> field to find all chunks for a specific document. This query retrieves chunks ordered by their index for sequential reading.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">chunkIndex</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span>
+<span class="k">FROM</span> <span class="k">c</span>
+<span class="k">WHERE</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span> <span class="o">=</span> <span class="s1">'doc-azure-overview'</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="k">c</span><span class="p">.</span><span class="n">chunkIndex</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Select <strong>Execute Query</strong> and review the results.</p>
+</li>
+<li>
+<p>Enter the following query in the <strong>SQL Query</strong> field to search for chunks with a specific category across all documents. This demonstrates a cross-partition query that searches metadata.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">category</span>
+<span class="k">FROM</span> <span class="k">c</span>
+<span class="k">WHERE</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">category</span> <span class="o">=</span> <span class="s1">'cloud-services'</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Select <strong>Execute Query</strong> and review the results.</p>
+</li>
+<li>
+<p>Enter the following query in the <strong>SQL Query</strong> field to view the documents stored in the container along with their category and source metadata. This helps understand what content is available for RAG retrieval.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">DISTINCT</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">category</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="k">source</span>
+<span class="k">FROM</span> <span class="k">c</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Select <strong>Execute Query</strong> and review the results.</p>
+</li>
+<li>
+<p>Enter the following query in the <strong>SQL Query</strong> field to find chunks that contain a specific tag in their metadata. This demonstrates searching within arrays using <strong>ARRAY_CONTAINS</strong>.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">documentId</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">tags</span>
+<span class="k">FROM</span> <span class="k">c</span>
+<span class="k">WHERE</span> <span class="n">ARRAY_CONTAINS</span><span class="p">(</span><span class="k">c</span><span class="p">.</span><span class="n">metadata</span><span class="p">.</span><span class="n">tags</span><span class="p">,</span> <span class="s1">'compute'</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>Select <strong>Execute Query</strong> and review the results.</p>
+</li>
+<li>
+<p>Return to the terminal and press <strong>Ctrl+C</strong> to stop the Flask application.</p>
+</li>
+</ol>
+<h2 id="summary">Summary</h2>
+<p>In this exercise, you built a Cosmos DB-based document store for RAG applications. You deployed an Azure Cosmos DB for NoSQL account with a database and container optimized for document retrieval patterns. You created Python functions that store document chunks with metadata, retrieve chunks by document ID, search across documents using metadata filters, and perform efficient point reads. You tested the workflow using a Flask web application that exercised each function, then queried the stored data using the Cosmos DB SQL API. This pattern enables AI applications to store chunked documents and retrieve relevant context to ground language model responses.</p>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you chose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre>
+</li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues during this exercise, try these steps:</p>
+<p><strong>Flask app fails to start</strong></p>
+<ul>
+<li>Ensure Python virtual environment is activated (you should see <strong>(.venv)</strong> in your terminal prompt)</li>
+<li>Ensure dependencies are installed: <strong>pip install -r requirements.txt</strong>
+</li>
+<li>Ensure environment variables are loaded by running <strong>source .env</strong> (Bash) or <strong>. ..env.ps1</strong> (PowerShell)</li>
+<li>Ensure you are in the <em>client</em> directory when running <strong>python app.py</strong>
+</li>
+</ul>
+<p><strong>Authentication or access denied errors</strong></p>
+<ul>
+<li>Ensure Entra ID access was configured by running the deployment script option <strong>2</strong>
+</li>
+<li>Verify your user has both the <strong>Contributor</strong> role and the <strong>Cosmos DB Built-in Data Contributor</strong> role</li>
+<li>Ensure <strong>COSMOS_ENDPOINT</strong> is set correctly in your terminal session</li>
+</ul>
+<p><strong>Cosmos DB operations fail</strong></p>
+<ul>
+<li>Verify the Cosmos DB account is ready by running the deployment script option <strong>3</strong>
+</li>
+<li>Ensure the database and container were created during deployment</li>
+<li>Check that the container uses <strong>/documentId</strong> as the partition key</li>
+</ul>
+<p><strong>Environment variable issues</strong></p>
+<ul>
+<li>Ensure the <em>.env</em> file was created by running the deployment script option <strong>4</strong>
+</li>
+<li>Run <strong>source .env</strong> (Bash) or <strong>. ..env.ps1</strong> (PowerShell) after creating a new terminal</li>
+<li>Verify variables are set by running <strong>echo $COSMOS_ENDPOINT</strong> (Bash) or <strong>$env:COSMOS_ENDPOINT</strong> (PowerShell)</li>
+</ul>
+<p><strong>Python venv activation issues</strong></p>
+<ul>
+<li>On Linux/macOS, use: <strong>source .venv/bin/activate</strong>
+</li>
+<li>On Windows PowerShell, use: <strong>.\venv\Scripts\Activate.ps1</strong>
+</li>
+<li>If <strong>activate</strong> script is missing, reinstall <strong>python3-venv</strong> package and recreate the venv</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 Microsoft  | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a> | 
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a> | 
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

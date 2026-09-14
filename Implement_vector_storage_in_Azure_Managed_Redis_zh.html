@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        在 Azure Managed Redis 中實作語意搜尋 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-door-fill" viewbox="0 0 16 16">
+                        <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"></path>
+                    </svg>
+                     Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color->
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="">
+            <article class="col-sm-10 mb-5">
+                <h1 id="implement-semantic-search-in-azure-managed-redis">在 Azure Managed Redis 中實作語意搜尋</h1>
+<p>在此練習中，您將部署 Azure Managed Redis，並完成一個 Python Flask Web 應用程式，用以儲存產品嵌入與中繼資料、建立向量索引，以及使用餘弦距離執行相似度搜尋。您將新增程式碼以連線至 Microsoft Entra ID、建立索引、儲存產品向量，並從瀏覽器介面查詢相似產品。</p>
+<p>此練習中執行的工作：</p>
+<ul>
+<li>下載專案起始檔案</li>
+<li>建立 Azure Managed Redis 資源</li>
+<li>將程式碼新增至起始檔案以完成應用程式</li>
+<li>執行應用程式以載入產品、儲存向量並執行相似度搜尋</li>
+</ul>
+<p>此練習大約需要 <strong>30</strong> 分鐘完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>在本節中，您將檢閱此練習所需的必要條件。</p>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>Azure 訂用帳戶。如果您尚未擁有，可以 <a href="https://azure.microsoft.com/">註冊一個</a>.</li>
+<li>
+<a href="https://code.visualstudio.com/">Visual Studio Code</a> 安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>.</li>
+<li>
+<a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li>Azure CLI <strong>redisenterprise</strong> 延伸模組 2.75.0 或更新版本。稍後的步驟會為您安裝或升級此延伸模組。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-managed-redis">下載專案起始檔案並部署 Azure Managed Redis</h2>
+<p>在本節中，您將下載應用程式的起始檔案，並使用指令碼開始將 Azure Managed Redis 部署至您的訂用帳戶。Azure Managed Redis 部署需要 5 到 10 分鐘才能完成，因此您會先開始部署，並在佈建期間將程式碼新增至應用程式。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載入門檔案。檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/amr-vector-query-python.zip
+</code></pre>
+</li>
+<li>
+<p>將檔案複製或移動到您系統中要進行專案作業的位置，然後將其解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟 <em>azdeploy.py</em> 部署指令碼，並變更指令碼頂端的兩個值以符合您的需求，然後儲存變更。 <strong>注意：</strong> 請勿變更指令碼中的其他任何內容。</p>
+<pre><code>"&lt;your-resource-group-name&gt;" # Resource Group name
+"&lt;your-azure-region&gt;" # Azure region for the resources
+</code></pre>
+</li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong> ，在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依提示選取此練習要使用的 Azure 帳戶與訂用帳戶。</p>
+<pre><code>az login
+</code></pre>
+</li>
+<li>
+<p>執行下列命令以確保您的訂用帳戶具有 Azure Managed Redis 所需的資源提供者。</p>
+<pre><code>az provider register --namespace Microsoft.Cache
+</code></pre>
+</li>
+<li>
+<p>執行下列命令以安裝或升級 Azure CLI 的 <strong>redisenterprise</strong> 延伸模組。必須使用 2.75.0 或更新版本，才能在資料庫上設定 Microsoft Entra ID 存取權。</p>
+<pre><code>az extension add --upgrade --name redisenterprise
+</code></pre>
+</li>
+<li>
+<p>在終端機中執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre>
+</li>
+<li>
+<p>當指令碼執行時，輸入 <strong>1</strong> 以啟動 <strong>1. Create Azure Managed Redis resource</strong> option.</p>
+<p>此選項會建立資源群組（若尚不存在），然後部署 Azure Managed Redis。指令碼會等待部署完成（需時 5 到 10 分鐘），並在終端機中回報結果。讓指令碼保持執行，並繼續下一節，在部署佈建期間新增程式碼。請定期查看終端機是否出現錯誤。</p>
+<p>部署成功時，會顯示如下的確認訊息，並返回功能表：</p>
+<p><em>已成功建立 Azure Managed Redis 資源：amr-exercise-&lt;hash&gt;</em></p>
+</li>
+</ol>
+<h2 id="complete-the-app">完成應用程式</h2>
+<p>在本節中，您會將程式碼加入 <em>client/vector_functions.py</em> 檔案中新增程式碼，以完成向量儲存與搜尋作業。位於 <em>client/app.py</em> 的 Flask 應用程式會呼叫這些函式，以從瀏覽器執行工作流程。您不需要編輯 <em>client/app.py</em>。您會在稍後的練習中執行此應用程式。</p>
+<ol>
+<li>開啟 <em>client/vector_functions.py</em> 檔案以開始加入程式碼。</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 您加入應用程式的程式碼區塊應與該程式碼區段的註解相對應。</p>
+</blockquote>
+<h3 id="add-code-to-connect-to-azure-managed-redis">新增連線至 Azure Managed Redis 的程式碼</h3>
+<p>在本節中，您將新增程式碼以建立使用 Microsoft Entra ID 驗證的 Redis 用戶端。使用 Entra ID 表示應用程式不需要處理存取金鑰。</p>
+<p> <strong>get_client()</strong> 函式會從 <strong>REDIS_HOST</strong> 環境變數讀取 Redis 端點，並呼叫 <strong>create_from_default_azure_credential()</strong> 以建置認證提供者。此提供者使用 <strong>DefaultAzureCredential</strong> 取得 Microsoft Entra 權杖，並在背景自動重新整理權杖。</p>
+<blockquote>
+<p><strong>提示：</strong> 若要維持正確的程式碼縮排，請將程式碼貼齊左邊界（第 1 欄），選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 減少縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>找到 <strong># BEGIN CONNECTION CODE SECTION</strong> 註解，並在其下方加入下列程式碼。請務必確認程式碼對齊正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">redis</span><span class="p">.</span><span class="n">Redis</span><span class="p">:</span>
+    <span class="s">"""Create a Redis client for Azure Managed Redis using Microsoft Entra ID."""</span>
+    <span class="n">redis_host</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"REDIS_HOST"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">redis_host</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="nb">ValueError</span><span class="p">(</span><span class="s">"REDIS_HOST environment variable must be set"</span><span class="p">)</span>
+
+    <span class="n">credential_provider</span> <span class="o">=</span> <span class="n">create_from_default_azure_credential</span><span class="p">(</span>
+        <span class="p">(</span><span class="s">"https://redis.azure.com/.default"</span><span class="p">,),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">redis</span><span class="p">.</span><span class="n">Redis</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">redis_host</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+        <span class="n">ssl</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">decode_responses</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+        <span class="n">credential_provider</span><span class="o">=</span><span class="n">credential_provider</span><span class="p">,</span>
+        <span class="n">socket_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">socket_connect_timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="p">)</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存變更，並花幾分鐘檢閱程式碼。</p>
+</li>
+</ol>
+<h3 id="add-code-to-create-the-vector-index">新增建立向量索引的程式碼</h3>
+<p>在本節中，您將新增程式碼以建立相似度搜尋所使用的 RediSearch 索引。</p>
+<p> <strong>_create_vector_index()</strong> 函式會定義文字欄位以及名為 <strong>embedding</strong>的向量欄位。向量欄位使用採用餘弦距離的 HNSW 演算法，且嵌入維度為 8，與範例資料相符。</p>
+<ol>
+<li>
+<p>找到 <strong># BEGIN CREATE VECTOR INDEX CODE SECTION</strong> 註解，並在其下方加入下列程式碼。請務必確認程式碼對齊正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">_create_vector_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="s">"""Create a RediSearch index for product semantic search."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">TextField</span><span class="p">(</span><span class="s">"name"</span><span class="p">),</span>
+            <span class="n">TextField</span><span class="p">(</span><span class="s">"category"</span><span class="p">),</span>
+            <span class="n">TextField</span><span class="p">(</span><span class="s">"product_id"</span><span class="p">),</span>
+            <span class="n">VectorField</span><span class="p">(</span>
+                <span class="s">"embedding"</span><span class="p">,</span>
+                <span class="s">"HNSW"</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="s">"TYPE"</span><span class="p">:</span> <span class="s">"FLOAT32"</span><span class="p">,</span>
+                    <span class="s">"DIM"</span><span class="p">:</span> <span class="n">VECTOR_DIM</span><span class="p">,</span>
+                    <span class="s">"DISTANCE_METRIC"</span><span class="p">:</span> <span class="s">"COSINE"</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">definition</span> <span class="o">=</span> <span class="n">IndexDefinition</span><span class="p">(</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="p">[</span><span class="s">"product:"</span><span class="p">],</span>
+            <span class="n">index_type</span><span class="o">=</span><span class="n">IndexType</span><span class="p">.</span><span class="n">HASH</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="p">.</span><span class="n">r</span><span class="p">.</span><span class="n">ft</span><span class="p">(</span><span class="n">VECTOR_INDEX_NAME</span><span class="p">).</span><span class="n">create_index</span><span class="p">(</span>
+            <span class="n">fields</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">definition</span><span class="o">=</span><span class="n">definition</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="n">redis</span><span class="p">.</span><span class="n">ResponseError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s">"already exists"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="nb">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s">"Error creating vector index: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="nb">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s">"Error creating vector index: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存變更，並花幾分鐘檢閱程式碼。</p>
+</li>
+</ol>
+<h3 id="add-code-to-store-product-vectors">新增儲存產品向量的程式碼</h3>
+<p>在本節中，您將新增程式碼，以在 Redis 中儲存產品嵌入與中繼資料。</p>
+<p> <strong>store_product()</strong> 函式會將嵌入清單轉換為 <strong>float32</strong> 位元組，並使用 numpy 將嵌入與中繼資料寫入 Redis 雜湊，方法是呼叫 <strong>hset()</strong>.</p>
+<ol>
+<li>
+<p>找到 <strong># BEGIN STORE PRODUCT CODE SECTION</strong> 註解，並在其下方加入下列程式碼。請務必確認程式碼對齊正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">store_product</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">vector_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="bp">None</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="s">"""Store or update a product hash containing embedding and metadata."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">embedding</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">"embedding"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">.</span><span class="n">tobytes</span><span class="p">()}</span>
+
+        <span class="k">if</span> <span class="n">metadata</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">r</span><span class="p">.</span><span class="n">hset</span><span class="p">(</span><span class="n">vector_key</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span><span class="p">,</span> <span class="sa">f</span><span class="s">"Product stored successfully under key '</span><span class="si">{</span><span class="n">vector_key</span><span class="si">}</span><span class="s">'"</span>
+        <span class="k">return</span> <span class="bp">True</span><span class="p">,</span> <span class="sa">f</span><span class="s">"Product updated successfully under key '</span><span class="si">{</span><span class="n">vector_key</span><span class="si">}</span><span class="s">'"</span>
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">False</span><span class="p">,</span> <span class="sa">f</span><span class="s">"Error storing product: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s">"</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存變更，並花幾分鐘檢閱程式碼。</p>
+</li>
+</ol>
+<h3 id="add-code-to-search-similar-products">新增搜尋相似產品的程式碼</h3>
+<p>在本節中，您將新增程式碼，以針對向量索引執行 KNN 相似度搜尋。</p>
+<p> <strong>search_similar_products()</strong> 函式會將查詢嵌入轉換為位元組、建置 RediSearch KNN 查詢，並傳回依分數排序的最接近產品相符項目。</p>
+<ol>
+<li>
+<p>找到 <strong># BEGIN SEARCH SIMILAR PRODUCTS CODE SECTION</strong> 註解，並在其下方加入下列程式碼。請務必確認程式碼對齊正確。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">search_similar_products</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">query_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="s">"""Run a KNN vector query against product embeddings."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">query_bytes</span> <span class="o">=</span> <span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">(</span><span class="n">query_vector</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="n">float32</span><span class="p">).</span><span class="n">tobytes</span><span class="p">()</span>
+
+        <span class="n">knn_query</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">Query</span><span class="p">(</span><span class="sa">f</span><span class="s">"*=&gt;[KNN </span><span class="si">{</span><span class="n">top_k</span><span class="si">}</span><span class="s"> @embedding $query_vec AS score]"</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">return_fields</span><span class="p">(</span><span class="s">"name"</span><span class="p">,</span> <span class="s">"category"</span><span class="p">,</span> <span class="s">"product_id"</span><span class="p">,</span> <span class="s">"score"</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">sort_by</span><span class="p">(</span><span class="s">"score"</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">dialect</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">r</span><span class="p">.</span><span class="n">ft</span><span class="p">(</span><span class="n">VECTOR_INDEX_NAME</span><span class="p">).</span><span class="n">search</span><span class="p">(</span>
+            <span class="n">knn_query</span><span class="p">,</span>
+            <span class="n">query_params</span><span class="o">=</span><span class="p">{</span><span class="s">"query_vec"</span><span class="p">:</span> <span class="n">query_bytes</span><span class="p">},</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">results</span><span class="p">.</span><span class="n">total</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span><span class="p">,</span> <span class="s">"No products found in Redis. Load sample products first."</span>
+
+        <span class="n">similarities</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">results</span><span class="p">.</span><span class="n">docs</span><span class="p">:</span>
+            <span class="n">similarities</span><span class="p">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s">"key"</span><span class="p">:</span> <span class="n">doc</span><span class="p">.</span><span class="nb">id</span><span class="p">,</span>
+                    <span class="s">"similarity"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">doc</span><span class="p">.</span><span class="n">score</span><span class="p">),</span>
+                    <span class="s">"product_id"</span><span class="p">:</span> <span class="n">doc</span><span class="p">.</span><span class="n">product_id</span><span class="p">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">.</span><span class="n">product_id</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">doc</span><span class="p">.</span><span class="n">product_id</span><span class="p">,</span>
+                    <span class="s">"name"</span><span class="p">:</span> <span class="n">doc</span><span class="p">.</span><span class="n">name</span><span class="p">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">doc</span><span class="p">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s">"category"</span><span class="p">:</span> <span class="n">doc</span><span class="p">.</span><span class="n">category</span><span class="p">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">.</span><span class="n">category</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">doc</span><span class="p">.</span><span class="n">category</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">True</span><span class="p">,</span> <span class="n">similarities</span>
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">False</span><span class="p">,</span> <span class="sa">f</span><span class="s">"Error searching products: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s">"</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>儲存變更，並花幾分鐘檢閱程式碼。</p>
+</li>
+</ol>
+<h2 id="verify-resource-deployment">驗證資源部署</h2>
+<p>在本節中，您將返回執行中的部署指令碼，以建立向量資料庫、設定 Microsoft Entra ID 存取權，並產生包含 Redis 端點的環境變數檔案。</p>
+<ol>
+<li>
+<p>返回正在執行部署指令碼的終端機。指令碼回報已成功建立 Azure Managed Redis 資源後，請選取 <strong>輸入</strong> 以返回部署功能表。</p>
+</li>
+<li>
+<p>輸入 <strong>2</strong> 以執行 <strong>2. Create database and configure access</strong> 選項。這會建立包含 RediSearch 模組且可供向量使用的資料庫、將資料存取原則指派給您的帳戶，並建立包含 <em>.env</em> 和 <em>.env.ps1</em> 檔案，其中包含 <strong>REDIS_HOST</strong>.</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 以執行 <strong>3. Check deployment status</strong> 選項作為最後檢查。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 以結束部署指令碼。</p>
+</li>
+<li>
+<p>執行適當的命令，從上一個步驟建立的檔案將環境變數載入終端機工作階段。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 請保持終端機開啟。如果您將其關閉並建立新的終端機，則需要再次執行此命令以重新載入環境變數。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="configure-the-python-environment">設定 Python 環境</h2>
+<p>在本節中，您將瀏覽至用戶端目錄、建立 Python 環境並安裝相依性。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令，以瀏覽至 <em>client</em> 目錄。</p>
+<pre><code>cd client
+</code></pre>
+</li>
+<li>
+<p>執行下列命令以建立 Python 環境。</p>
+<pre><code>python -m venv .venv
+</code></pre>
+</li>
+<li>
+<p>執行下列命令以啟用 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，請使用 Bash 命令。在 Windows 上，請使用 PowerShell 命令。若在 Windows 上使用 Git Bash，請使用 <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令以安裝相依性。</p>
+<pre><code>pip install -r requirements.txt
+</code></pre>
+</li>
+</ol>
+<h2 id="run-the-app">執行應用程式</h2>
+<p>在本節中，您將執行完成的 Flask 應用程式，從單一網頁執行向量儲存與相似度搜尋。</p>
+<ol>
+<li>
+<p>在終端機中執行下列命令以啟動應用程式。執行命令之前，如有需要，請參閱練習稍早的命令來啟用環境及載入環境變數。如果您已離開 <em>client</em> 目錄，請先執行 <strong>cd client</strong> 。</p>
+<pre><code>python app.py
+</code></pre>
+</li>
+<li>
+<p>開啟瀏覽器並瀏覽至 <code>http://localhost:5000</code> 以存取應用程式。</p>
+</li>
+</ol>
+<h3 id="load-sample-data-and-perform-similarity-search">載入範例資料並執行相似度搜尋</h3>
+<p>在本節中，您將載入範例產品嵌入，並執行第一次相似度搜尋。</p>
+<ol>
+<li>
+<p>在 <strong>Data Operations</strong>中，選取 <strong>Load Sample Products</strong>.</p>
+</li>
+<li>
+<p>選取 <strong>List All Products</strong> ，並確認產品索引鍵顯示於 <strong>Operation Results</strong>.</p>
+</li>
+<li>
+<p>在 <strong>Similarity Search</strong>中，輸入 <strong>product:001</strong> ，並將 <strong>top_k</strong> 保留為 <strong>5</strong>，然後選取 <strong>Find Similar</strong>.</p>
+</li>
+<li>
+<p>在下列區域檢閱傳回的產品及其距離分數： <strong>Operation Results</strong>.</p>
+</li>
+</ol>
+<h3 id="store-a-new-product-and-search-again">儲存新產品並再次搜尋</h3>
+<p>在本節中，您將儲存新的產品嵌入，並再次執行相似度搜尋，以查看最近鄰項目的變化。</p>
+<ol>
+<li>
+<p>在 <strong>Store Product</strong>中，輸入下列值並選取 <strong>Store Product</strong>.</p>
+<p>產品索引鍵：</p>
+<pre><code>product:011
+</code></pre>
+<p>Embedding：</p>
+<pre><code>[0.53, 0.63, 0.58, 0.37, 0.68, 0.47, 0.73, 0.57]
+</code></pre>
+<p>Metadata：</p>
+<pre><code>product_id=011
+name=Gym Bag
+category=Sports
+</code></pre>
+</li>
+<li>
+<p>在 <strong>Similarity Search</strong>中，輸入 <strong>product:009</strong> 並選取 <strong>Find Similar</strong>.</p>
+</li>
+<li>
+<p>檢閱結果，並確認產品相似度排序反映新儲存的向量。</p>
+</li>
+</ol>
+<h3 id="remove-a-product">移除產品</h3>
+<p>在本節中，您將移除一個產品索引鍵，以驗證刪除行為。</p>
+<ol>
+<li>
+<p>在 <strong>Remove Product</strong>中，輸入 <strong>product:011</strong> 並選取 <strong>Remove</strong>.</p>
+</li>
+<li>
+<p>選取 <strong>List All Products</strong> 並確認 <strong>product:011</strong> 不再出現在產品清單中。</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>現在您已完成此練習，應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及其中所有資源。將 <strong>&lt;rg-name&gt;</strong> 替換為您在本練習稍早選擇的名稱。此命令會在 Azure 中啟動背景工作來刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre>
+</li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源群組會刪除其中包含的所有資源。若您為此練習選擇的是既有資源群組，則該資源群組中任何不屬於本練習範圍的既有資源也會一併刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在完成此練習時遇到問題，請嘗試下列疑難排解步驟：</p>
+<p><strong>驗證 Azure Managed Redis 資源部署</strong></p>
+<ul>
+<li>瀏覽至 <a href="https://portal.azure.com">Azure portal</a> 並找到您的資源群組。</li>
+<li>確認 Azure Managed Redis 資源的 <strong>Provisioning State</strong> 為 <strong>Succeeded</strong>.</li>
+<li>執行部署指令碼的 <strong>Check deployment status</strong> 選項，並在執行應用程式之前確認叢集與資料庫已就緒。</li>
+</ul>
+<p><strong>解決部署失敗</strong></p>
+<ul>
+<li>如果部署失敗，最常見的原因是您所選區域暫時沒有該 SKU 的容量。</li>
+<li>依照畫面上的指引結束指令碼，將指令碼頂端附近的 <strong>location</strong> 變數變更為其他區域，例如 eastus2、australiaeast 或 canadacentral，然後再次執行指令碼並選擇選項 1。</li>
+<li>失敗的資源會在下次嘗試前自動刪除。</li>
+</ul>
+<p><strong>檢查驗證與存取權</strong></p>
+<ul>
+<li>執行下列命令，確認您已登入 Azure CLI： <strong>az account show</strong>.</li>
+<li>確認部署指令碼的 <strong>Create database and configure access</strong> 選項已成功完成，使您的帳戶擁有資料庫的資料存取原則。</li>
+<li>如果應用程式回報驗證錯誤，請稍候片刻再試一次，因為存取原則指派可能需要一點時間才會生效。</li>
+</ul>
+<p><strong>檢查程式碼完整性與縮排</strong></p>
+<ul>
+<li>確認所有程式碼區塊皆已新增至下列檔案中的正確區段： <em>client/vector_functions.py</em> ，並位於適當的 BEGIN/END 註解標記之間。</li>
+<li>確認 Python 縮排一致（使用空格，而非定位字元）。</li>
+<li>請確認指定區段之外的程式碼未被意外刪除或修改。</li>
+</ul>
+<p><strong>驗證環境變數</strong></p>
+<ul>
+<li>確認專案根目錄中同時存在 <em>.env</em> 和 <em>.env.ps1</em> 檔案，且其中包含 <strong>REDIS_HOST</strong> 值。</li>
+<li>執行 <strong>source .env</strong> （Bash）或 <strong>. ..env.ps1</strong> （PowerShell），以將環境變數載入終端機工作階段。</li>
+</ul>
+<p><strong>檢查 Python 環境與相依性</strong></p>
+<ul>
+<li>請確認在執行應用程式之前已啟用虛擬環境。</li>
+<li>請確認來自 <em>client/requirements.txt</em> 的所有套件都已透過執行 <strong>pip list</strong>.</li>
+</ul>
+<p><strong>沒有搜尋結果或產品遺失</strong></p>
+<ul>
+<li>執行相似度搜尋之前，確認您已載入範例產品。</li>
+<li>選取下列項目，確認查詢產品索引鍵存在： <strong>List All Products</strong>.</li>
+<li>確認嵌入包含 8 個數值，以符合索引設定。</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 Microsoft  | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a> | 
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a> | 
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a> | 
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

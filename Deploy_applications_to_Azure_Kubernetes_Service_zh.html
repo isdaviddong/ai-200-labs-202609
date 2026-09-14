@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+            將 AI 推論 API 部署到 Azure Kubernetes Service | 在 Microsoft Azure 上開發 AI 雲端解決方案
+        </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <div style="background:#1a73e8;color:white;padding:10px;text-align:center;font-family:sans-serif">⚠️ 此為繁體中文翻譯版，程式碼與專有名詞保留英文原文</div>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="deploy-an-ai-inference-api-to-azure-kubernetes-service">將 AI 推論 API 部署到 Azure Kubernetes Service</h1>
+<p>在本練習中，您將部署 Azure 資源，包括 Microsoft Foundry AI 模型、Azure Container Registry (ACR) 和 Azure Kubernetes Service (AKS) 叢集。接著，您會完成 Kubernetes 資訊清單檔案，以定義容器規格、健康情況探查、資源限制和負載平衡。將容器化的 API 部署到 AKS 後，您會使用 Python 用戶端應用程式來測試已部署的 API 端點，包括健康情況檢查、就緒狀態驗證，以及 AI 模型推論要求。</p>
+<p>本練習執行的工作：</p>
+<ul>
+<li>下載專案入門檔案</li>
+<li>將資源部署到 Azure</li>
+<li>完成 <em>deployment.yaml</em> 和 <em>service.yaml</em> 檔案，並將容器部署到 AKS</li>
+<li>執行用戶端應用程式以測試 API</li>
+</ul>
+<p>本練習大約需要 <strong>30</strong> 分鐘完成。</p>
+<blockquote>
+<p><strong>重要：</strong> Azure Container Registry 工作執行目前不支援使用 Azure 免費額度。本練習需要 Pay-As-You-Go 或其他付費方案。</p>
+</blockquote>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成此練習，您需要：</p>
+<ul>
+<li>具備部署所需 Azure 服務權限的 Azure 訂用帳戶。如果您還沒有，可以 <a href="https://azure.microsoft.com/">註冊一個</a>。</li>
+<li>安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a> 上的 <a href="https://code.visualstudio.com/">Visual Studio Code</a>。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>。</li>
+<li>Kubernetes 命令列工具， <a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a>。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案入門檔案並部署 Azure 服務</h2>
+<p>在本節中，您會下載主控台應用程式的入門檔案，並使用指令碼將所需服務部署到您的 Azure 訂用帳戶。Azure 資源部署可能需要 15 到 20 分鐘完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載入門檔案。檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/aks-deploy-python.zip
+</code></pre></li>
+<li>
+<p>將檔案複製或移動到系統中您想要進行此專案作業的位置，然後將檔案解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並在選單中選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>開啟<em>azdeploy.py</em> 部署指令碼，並依需求變更指令碼頂端的資源群組和位置值，然後儲存變更。<strong>注意：</strong> 請勿變更指令碼中的其他任何內容。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">rg</span> <span class="o">=</span> <span class="s">"&lt;your-resource-group-name&gt;"</span>  <span class="c1"># Resource Group name
+</span><span class="n">location</span> <span class="o">=</span> <span class="s">"&lt;your-azure-region&gt;"</span>   <span class="c1"># Azure region for the resources
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 建議使用下列三個 Azure 區域之一進行部署： <strong>eastus2</strong>、 <strong>swedencentral</strong>，或 <strong>australiaeast</strong>。這些區域支援部署本練習所使用的 AI 推論模型。</p>
+</blockquote>
+</li>
+<li>
+<p>在功能表列中選取 <strong>Terminal &gt; New Terminal</strong> ，以在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依照提示選取本練習要使用的 Azure 帳戶和訂用帳戶。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令，確保您的訂用帳戶具有安裝 AKS、ACR 和 Foundry AI 模型所需的資源提供者。 <strong>Microsoft.Compute</strong>、 <strong>Microsoft.Network</strong>以及 <strong>Microsoft.Storage</strong> 提供者是 AKS 的相依項目，Azure 通常會自動註冊它們，但明確註冊可避免新訂用帳戶偶爾發生叢集建立失敗。</p>
+<pre><code>az provider register --namespace Microsoft.CognitiveServices
+az provider register --namespace Microsoft.ContainerService
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Storage
+</code></pre></li>
+<li>
+<p>確認您位於專案的根目錄，然後執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre>
+<blockquote>
+<p><strong>注意：</strong> 視您的系統設定而定，Python 命令可能是 <strong>python3</strong>，而不是 <strong>python</strong>.</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="deploy-resources-to-azure">將資源部署到 Azure</h3>
+<p>在部署指令碼執行期間，請依照下列步驟在 Azure 中建立所需的資源。</p>
+<ol>
+<li>
+<p>輸入 <strong>1</strong> 以啟動 <strong>1. Provision gpt-5-mini model in Microsoft Foundry</strong> 選項。此選項會在資源群組尚不存在時建立它、在 Microsoft Foundry 中建立資源，並將 <strong>gpt-5-mini</strong> 模型部署到該資源。</p>
+<blockquote>
+<p><strong>重要：</strong> 如果模型部署期間發生錯誤，請輸入 <strong>7</strong> 以啟動 <strong>7. Delete/Purge Foundry deployment</strong> 選項。這會刪除部署並清除此資源名稱。退出選單，並將部署指令碼中的區域變更為其他建議區域之一。然後重新啟動部署指令碼，再次執行模型佈建選項。</p>
+</blockquote>
+</li>
+<li>
+<p>模型部署完成後，輸入 <strong>2</strong> 以啟動 <strong>2. Create Azure Container Registry (ACR)</strong>。這會建立儲存 API 容器的資源，之後會將其提取到 AKS 資源中。</p>
+</li>
+<li>
+<p>ACR 資源建立完成後，輸入 <strong>3</strong> 以啟動 <strong>3. Build and push API image to ACR</strong>。此選項會使用 ACR 工作來建置映像，並將其新增至 ACR 存放庫。此作業可能需要 3 到 5 分鐘完成。</p>
+</li>
+<li>
+<p>映像建置完成並推送至 ACR 後，輸入 <strong>4</strong> 以啟動 <strong>4. Create AKS cluster</strong> 選項。這會建立已設定受控識別的 AKS 資源，並授與服務從 ACR 資源提取映像的權限。此作業可能需要 5 到 10 分鐘完成。</p>
+</li>
+<li>
+<p>AKS 資源部署完成後，輸入 <strong>5</strong> 以啟動 <strong>5. Check deployment status</strong> 選項。此選項會回報三項資源是否全都成功部署。</p>
+<p>如果所有服務都傳回 <strong>successful</strong> 訊息，請輸入 <strong>9</strong> 以結束部署指令碼。</p>
+<p>如果 AKS 叢集處於 <strong>Failed</strong> 或 <strong>Canceled</strong> 狀態，請修正回報的問題，然後輸入 <strong>8</strong> 以啟動 <strong>8. Delete failed AKS deployment</strong> 選項，再次執行選項 <strong>4</strong>。這個受保護的選項不會刪除狀況良好或正在進行中的叢集。</p>
+</li>
+</ol>
+<p>接下來，您要完成將 API 部署到 AKS 所需的 YAML 檔案。</p>
+<h2 id="complete-the-yaml-deployment-files-and-deploy-to-aks">完成 YAML 部署檔案並部署到 AKS</h2>
+<p>在本節中，您將完成 <em>deployment.yaml</em> 和 <em>service.yaml</em> 檔案。Deployment 資訊清單定義 API 容器如何在 AKS 中部署與管理，而 Service 資訊清單則透過負載平衡器將 API 對外公開。</p>
+<ol>
+<li>開啟 <em>k8s/deployment.yaml</em> 檔案以開始完成內容。</li>
+</ol>
+<blockquote>
+<p><strong>提示：</strong> 若要維持正確的程式碼縮排，請從左邊界（第 1 欄）開始貼上程式碼，選取所有貼上的行，然後按 <strong>Tab</strong>，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 減少縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>找到 <strong># BEGIN: Container specification</strong> 註解，並在其下方將下列 YAML 區段加入資訊清單。請確保 YAML 縮排正確。</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">containers</span><span class="pi">:</span>  <span class="c1"># List of containers to run in the pod</span>
+<span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">api</span>
+  <span class="na">image</span><span class="pi">:</span> <span class="s">ACR_ENDPOINT/aks-api:latest</span>  <span class="c1"># Container image from ACR</span>
+  <span class="na">imagePullPolicy</span><span class="pi">:</span> <span class="s">Always</span>  <span class="c1"># Always pull the latest image from registry</span>
+  <span class="na">ports</span><span class="pi">:</span>  <span class="c1"># Ports exposed by the container</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">http</span>
+    <span class="na">containerPort</span><span class="pi">:</span> <span class="m">8000</span>
+    <span class="na">protocol</span><span class="pi">:</span> <span class="s">TCP</span>
+</code></pre></div></div>
+<p>本節定義容器規格，包括要從 ACR 使用的容器映像、提取原則，以及容器為 HTTP 流量公開的連接埠。</p>
+</li>
+<li>
+<p>找到 <strong># BEGIN: Liveness Probe Configuration</strong> 註解，並在其下方將下列 YAML 區段加入資訊清單。請確保 YAML 縮排正確。</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">livenessProbe</span><span class="pi">:</span>  <span class="c1"># Detects if container is alive or needs restart</span>
+  <span class="na">httpGet</span><span class="pi">:</span>
+    <span class="na">path</span><span class="pi">:</span> <span class="s">/healthz</span>  <span class="c1"># Health check endpoint path</span>
+    <span class="na">port</span><span class="pi">:</span> <span class="s">http</span>
+  <span class="na">initialDelaySeconds</span><span class="pi">:</span> <span class="m">10</span>  <span class="c1"># Seconds to wait before first check</span>
+  <span class="na">periodSeconds</span><span class="pi">:</span> <span class="m">30</span>
+  <span class="na">timeoutSeconds</span><span class="pi">:</span> <span class="m">5</span>
+  <span class="na">failureThreshold</span><span class="pi">:</span> <span class="m">3</span>  <span class="c1"># Consecutive failures before restarting container</span>
+</code></pre></div></div>
+<p>本節設定存活探查，它會定期向 <strong>/healthz</strong> 端點發出 HTTP 要求，以檢查容器是否健康。如果探查連續失敗三次，Kubernetes 會自動重新啟動容器。</p>
+</li>
+<li>
+<p>找到 <strong># BEGIN: Resource Limits Configuration</strong> 註解，並在其下方將下列 YAML 區段加入資訊清單。請確保 YAML 縮排正確。</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">resources</span><span class="pi">:</span>  <span class="c1"># CPU and memory resource specifications</span>
+  <span class="na">requests</span><span class="pi">:</span>  <span class="c1"># Minimum resources guaranteed to the container</span>
+    <span class="na">memory</span><span class="pi">:</span> <span class="s2">"</span><span class="s">256Mi"</span>
+    <span class="na">cpu</span><span class="pi">:</span> <span class="s2">"</span><span class="s">250m"</span>
+  <span class="na">limits</span><span class="pi">:</span>  <span class="c1"># Maximum resources the container can use</span>
+    <span class="na">memory</span><span class="pi">:</span> <span class="s2">"</span><span class="s">512Mi"</span>
+    <span class="na">cpu</span><span class="pi">:</span> <span class="s2">"</span><span class="s">500m"</span>
+</code></pre></div></div>
+<p>本節定義容器的 CPU 和記憶體資源。Requests 指定保證提供的最小資源，而 limits 設定容器可使用的最大資源。這有助於 Kubernetes 有效率地排程 pod，並避免資源飢餓。</p>
+</li>
+<li>
+<p>儲存您的變更，並花幾分鐘檢視已完成的 <em>deployment.yaml</em> 檔案。</p>
+</li>
+</ol>
+<p>接下來，您要更新 <em>service.yaml</em> 檔案。</p>
+<ol>
+<li>
+<p>開啟空白的 <em>k8s/service.yaml</em> 檔案。</p>
+</li>
+<li>
+<p>將下列 YAML 加入資訊清單。請確保 YAML 縮排正確。</p>
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Service</span>  <span class="c1"># Service: exposes pods on a network and provides load balancing</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">aks-api-service</span>  <span class="c1"># Unique name for the service</span>
+  <span class="na">labels</span><span class="pi">:</span>
+    <span class="na">app</span><span class="pi">:</span> <span class="s">aks-api</span> <span class="c1"># Matches deployment and pod labels</span>
+  <span class="na">annotations</span><span class="pi">:</span>
+    <span class="na">service.beta.kubernetes.io/azure-load-balancer-internal</span><span class="pi">:</span> <span class="s2">"</span><span class="s">false"</span>  <span class="c1"># Use public load balancer</span>
+<span class="na">spec</span><span class="pi">:</span>  <span class="c1"># Service specification</span>
+  <span class="na">type</span><span class="pi">:</span> <span class="s">LoadBalancer</span>  <span class="c1"># Exposes service externally</span>
+  <span class="na">selector</span><span class="pi">:</span>  <span class="c1"># Selects which pods to route traffic to based on labels</span>
+    <span class="na">app</span><span class="pi">:</span> <span class="s">aks-api</span>
+    <span class="na">version</span><span class="pi">:</span> <span class="s">v1</span>
+  <span class="na">ports</span><span class="pi">:</span>  <span class="c1"># Port mappings between service and pods</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">http</span>
+    <span class="na">port</span><span class="pi">:</span> <span class="m">80</span>  <span class="c1"># Service port exposed externally</span>
+    <span class="na">targetPort</span><span class="pi">:</span> <span class="s">http</span>  <span class="c1"># Pod container port to forward traffic to</span>
+    <span class="na">protocol</span><span class="pi">:</span> <span class="s">TCP</span>
+  <span class="na">sessionAffinity</span><span class="pi">:</span> <span class="s">None</span>  <span class="c1"># Client requests not pinned to specific pods</span>
+</code></pre></div></div>
+<p>此資訊清單會建立一個 LoadBalancer Service，透過 Azure Load Balancer 將您的 API pod 對外公開。它會將連接埠 80 的傳入流量路由到容器的連接埠 8000，並使用標籤選取器來識別哪些 pod 應接收流量。</p>
+</li>
+<li>
+<p>儲存您的變更，並花幾分鐘檢視此檔案。</p>
+</li>
+</ol>
+<h3 id="apply-the-manifests-to-aks">將資訊清單套用至 AKS</h3>
+<p>在本節中，您會使用部署指令碼將資訊清單套用到 AKS。</p>
+<ol>
+<li>
+<p>確認您位於專案的根目錄，然後執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>輸入 <strong>6</strong> 以啟動 <strong>6. Deploy to AKS</strong> 選項。此選項會執行數項作業：擷取您的 AKS 認證並設定 kubectl、將 <strong>Cognitive Services OpenAI User</strong> 角色指派給 AKS kubelet 受控識別，讓 API 能夠使用 Microsoft Entra ID 向 Foundry 驗證、使用您的 ACR 端點和 Foundry 端點更新部署資訊清單，然後使用 <strong>kubectl apply</strong> 將兩個資訊清單部署到 AKS 叢集。作業完成後，輸入 <strong>9</strong> 以結束部署指令碼。</p>
+</li>
+<li>
+<p>在終端機中執行下列命令以驗證部署。預期 <strong>kubectl get deploy,svc</strong> 會顯示 Deployment 的 <strong>READY</strong> 為 <strong>1/1</strong> （或您的複本數），而 Service 的 <strong>EXTERNAL-IP</strong> 具有公用 IP（不是 <strong>&lt;pending&gt;</strong>）。當更新完成時，rollout 命令應輸出 <strong>deployment "aks-api" successfully rolled out</strong> 。</p>
+<pre><code>kubectl get deploy,svc
+kubectl rollout status deploy/aks-api
+</code></pre></li>
+</ol>
+<h2 id="run-the-client-app">執行用戶端應用程式</h2>
+<p>在本節中，您會設定 Python 環境，然後使用用戶端應用程式對 API 執行操作</p>
+<h3 id="configure-the-python-environment">設定 Python 環境</h3>
+<p>在本節中，您將建立 Python 環境並安裝相依性。</p>
+<ol>
+<li>
+<p>請確認您在終端機中位於專案的 <em>client</em> 資料夾。</p>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令以建立 Python 環境。</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>執行下列命令以啟用 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，使用 Bash 命令。在 Windows 上，使用 PowerShell 命令。如果在 Windows 上使用 Git Bash，請使用 <strong>source .venv/Scripts/activate</strong>。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>在 VS Code 終端機中執行下列命令以安裝相依性。</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+</ol>
+<h3 id="perform-operations-with-the-app">使用應用程式執行操作</h3>
+<p>現在該執行用戶端應用程式，對 API 執行各種操作了。此應用程式提供選單驅動式介面。</p>
+<ol>
+<li>
+<p>在終端機中執行下列命令以啟動主控台應用程式。如有需要，請先參考本練習前面提供的命令來啟用環境，再執行此命令。</p>
+<pre><code>python main.py
+</code></pre></li>
+<li>
+<p>輸入 <strong>1</strong> 以啟動 <strong>1. Check API Health (Liveness)</strong> 選項。這會驗證 API 容器正在執行，並且會回應健康情況檢查；這也是 Kubernetes 存活探查所使用的相同端點。</p>
+</li>
+<li>
+<p>輸入 <strong>2</strong> 以啟動 <strong>2. Check API Readiness (Foundry Connectivity)</strong> 選項。這會確認 API 能成功連線到 Foundry 模型端點，並已準備好處理推論要求。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 以啟動 <strong>3. Send Inference Request</strong> 選項。這會將單一提示傳送至 API，並從已部署的模型接收完整回應。單次推論要求適合批次處理、自動化工作，或當您需要一次取得整個回應以供進一步處理時。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 以啟動 <strong>4. Start Chat Session (Streaming)</strong> 選項。這會啟動互動式聊天工作階段，模型的回應會在產生時即時串流顯示。</p>
+</li>
+</ol>
+<p>完成後，請輸入 <strong>5</strong> 以退出應用程式。</p>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>現在您已完成練習，應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及群組內的所有資源。將 <strong>&lt;rg-name&gt;</strong> 替換為您在本練習稍早選擇的名稱。此命令會在 Azure 中啟動背景工作以刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源群組會刪除其中包含的所有資源。如果您為本練習選擇了現有的資源群組，則本練習範圍以外的任何現有資源也會一併刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在完成本練習時遇到問題，請嘗試下列疑難排解步驟：</p>
+<p><strong>驗證 Azure 資源部署</strong></p>
+<ul>
+<li>瀏覽至 <a href="https://portal.azure.com">Azure portal</a> 並找到您的資源群組。</li>
+<li>確認 Microsoft Foundry 資源的 <strong>Provisioning State</strong> 為 <strong>Succeeded</strong> 且 <strong>gpt-5-mini</strong> 模型已部署。</li>
+<li>確認 Azure Container Registry (ACR) 存在，且包含 <strong>aks-api</strong> 映像。</li>
+<li>檢查 AKS 叢集是否處於 <strong>Succeeded</strong> 狀態，且節點正在執行。</li>
+</ul>
+<p><strong>解決 AKS 叢集建立失敗</strong></p>
+<ul>
+<li>執行部署指令碼，並選取選項 <strong>5. Check deployment status</strong>。配額驗證可能會在建立 AKS 資源之前失敗，而佈建後期的失敗可能會使叢集處於 <strong>Failed</strong> 或 <strong>Canceled</strong> 狀態。</li>
+<li>如果錯誤回報 <strong>Standard_D2s_v7</strong> 無法使用或該區域容量不足，請使用選項 <strong>9</strong> 結束。將 <strong>AKS_VM_SIZE</strong> 變更為部署指令碼頂端附近所列的 v5 或 v6 後援大小之一，或變更 <strong>location</strong> 值至其他建議區域，然後再次執行選項 <strong>4. Create AKS cluster</strong>。</li>
+<li>如果錯誤回報配額不足，請選取您的訂用帳戶具有可用 Dsv5 系列配額的區域，或要求增加配額。只有其他區域具有足夠配額時，變更區域才有幫助。</li>
+<li>AKS 叢集會使用指令碼中設定的 <strong>location</strong>，即使資源群組已存在於其他區域亦然。</li>
+<li>如果選項 <strong>5</strong> 回報 <strong>Failed</strong> 或 <strong>Canceled</strong>，請修正根本問題，並執行選項 <strong>8. Delete failed AKS deployment</strong>，再重試選項 <strong>4</strong>。如果未建立 AKS 資源，則不需要刪除。</li>
+</ul>
+<p><strong>驗證 AKS 部署狀態</strong></p>
+<ul>
+<li>執行 <strong>kubectl get pods</strong> 以檢查 API pod 是否正在執行。請查看 <strong>Running</strong> 狀態。</li>
+<li>執行 <strong>kubectl get svc</strong> 以確認 LoadBalancer Service 已指派外部 IP（不是 <strong>&lt;pending&gt;</strong>）。</li>
+<li>執行 <strong>kubectl describe pod &lt;pod-name&gt;</strong> 以在發生問題時查看詳細的 pod 狀態與事件。</li>
+<li>使用 <strong>kubectl logs &lt;pod-name&gt;</strong> 檢查 pod 記錄，以查看容器啟動錯誤或執行階段問題。</li>
+</ul>
+<p><strong>驗證 YAML 檔案完整性</strong></p>
+<ul>
+<li>確認所有 YAML 區段都已正確加入 <em>deployment.yaml</em> 和 <em>service.yaml</em> 中相應的註解標記之間。</li>
+<li>確認 YAML 縮排正確（使用空格，不是定位字元），因為縮排錯誤會導致部署失敗。</li>
+<li>確認部署指令碼已正確將 ACR 端點替換到部署資訊清單中。</li>
+</ul>
+<p><strong>驗證用戶端連線</strong></p>
+<ul>
+<li>確認 API 端點使用的是 LoadBalancer Service 的正確外部 IP。</li>
+<li>確認您可以透過在終端機中執行 <strong>curl http://&lt;external-ip&gt;/healthz</strong> 來連線到 API 端點。</li>
+</ul>
+<p><strong>檢查 Python 環境與相依性</strong></p>
+<ul>
+<li>確認在執行用戶端應用程式之前已啟用虛擬環境。</li>
+<li>確認 <em>requirements.txt</em> 中的所有套件都已成功安裝；請執行 <strong>pip list</strong> 進行確認。</li>
+<li>確認您是從 <em>client</em> 目錄執行用戶端。</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

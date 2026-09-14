@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        在 Azure Database for PostgreSQL 上建置代理工具後端 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    首頁
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="build-an-agent-tool-backend-on-azure-database-for-postgresql">在 Azure Database for PostgreSQL 上建置代理工具後端</h1>
+<p>在本練習中，您將建立一個 Azure Database for PostgreSQL 充當 tool 後端 AI 代理人。資料庫儲存代理程式在操作期間可以讀取和寫入的對話上下文和任務狀態。您為代理記憶體設計一個模式，構建 Python 作為代理工具的功能，並測試完整的工作流程。該模式為構建提供了基礎 AI 跨會話維護持久性記憶體並可以恢復中斷的任務的代理程式。</p>
+<p>本練習執行的工作：</p>
+<ul>
+<li>下載專案啟動檔案並設定部署腳本</li>
+<li>部署一個 Azure Database for PostgreSQL Flexible Server 和 Microsoft Entra 驗證</li>
+<li>建造 Python tool 對話和任務狀態管理功能</li>
+<li>使用對話、訊息和任務檢查點表為代理記憶體建立資料庫結構描述</li>
+<li>使用提供的測試腳本測試代理記憶體工作流程</li>
+<li>使用查詢對話上下文 SQL</li>
+</ul>
+<p>本練習大約需要 <strong>30</strong> 分鐘即可完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>要完成練習，您需要：</p>
+<ul>
+<li>具有部署必要 Azure 服務權限的 Azure 訂閱。如果您還沒有，您可以 <a href="https://azure.microsoft.com/">註冊一個</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> 在其支援的平台之一上 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>.</li>
+<li>最新版本的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+<li><a href="https://www.postgresql.org/download/">PostgreSQL 命令列工具</a> (<strong>psql</strong>)</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案啟動檔案並部署 Azure 服務</h2>
+<p>在本部分中，您將下載專案入門檔案並使用腳本將必要的服務部署至 Azure 訂閱。這 PostgreSQL 伺服器部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入以下內容 URL 下載啟動檔。該文件將保存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/postgresql-build-agent-python.zip
+</code></pre></li>
+<li>
+<p>將文件複製或移動到您的位置 system 您想在哪裡從事該專案。然後將檔案解壓縮到一個資料夾中。</p>
+</li>
+<li>
+<p>發射 Visual Studio Code (VS Code）並選擇 <strong>File &gt; Open Folder...</strong> 在選單中，然後選擇包含項目文件的資料夾。</p>
+</li>
+<li>
+<p>打開 <em>azdeploy.py</em> 部署腳本並依您的需求變更腳本頂端的兩個值，然後儲存變更。 <strong>注意：</strong> 不要更改腳本中的任何其他內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選擇 <strong>終端機 &gt; 新增終端機</strong> 打開終端機視窗 VS Code.</p>
+</li>
+<li>
+<p>執行以下命令登入您的 Azure account。回答提示以選擇您的 Azure 帳戶 並訂閱該練習。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行以下命令以確保您的訂閱具有練習所需的資源提供者。</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DBforPostgreSQL
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">在 Azure 中建立資源</h3>
+<p>在本部分中，您將執行部署腳本來部署 PostgreSQL.</p>
+<ol>
+<li>
+<p>在終端機中執行下列命令以啟動部署腳本。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>當腳本選單出現時，輸入 <strong>1</strong> 啟動 <strong>Create PostgreSQL server with Entra authentication</strong> 選項。這將建立啟用僅 Entra 身份驗證的伺服器。 <strong>注意：</strong> 部署可能需要 5-10 分鐘才能完成。</p>
+<blockquote>
+<p><strong>重要：</strong> 在練習期間，使運行部署的終端保持開啟狀態。您可以繼續練習的下一部分，同時在終端機中繼續部署。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-tool-function-app">完成 tool 功能應用程式</h2>
+<p>在本節中，您將完成 <em>agent_tools.py</em> 文件透過添加功能 AI 代理可以呼叫來持久化和擷取狀態。這些函數充當代理與資料庫的介面。這 <em>test_workflow.py</em> 您稍後將在本練習中執行的腳本匯入這些函數以示範代理程式如何使用它們。</p>
+<ol>
+<li>打開 <em>agent-backend/agent_tools.py</em> 文件輸入 VS Code.</li>
+</ol>
+<blockquote>
+<p><strong>提示：</strong> 若要維持正確的程式碼縮排，請從左邊界（第 1 欄）開始貼上程式碼，選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 取消縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>搜尋 <strong>BEGIN CREATE CONVERSATION FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數會建立一個具有唯一會話的新對話記錄 ID 和商店可選 metadata 作為 JSONB.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">create_conversation</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="bp">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Create a new conversation and return its details."""</span>
+    <span class="n">session_id</span> <span class="o">=</span> <span class="n">uuid</span><span class="p">.</span><span class="n">uuid4</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+            <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s">"""
+                INSERT INTO conversations (session_id, user_id, metadata)
+                VALUES (%s, %s, %s)
+                RETURNING id, session_id, started_at
+                """</span><span class="p">,</span>
+                <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">session_id</span><span class="p">),</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">psycopg</span><span class="p">.</span><span class="n">types</span><span class="p">.</span><span class="n">json</span><span class="p">.</span><span class="n">Json</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{}))</span>
+            <span class="p">)</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="n">conn</span><span class="p">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s">"conversation_id"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s">"session_id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="s">"started_at"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN RETRIEVE CONVERSATION HISTORY FUNCTION</strong> 註釋並直接在註釋後面添加以下程式碼。此函數從對話中擷取訊息，按時間順序排列。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_conversation_history</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="s">"""Retrieve recent messages from a conversation."""</span>
+    <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+            <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s">"""
+                SELECT id, role, content, created_at, metadata
+                FROM messages
+                WHERE conversation_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+                """</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">conversation_id</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s">"id"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s">"role"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="s">"content"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="s">"created_at"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">].</span><span class="n">isoformat</span><span class="p">(),</span>
+                    <span class="s">"metadata"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>  <span class="c1"># Return in chronological order
+</span>            <span class="p">]</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN TASK CHECKPOINT FUNCTIONS</strong> 註釋並直接在註釋後面添加以下程式碼。此函數使用 upsert 模式來保存或更新任務狀態，允許代理程式恢復中斷的任務。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">save_task_state</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">task_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">checkpoint_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="s">"""Save or update a task checkpoint."""</span>
+    <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+            <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s">"""
+                INSERT INTO task_checkpoints (conversation_id, task_name, status, checkpoint_data)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (conversation_id, task_name)
+                DO UPDATE SET
+                    status = EXCLUDED.status,
+                    checkpoint_data = EXCLUDED.checkpoint_data,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING id, updated_at
+                """</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">conversation_id</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">psycopg</span><span class="p">.</span><span class="n">types</span><span class="p">.</span><span class="n">json</span><span class="p">.</span><span class="n">Json</span><span class="p">(</span><span class="n">checkpoint_data</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="c1"># Note: The ON CONFLICT requires a unique constraint we need to add
+</span>            <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="n">conn</span><span class="p">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s">"checkpoint_id"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s">"updated_at"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="p">}</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>將您的變更儲存到 <em>agent_tools.py</em> file.</p>
+</li>
+<li>
+<p>花幾分鐘查看應用程式中的所有程式碼。</p>
+</li>
+</ol>
+<p>接下來，完成 Azure 資源部署。</p>
+<h2 id="complete-the-azure-resource-deployment">完成 Azure 資源部署</h2>
+<p>在本節中，您將返回部署腳本以擷取 PostgreSQL 伺服器的連線資訊。</p>
+<ol>
+<li>
+<p>當 <strong>Create PostgreSQL server with Entra authentication</strong> 操作有 completed， 輸入 <strong>2</strong> 啟動 <strong>Check deployment status</strong> 選項。這將驗證伺服器是否已準備就緒。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 啟動 <strong>Retrieve connection info and access token</strong> 選項。這將建立一個包含必要環境變數的檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 結束部署腳本。</p>
+</li>
+<li>
+<p>執行以下命令將環境變數從上一個步驟建立的檔案載入到終端會話中。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>注意：</strong> 保持終端打開。如果關閉它並建立新終端，則可能需要執行命令來再次建立環境變數。</p>
+</blockquote>
+<blockquote>
+<p><strong>注意：</strong> 訪問令牌大約在一小時後過期。如果稍後需要重新連接，請再次執行腳本並選擇選項 <strong>3</strong> 產生新的令牌，然後再次匯出變數。</p>
+</blockquote>
+</li>
+</ol>
+<p>接下來，您建立架構來支援代理程式。</p>
+<h2 id="create-the-agent-memory-schema-with-strongpsqlstrong">使用以下命令建立代理記憶體架構 <strong>psql</strong></h2>
+<p>在本節中，您將連接到 PostgreSQL 伺服器使用 <strong>psql</strong> 命令列 tool 並為代理記憶體創建資料庫結構描述。該架構包括三個表：一張用於對話（代理會話），一個用於這些對話中的消息，一個用於使代理能夠恢復中斷的工作的任務檢查點。</p>
+<ol>
+<li>
+<p>執行以下命令使用環境變數連接到伺服器。這 <strong>PGPASSWORD</strong> 環境變數自動用於身份驗證。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>psql <span class="s2">"host=</span><span class="nv">$DB_HOST</span><span class="s2"> port=5432 dbname=</span><span class="nv">$DB_NAME</span><span class="s2"> user=</span><span class="nv">$DB_USER</span><span class="s2"> sslmode=require"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">psql</span><span class="w"> </span><span class="s2">"host=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_HOST</span><span class="s2"> port=5432 dbname=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_NAME</span><span class="s2"> user=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_USER</span><span class="s2"> sslmode=require"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>運行以下命令透過檢查來驗證連接 PostgreSQL 版本。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">version</span><span class="p">();</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令為代理後端建立資料庫。這 <strong>\c</strong> 命令連接到新資料庫。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">DATABASE</span> <span class="n">agent_memory</span><span class="p">;</span>
+<span class="err">\</span><span class="k">c</span> <span class="n">agent_memory</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令來建立對話表（代理會話）。此表存儲會話 metadata 並將訊息連結到特定對話。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">conversations</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="n">BIGSERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">session_id</span> <span class="n">UUID</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">UNIQUE</span><span class="p">,</span>
+    <span class="n">user_id</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">started_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span><span class="p">,</span>
+    <span class="n">ended_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span><span class="p">,</span>
+    <span class="n">metadata</span> <span class="n">JSONB</span> <span class="k">DEFAULT</span> <span class="s1">'{}'</span><span class="p">::</span><span class="n">jsonb</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令為對話中的消息建立表。此表儲存角色（user, assistant, system， 或者 tool）和每個訊息的內容。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">messages</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="n">BIGSERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">conversation_id</span> <span class="nb">BIGINT</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">REFERENCES</span> <span class="n">conversations</span><span class="p">(</span><span class="n">id</span><span class="p">)</span> <span class="k">ON</span> <span class="k">DELETE</span> <span class="k">CASCADE</span><span class="p">,</span>
+    <span class="k">role</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">CHECK</span> <span class="p">(</span><span class="k">role</span> <span class="k">IN</span> <span class="p">(</span><span class="s1">'user'</span><span class="p">,</span> <span class="s1">'assistant'</span><span class="p">,</span> <span class="s1">'system'</span><span class="p">,</span> <span class="s1">'tool'</span><span class="p">)),</span>
+    <span class="n">content</span> <span class="nb">TEXT</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">created_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span><span class="p">,</span>
+    <span class="n">metadata</span> <span class="n">JSONB</span> <span class="k">DEFAULT</span> <span class="s1">'{}'</span><span class="p">::</span><span class="n">jsonb</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令建立任務檢查點表。此表支援代理狀態持久化，以便代理可以恢復中斷的任務。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">task_checkpoints</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="n">BIGSERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">conversation_id</span> <span class="nb">BIGINT</span> <span class="k">REFERENCES</span> <span class="n">conversations</span><span class="p">(</span><span class="n">id</span><span class="p">)</span> <span class="k">ON</span> <span class="k">DELETE</span> <span class="k">CASCADE</span><span class="p">,</span>
+    <span class="n">task_name</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">status</span> <span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">CHECK</span> <span class="p">(</span><span class="n">status</span> <span class="k">IN</span> <span class="p">(</span><span class="s1">'pending'</span><span class="p">,</span> <span class="s1">'in_progress'</span><span class="p">,</span> <span class="s1">'completed'</span><span class="p">,</span> <span class="s1">'failed'</span><span class="p">)),</span>
+    <span class="n">checkpoint_data</span> <span class="n">JSONB</span> <span class="k">NOT</span> <span class="k">NULL</span> <span class="k">DEFAULT</span> <span class="s1">'{}'</span><span class="p">::</span><span class="n">jsonb</span><span class="p">,</span>
+    <span class="n">created_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span><span class="p">,</span>
+    <span class="n">updated_at</span> <span class="nb">TIMESTAMP</span> <span class="k">WITH</span> <span class="nb">TIME</span> <span class="k">ZONE</span> <span class="k">DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令以建立優化常見查詢的索引。這些索引提高了透過對話或時間戳記擷取訊息時的效能。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_messages_conversation_id</span> <span class="k">ON</span> <span class="n">messages</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_messages_created_at</span> <span class="k">ON</span> <span class="n">messages</span><span class="p">(</span><span class="n">created_at</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_task_checkpoints_conversation_id</span> <span class="k">ON</span> <span class="n">task_checkpoints</span><span class="p">(</span><span class="n">conversation_id</span><span class="p">);</span>
+<span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">idx_conversations_session_id</span> <span class="k">ON</span> <span class="n">conversations</span><span class="p">(</span><span class="n">session_id</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>您的應用程式 completed 在練習的早期使用 <strong>ON CONFLICT</strong>，這需要唯一的約束。在您的中運行以下命令 <strong>psql</strong> 在終端中添加它。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">ALTER</span> <span class="k">TABLE</span> <span class="n">task_checkpoints</span>
+<span class="k">ADD</span> <span class="k">CONSTRAINT</span> <span class="n">unique_conversation_task</span>
+<span class="k">UNIQUE</span> <span class="p">(</span><span class="n">conversation_id</span><span class="p">,</span> <span class="n">task_name</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令以驗證架構是否已正確建立。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">\</span><span class="n">dt</span>
+</code></pre></div></div>
+<p>您應該看到列出的三個表。</p>
+</li>
+<li>
+<p>輸入 <code>exit</code> 關閉 <strong>psql</strong> 會話並返回到終端。</p>
+</li>
+</ol>
+<h2 id="test-the-agent-memory-workflow">測試代理記憶體工作流程</h2>
+<p>在本節中，您將執行測試腳本來驗證 tool 功能正常工作。這 <em>test_workflow.py</em> 腳本包含在專案文件中，並示範建立對話、儲存訊息和管理任務檢查點。</p>
+<ol>
+<li>
+<p>運行以下命令導航到 <em>agent-backend</em> 目錄。</p>
+<pre><code>cd agent-backend
+</code></pre></li>
+<li>
+<p>執行以下命令建立虛擬環境 <em>test_workflow.py</em>  應用程式.根據您的環境，命令可能是 <strong>python</strong> or <strong>python3</strong>.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>運行以下命令來激活 Python 環境。 <strong>注意：</strong> 在 Linux/macOS 上，使用 Bash 命令。在 Windows 上，使用 PowerShell 命令。如果使用 Git Bash 在 Windows 上，使用 <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令來安裝 Python 應用程式的依賴項。這將安裝 <strong>psycopg</strong> 圖書館 PostgreSQL 連結性和 <strong>azure-identity</strong> 為了 Microsoft Entra 驗證。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-r</span> requirements.txt
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下命令來執行測試腳本。該腳本運行所有代理 tool 您建立的函數。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python test_workflow.py
+</code></pre></div></div>
+</li>
+<li>
+<p>您應該看到顯示每個步驟成功完成的輸出，表示代理可以建立對話、儲存訊息、保存任務狀態和擷取歷史記錄。</p>
+</li>
+<li>
+<p>可選：打開 <em>test_workflow.py</em> 歸檔並檢查代碼。</p>
+</li>
+</ol>
+<h2 id="query-conversation-context">查詢對話上下文</h2>
+<p>在本節中，您將練習查詢代理程式用於做出決策的資料。</p>
+<ol>
+<li>
+<p>運行以下命令連接到 <strong>agent_memory</strong> 使用環境變數的資料庫。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>psql <span class="s2">"host=</span><span class="nv">$DB_HOST</span><span class="s2"> port=5432 dbname=agent_memory user=</span><span class="nv">$DB_USER</span><span class="s2"> sslmode=require"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">psql</span><span class="w"> </span><span class="s2">"host=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_HOST</span><span class="s2"> port=5432 dbname=agent_memory user=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_USER</span><span class="s2"> sslmode=require"</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>提示：</strong> 當查詢結果顯示時， psql 如果目前終端機視窗無法容納結果，則使用尋呼機。如果是這樣，請按 <strong>q</strong> 結束尋呼機並返回 psql 迅速的。最大化終端機視窗將減少這種情況的發生，並且可以更輕鬆地查看命令的結果。</p>
+</blockquote>
+</li>
+<li>
+<p>執行以下查詢來尋找特定的所有對話 user。測試腳本創建了一個對話 <strong>user_id</strong> 設定為 <strong>user_123</strong>.</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="n">id</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">started_at</span><span class="p">,</span> <span class="n">metadata</span>
+<span class="k">FROM</span> <span class="n">conversations</span>
+<span class="k">WHERE</span> <span class="n">user_id</span> <span class="o">=</span> <span class="s1">'user_123'</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">started_at</span> <span class="k">DESC</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下查詢以取得所有對話中的最新消息。這將傳回測試腳本儲存的訊息。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">session_id</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="k">role</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="n">content</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="n">created_at</span>
+<span class="k">FROM</span> <span class="n">messages</span> <span class="n">m</span>
+<span class="k">JOIN</span> <span class="n">conversations</span> <span class="k">c</span> <span class="k">ON</span> <span class="n">m</span><span class="p">.</span><span class="n">conversation_id</span> <span class="o">=</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">m</span><span class="p">.</span><span class="n">created_at</span> <span class="k">DESC</span>
+<span class="k">LIMIT</span> <span class="mi">10</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下查詢來查找 completed 任務。測試腳本將任務狀態更新為 <strong>completed</strong> 在工作流程結束時。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span>
+    <span class="k">c</span><span class="p">.</span><span class="n">session_id</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">task_name</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">status</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">checkpoint_data</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">.</span><span class="n">updated_at</span>
+<span class="k">FROM</span> <span class="n">task_checkpoints</span> <span class="n">t</span>
+<span class="k">JOIN</span> <span class="n">conversations</span> <span class="k">c</span> <span class="k">ON</span> <span class="n">t</span><span class="p">.</span><span class="n">conversation_id</span> <span class="o">=</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span>
+<span class="k">WHERE</span> <span class="n">t</span><span class="p">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">'completed'</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>執行以下查詢以按每個對話中的角色對訊息進行計數。這有助於理解分佈 user, assistant, system， 和 tool 消息。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span>
+    <span class="k">c</span><span class="p">.</span><span class="n">id</span> <span class="k">AS</span> <span class="n">conversation_id</span><span class="p">,</span>
+    <span class="n">m</span><span class="p">.</span><span class="k">role</span><span class="p">,</span>
+    <span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="k">AS</span> <span class="n">message_count</span>
+<span class="k">FROM</span> <span class="n">conversations</span> <span class="k">c</span>
+<span class="k">JOIN</span> <span class="n">messages</span> <span class="n">m</span> <span class="k">ON</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">m</span><span class="p">.</span><span class="n">conversation_id</span>
+<span class="k">GROUP</span> <span class="k">BY</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="k">role</span>
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="p">,</span> <span class="n">m</span><span class="p">.</span><span class="k">role</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>輸入 <strong>quit</strong> 在 psql 提示結束。</p>
+</li>
+</ol>
+<h2 id="summary">摘要</h2>
+<p>在本練習中，您建立了一個 PostgreSQL-基於 tool 後端 AI 代理。您部署了一個 Azure Database for PostgreSQL Flexible Server 和 Microsoft Entra 認證，已創建 Python 代理可以呼叫來管理對話和任務狀態的函數，並設計了一個包含對話、訊息和任務檢查點表的資料庫結構描述。您透過執行模擬代理操作的腳本來測試工作流程，然後使用查詢儲存的資料 SQL。這種模式使 AI 代理跨會話維護持久記憶體並恢復中斷的任務。</p>
+<h1 id="clean-up-resources">清理資源</h1>
+<p>現在您已完成練習，您應該刪除您建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在中運行以下命令 VS Code 終端刪除資源組以及該組中的所有資源。代替 <strong>&lt;rg-name&gt;</strong> 與您之前在練習中選擇的名稱。該命令將在 Azure 中啟動背景任務以刪除資源組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>注意：</strong> 刪除資源組會刪除其中包含的所有資源。如果您為此練習選擇了現有資源組，則本練習範圍之外的任何現有資源也將被刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在此練習中遇到問題，請嘗試以下步驟：</p>
+<p><strong>部署失敗</strong></p>
+<ul>
+<li>再次執行部署腳本並選取選項 <strong>1</strong>.</li>
+<li>如果腳本偵測到現有的 PostgreSQL 伺服器，會警告您重新部署將永久刪除伺服器及其所有資料。輸入 <code>yes</code> 以確認您要刪除並重新部署伺服器。</li>
+<li>如果 Azure 未在五分鐘內釋放 PostgreSQL 伺服器名稱，請結束部署腳本、等待五分鐘，然後執行腳本並選取選項 <strong>1</strong> 。</li>
+</ul>
+<p><strong>psql connection fails</strong></p>
+<ul>
+<li>請確認 <em>.env</em> 和 <em>.env.ps1</em> 檔案已透過執行部署腳本選項建立 <strong>3</strong></li>
+<li>確保你跑了 <strong>source .env</strong> (Bash） 或者 <strong>. ..env.ps1</strong> (PowerShell) 載入環境變數</li>
+<li>訪問令牌大約一小時後過期；運行部署腳本選項 <strong>3</strong> 再次產生新的令牌</li>
+<li>透過執行部署腳本選項來驗證伺服器是否已準備就緒 <strong>2</strong></li>
+</ul>
+<p><strong>Access denied or authentication errors</strong></p>
+<ul>
+<li>當選項 <strong>1</strong> 建立伺服器時，會自動設定 Microsoft Entra 系統管理員。如果存取仍遭拒，請執行選項 <strong>2</strong>。如果未設定，請執行選項 <strong>1</strong> ，並確認您要刪除及重新部署伺服器。</li>
+<li>核實 <strong>PGPASSWORD</strong> 在您的終端會話中設定正確</li>
+<li>確保您使用的是正確的 <strong>DB_USER</strong> 值（您的 Azure 帳戶 電子郵件）</li>
+</ul>
+<p><strong>Python test script fails</strong></p>
+<ul>
+<li>確保 Python 虛擬環境已啟動（您應該看到 <strong>(.venv)</strong> 在你的終端機提示中）</li>
+<li>確保安裝了依賴項： <strong>pip install -r requirements.txt</strong></li>
+<li>確保您創建了 <strong>agent_memory</strong> 資料庫和所有表 <strong>psql</strong></li>
+<li>確保您新增了唯一約束 <strong>task_checkpoints</strong> 桌子</li>
+</ul>
+<p><strong>Database or table not found errors</strong></p>
+<ul>
+<li>確保您已連接到 <strong>agent_memory</strong> 資料庫使用 <strong>\c agent_memory</strong> in <strong>psql</strong></li>
+<li>透過運行驗證表是否存在 <strong>\dt</strong> in <strong>psql</strong></li>
+<li>重新運行 CREATE TABLE 如果表格遺失的語句</li>
+</ul>
+<p><strong>Python venv activation issues</strong></p>
+<ul>
+<li>在 Linux/macOS 上，使用： <strong>source .venv/bin/activate</strong></li>
+<li>在 Windows 上 PowerShell， 使用： <strong>..venv\Scripts\Activate.ps1</strong></li>
+<li>如果 <strong>activate</strong> 腳本遺失，重新安裝 <strong>python3-venv</strong> 打包並重新建立 venv</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                © 2025 微軟|
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">隱私權 </a>|
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">消費者健康隱私權 </a>|
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">使用條款 </a>|
+                  <a href="https://www.microsoft.com/trademarks">商標 </a>|
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    原始碼
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

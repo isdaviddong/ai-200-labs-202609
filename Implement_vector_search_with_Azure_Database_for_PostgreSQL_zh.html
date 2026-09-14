@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <title>
+        在 Azure Database for PostgreSQL 上實作向量搜尋 | 在 Microsoft Azure 上開發 AI 雲端解決方案
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">在 Microsoft Azure 上開發 AI 雲端解決方案</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="implement-vector-search-on-azure-database-for-postgresql">在 Azure Database for PostgreSQL 上實作向量搜尋</h1>
+<p>在本練習中，您將使用 Azure Database for PostgreSQL 與 pgvector 擴充功能建置產品相似度搜尋應用程式。您會啟用向量儲存功能、建立含有嵌入向量的產品資料庫結構描述、透過 Flask Web 應用程式載入範例資料，並執行相似度搜尋以找出相關產品。此模式可作為建議系統、語意搜尋功能及其他 AI 驅動應用程式的基礎。</p>
+<p>本練習將執行的工作：</p>
+<ul>
+<li>下載專案起始檔案並設定部署指令碼</li>
+<li>部署使用 Microsoft Entra 驗證的 Azure Database for PostgreSQL Flexible Server</li>
+<li>在伺服器部署期間完成 Flask 應用程式程式碼</li>
+<li>啟用 pgvector 擴充功能並建立 products 資料表結構描述</li>
+<li>執行 Flask 應用程式以載入產品並進行相似度搜尋</li>
+<li>新增產品並觀察相似度結果如何變化</li>
+</ul>
+<p>本練習約需 <strong>30</strong> 分鐘完成。</p>
+<h2 id="before-you-start">開始之前</h2>
+<p>若要完成本練習，您需要：</p>
+<ul>
+<li>具備部署所需 Azure 服務權限的 Azure 訂用帳戶。如果您尚未擁有，您可以 <a href="https://azure.microsoft.com/">註冊一個</a>。</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> 安裝於其中一個 <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">支援的平台</a>。</li>
+<li>最新版的 <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>。</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> 或更新版本。</li>
+<li><a href="https://www.postgresql.org/download/">PostgreSQL command-line tools</a> (<strong>psql</strong>)</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-azure-services">下載專案起始檔案並部署 Azure 服務</h2>
+<p>在本節中，您將下載專案起始檔案，並使用指令碼將所需服務部署到您的 Azure 訂用帳戶。PostgreSQL 伺服器部署需要幾分鐘才能完成。</p>
+<ol>
+<li>
+<p>開啟瀏覽器並輸入下列 URL 以下載起始檔案。該檔案會儲存在您的預設下載位置。</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/postgresql-vector-search-python.zip
+</code></pre></li>
+<li>
+<p>將該檔案複製或移動到系統中您想要進行專案作業的位置，然後將它解壓縮到資料夾中。</p>
+</li>
+<li>
+<p>啟動 Visual Studio Code (VS Code)，並在選單中選取 <strong>File &gt; Open Folder...</strong> ，然後選擇包含專案檔案的資料夾。</p>
+</li>
+<li>
+<p>在 VS Code 中開啟 <em>azdeploy.py</em> 部署指令碼，並變更指令碼頂端的兩個值以符合您的需求，然後儲存變更。 <strong>Note:</strong> 請勿變更指令碼中的其他任何內容。</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>在功能表列中選取 <strong>終端機 &gt; 新增終端機</strong> ，以在 VS Code 中開啟終端機視窗。</p>
+</li>
+<li>
+<p>執行下列命令登入您的 Azure 帳戶。依照提示選取要用於本練習的 Azure 帳戶與訂用帳戶。</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>執行下列命令，確認您的訂用帳戶具有本練習所需的資源提供者。</p>
+<pre><code class="language-azurecli">az provider register --namespace Microsoft.DBforPostgreSQL
+</code></pre></li>
+</ol>
+<h3 id="create-resources-in-azure">在 Azure 中建立資源</h3>
+<p>在本節中，您將執行部署指令碼以部署 PostgreSQL 伺服器並設定驗證。</p>
+<ol>
+<li>
+<p>在終端機中執行下列命令以啟動部署指令碼。</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>當指令碼選單出現時，輸入 <strong>1</strong> 以啟動 <strong>Create PostgreSQL server with Entra authentication</strong> 選項。這會建立已啟用僅限 Entra 驗證的伺服器。 <strong>Note:</strong> 部署可能需要 5 到 10 分鐘才能完成。</p>
+<blockquote>
+<p><strong>IMPORTANT:</strong> 在整個練習期間，請讓執行部署的終端機保持開啟。當部署在終端機中繼續進行時，您可以先進行下一節。</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="complete-the-client-application">完成用戶端應用程式</h2>
+<p>在本節中，您將完成 <em>app.py</em> 檔案，方法是新增會與 PostgreSQL 資料庫互動的路由處理常式。這些路由可處理載入範例產品、執行相似度搜尋，以及新增產品。Flask 應用程式提供 Web 介面來測試向量相似度搜尋。</p>
+<ol>
+<li>在 VS Code 中開啟 <em>client/app.py</em> 檔案。</li>
+</ol>
+<blockquote>
+<p><strong>提示：</strong> 為保持正確的程式碼縮排，請將程式碼貼齊左邊界（第 1 欄），選取所有貼上的行，然後按 <strong>Tab</strong> ，使程式碼區塊與 <strong>BEGIN / END</strong> 標記對齊。如有需要，請按 <strong>Shift+Tab</strong> 以減少縮排。</p>
+</blockquote>
+<ol>
+<li>
+<p>搜尋 <strong>BEGIN LOAD DATA SECTION</strong> 註解，並在該註解後方直接加入下列程式碼。此路由會從 JSON 檔案載入產品，並連同其嵌入向量插入資料庫。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">route</span><span class="p">(</span><span class="s">"/load-data"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">"POST"</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">load_data</span><span class="p">():</span>
+    <span class="s">"""Load sample products into the database."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">products</span> <span class="o">=</span> <span class="n">load_json_file</span><span class="p">(</span><span class="s">"sample_products.json"</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">product</span> <span class="ow">in</span> <span class="n">products</span><span class="p">:</span>
+                    <span class="c1"># Check if product already exists
+</span>                    <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"SELECT id FROM products WHERE name = %s"</span><span class="p">,</span> <span class="p">(</span><span class="n">product</span><span class="p">[</span><span class="s">"name"</span><span class="p">],))</span>
+                    <span class="k">if</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchone</span><span class="p">():</span>
+                        <span class="k">continue</span>
+
+                    <span class="c1"># Format embedding as PostgreSQL array (pgvector expects bracket notation)
+</span>                    <span class="n">embedding_str</span> <span class="o">=</span> <span class="s">"["</span> <span class="o">+</span> <span class="s">","</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">product</span><span class="p">[</span><span class="s">"embedding"</span><span class="p">])</span> <span class="o">+</span> <span class="s">"]"</span>
+
+                    <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"""
+                        INSERT INTO products (name, category, description, price, embedding)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """</span><span class="p">,</span> <span class="p">(</span>
+                        <span class="n">product</span><span class="p">[</span><span class="s">"name"</span><span class="p">],</span>
+                        <span class="n">product</span><span class="p">[</span><span class="s">"category"</span><span class="p">],</span>
+                        <span class="n">product</span><span class="p">[</span><span class="s">"description"</span><span class="p">],</span>
+                        <span class="n">product</span><span class="p">[</span><span class="s">"price"</span><span class="p">],</span>
+                        <span class="n">embedding_str</span>
+                    <span class="p">))</span>
+                <span class="c1"># Commit all inserts in a single transaction
+</span>                <span class="n">conn</span><span class="p">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s">"Successfully loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">products</span><span class="p">)</span><span class="si">}</span><span class="s"> sample products!"</span><span class="p">,</span> <span class="s">"success"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s">"Error loading data: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s">"</span><span class="p">,</span> <span class="s">"error"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">"index"</span><span class="p">))</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN SEARCH SECTION</strong> 註解，並在該註解後方直接加入下列程式碼。此路由會擷取所選產品的詳細資料與嵌入向量、使用餘弦距離尋找相似產品，並將所選產品和結果傳遞至範本以供顯示。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">route</span><span class="p">(</span><span class="s">"/search"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">"POST"</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">search</span><span class="p">():</span>
+    <span class="s">"""Find products similar to the selected product using vector similarity."""</span>
+    <span class="n">product_id</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">form</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"product_id"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">product_id</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s">"Please select a product"</span><span class="p">,</span> <span class="s">"error"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">"index"</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+                <span class="c1"># Get the selected product details and embedding
+</span>                <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"""
+                    SELECT id, name, category, description, price, embedding
+                    FROM products WHERE id = %s
+                """</span><span class="p">,</span> <span class="p">(</span><span class="n">product_id</span><span class="p">,))</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">row</span><span class="p">:</span>
+                    <span class="n">flash</span><span class="p">(</span><span class="s">"Product not found"</span><span class="p">,</span> <span class="s">"error"</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">"index"</span><span class="p">))</span>
+
+                <span class="n">searched_product</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s">"id"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">"name"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">"category"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="s">"description"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="s">"price"</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                <span class="p">}</span>
+                <span class="n">embedding</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+
+                <span class="c1"># Find similar products using cosine distance
+</span>                <span class="c1"># The &lt;=&gt; operator is pgvector's cosine distance operator
+</span>                <span class="c1"># Lower distance = more similar (0 = identical, 2 = opposite)
+</span>                <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"""
+                    SELECT id, name, category, description, price, embedding &lt;=&gt; %s AS distance
+                    FROM products
+                    WHERE id != %s
+                    ORDER BY distance
+                    LIMIT 5
+                """</span><span class="p">,</span> <span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="n">product_id</span><span class="p">))</span>
+
+                <span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">{</span><span class="s">"id"</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">"name"</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">"category"</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="s">"description"</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="s">"price"</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="s">"distance"</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">5</span><span class="p">]}</span>
+                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchall</span><span class="p">()</span>
+                <span class="p">]</span>
+
+        <span class="n">products</span> <span class="o">=</span> <span class="n">get_products</span><span class="p">()</span>
+        <span class="n">new_products</span> <span class="o">=</span> <span class="n">get_new_products</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">"index.html"</span><span class="p">,</span> <span class="n">products</span><span class="o">=</span><span class="n">products</span><span class="p">,</span> <span class="n">new_products</span><span class="o">=</span><span class="n">new_products</span><span class="p">,</span> <span class="n">results</span><span class="o">=</span><span class="n">results</span><span class="p">,</span> <span class="n">searched_product</span><span class="o">=</span><span class="n">searched_product</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s">"Error searching: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s">"</span><span class="p">,</span> <span class="s">"error"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">"index"</span><span class="p">))</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>搜尋 <strong>BEGIN ADD PRODUCT SECTION</strong> 註解，並在該註解後方直接加入下列程式碼。此路由會將 <em>new_products.json</em> 檔案中的產品新增到資料庫。</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">@</span><span class="n">app</span><span class="p">.</span><span class="n">route</span><span class="p">(</span><span class="s">"/add-product"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">"POST"</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">add_product</span><span class="p">():</span>
+    <span class="s">"""Add a new product from the new_products.json file."""</span>
+    <span class="n">product_index</span> <span class="o">=</span> <span class="n">request</span><span class="p">.</span><span class="n">form</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">"product_index"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">product_index</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">product_index</span> <span class="o">==</span> <span class="s">""</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s">"Please select a product to add"</span><span class="p">,</span> <span class="s">"error"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">"index"</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">new_products</span> <span class="o">=</span> <span class="n">load_json_file</span><span class="p">(</span><span class="s">"new_products.json"</span><span class="p">)</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">new_products</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">product_index</span><span class="p">)]</span>
+
+        <span class="k">with</span> <span class="n">get_connection</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">conn</span><span class="p">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+                <span class="c1"># Check if product already exists
+</span>                <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"SELECT id FROM products WHERE name = %s"</span><span class="p">,</span> <span class="p">(</span><span class="n">product</span><span class="p">[</span><span class="s">"name"</span><span class="p">],))</span>
+                <span class="k">if</span> <span class="n">cur</span><span class="p">.</span><span class="n">fetchone</span><span class="p">():</span>
+                    <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s">"Product '</span><span class="si">{</span><span class="n">product</span><span class="p">[</span><span class="s">'name'</span><span class="p">]</span><span class="si">}</span><span class="s">' already exists"</span><span class="p">,</span> <span class="s">"error"</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">"index"</span><span class="p">))</span>
+
+                <span class="c1"># Format embedding as PostgreSQL array
+</span>                <span class="n">embedding_str</span> <span class="o">=</span> <span class="s">"["</span> <span class="o">+</span> <span class="s">","</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">product</span><span class="p">[</span><span class="s">"embedding"</span><span class="p">])</span> <span class="o">+</span> <span class="s">"]"</span>
+
+                <span class="n">cur</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="s">"""
+                    INSERT INTO products (name, category, description, price, embedding)
+                    VALUES (%s, %s, %s, %s, %s)
+                """</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="n">product</span><span class="p">[</span><span class="s">"name"</span><span class="p">],</span>
+                    <span class="n">product</span><span class="p">[</span><span class="s">"category"</span><span class="p">],</span>
+                    <span class="n">product</span><span class="p">[</span><span class="s">"description"</span><span class="p">],</span>
+                    <span class="n">product</span><span class="p">[</span><span class="s">"price"</span><span class="p">],</span>
+                    <span class="n">embedding_str</span>
+                <span class="p">))</span>
+                <span class="n">conn</span><span class="p">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s">"Successfully added '</span><span class="si">{</span><span class="n">product</span><span class="p">[</span><span class="s">'name'</span><span class="p">]</span><span class="si">}</span><span class="s">'!"</span><span class="p">,</span> <span class="s">"success"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s">"Error adding product: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s">"</span><span class="p">,</span> <span class="s">"error"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">"index"</span><span class="p">))</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>將您的變更儲存到 <em>app.py</em> 檔案。</p>
+</li>
+<li>
+<p>花幾分鐘檢閱應用程式中的所有程式碼。請注意每個路由如何使用 <strong>get_connection()</strong> 函式以 Microsoft Entra 驗證連線到 PostgreSQL，以及 <strong>&lt;=&gt;</strong> 運算子如何執行相似度搜尋的餘弦距離計算。</p>
+</li>
+</ol>
+<h2 id="complete-the-azure-resource-deployment-and-create-the-schema">完成 Azure 資源部署並建立結構描述</h2>
+<p>在本節中，您將啟用 pgvector 擴充功能，並建立含有向量欄位以儲存嵌入向量的 products 資料表。此結構描述包含產品詳細資料欄位，以及用於相似度搜尋的 384 維嵌入向量。</p>
+<ol>
+<li>
+<p>等待 PostgreSQL 伺服器在終端機中顯示部署已完成。</p>
+</li>
+<li>
+<p>在部署指令碼選單中，輸入 <strong>2</strong> 以啟動 <strong>Configure vector extension allow-list</strong> 選項。這會將 <strong>vector</strong> 擴充功能加入伺服器的 <strong>azure.extensions</strong> 允許清單，讓您可以在下一節啟用 pgvector。伺服器會重新啟動以套用變更。 <strong>Note:</strong> 重新啟動可能需要 1 到 2 分鐘才能完成。</p>
+</li>
+<li>
+<p>輸入 <strong>3</strong> 以啟動 <strong>Check deployment status</strong> 選項。這會確認伺服器已就緒。</p>
+</li>
+<li>
+<p>輸入 <strong>4</strong> 以啟動 <strong>Retrieve connection info and access token</strong> 選項。這會建立一個包含必要環境變數的檔案。</p>
+</li>
+<li>
+<p>輸入 <strong>5</strong> 以結束部署指令碼。</p>
+</li>
+<li>
+<p>執行下列命令，從先前步驟建立的檔案中將環境變數載入目前的終端機工作階段。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以使用 <strong>psql</strong>連線到 PostgreSQL 伺服器。此命令會使用您在前一個步驟中載入的環境變數。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>psql <span class="s2">"host=</span><span class="nv">$DB_HOST</span><span class="s2"> dbname=</span><span class="nv">$DB_NAME</span><span class="s2"> user=</span><span class="nv">$DB_USER</span><span class="s2"> sslmode=require"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">psql</span><span class="w"> </span><span class="s2">"host=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_HOST</span><span class="s2"> port=5432 dbname=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_NAME</span><span class="s2"> user=</span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">DB_USER</span><span class="s2"> sslmode=require"</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>啟用 pgvector 擴充功能。您必須先啟用此擴充功能，才能使用向量資料型別。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="n">EXTENSION</span> <span class="n">IF</span> <span class="k">NOT</span> <span class="k">EXISTS</span> <span class="n">vector</span><span class="p">;</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>建立含有嵌入向量欄位的 products 資料表。embeddings 欄位使用 384 個維度，這與常見的 sentence transformer 模型相符。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">TABLE</span> <span class="n">products</span> <span class="p">(</span>
+    <span class="n">id</span> <span class="nb">SERIAL</span> <span class="k">PRIMARY</span> <span class="k">KEY</span><span class="p">,</span>
+    <span class="n">name</span> <span class="nb">TEXT</span> <span class="k">NOT</span> <span class="k">NULL</span><span class="p">,</span>
+    <span class="n">category</span> <span class="nb">TEXT</span><span class="p">,</span>
+    <span class="n">description</span> <span class="nb">TEXT</span><span class="p">,</span>
+    <span class="n">price</span> <span class="nb">NUMERIC</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+    <span class="n">embedding</span> <span class="n">vector</span><span class="p">(</span><span class="mi">330</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>建立 HNSW 索引以支援快速相似度搜尋。此索引類型已針對向量資料上的近似最近鄰查詢進行最佳化。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">CREATE</span> <span class="k">INDEX</span> <span class="n">products_embedding_idx</span>
+<span class="k">ON</span> <span class="n">products</span> <span class="k">USING</span> <span class="n">hnsw</span> <span class="p">(</span><span class="n">embedding</span> <span class="n">vector_cosine_ops</span><span class="p">)</span>
+<span class="k">WITH</span> <span class="p">(</span><span class="n">m</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">ef_construction</span> <span class="o">=</span> <span class="mi">64</span><span class="p">);</span>
+</code></pre></div></div>
+</li>
+<li>
+<p>列出資料表結構以確認資料表與索引已建立。</p>
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">\</span><span class="n">d</span> <span class="n">products</span>
+</code></pre></div></div>
+<p>您應該會看到包含 id、name、category、description、price 與 embedding 欄位的資料表結構，以及 HNSW 索引。</p>
+</li>
+<li>
+<p>輸入 <strong>quit</strong> 以結束工作階段。</p>
+</li>
+</ol>
+<h2 id="set-up-and-run-the-flask-application">設定並執行 Flask 應用程式</h2>
+<p>在本節中，您將安裝 Python 相依性並執行 Flask Web 應用程式。此應用程式提供瀏覽器介面，用於載入產品、搜尋相似項目，以及將新產品新增到資料庫。</p>
+<ol>
+<li>
+<p>執行下列命令以切換到 <em>client</em> 資料夾。</p>
+<pre><code>cd client
+</code></pre></li>
+<li>
+<p>執行下列命令以建立 Python 虛擬環境。視您的環境而定，命令可能是 <strong>python</strong> or <strong>python3</strong>。</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>執行下列命令以啟用 Python 環境。 <strong>Note:</strong> 在 Linux/macOS 上，請使用 Bash 命令。在 Windows 上，請使用 PowerShell 命令。如果是在 Windows 上使用 Git Bash，請使用 <strong>source .venv/Scripts/activate</strong>。</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>執行下列命令以安裝所需的 Python 套件。 <em>requirements.txt</em> 檔案包含 <strong>flask</strong> 作為 Web 架構、 <strong>psycopg</strong> 用於 PostgreSQL 連線，以及 <strong>azure-identity</strong> 用於驗證。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-r</span> requirements.txt
+</code></pre></div></div>
+</li>
+<li>
+<p>執行 Flask 應用程式。應用程式會在連接埠 5000 啟動，並可從瀏覽器存取。</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python app.py
+</code></pre></div></div>
+</li>
+<li>
+<p>開啟 Web 瀏覽器並瀏覽至 <code>http://127.0.0.1:5000</code>。您應該會看到產品清單為空的 Vector Search Demo 頁面。</p>
+</li>
+</ol>
+<h2 id="load-products-and-perform-similarity-searches">載入產品並執行相似度搜尋</h2>
+<p>在本節中，您將使用 Web 應用程式把範例產品載入資料庫並執行相似度搜尋。這些產品包含預先計算的嵌入向量，可表示每項產品的語意意義，使應用程式能根據描述找出相似項目。</p>
+<ol>
+<li>
+<p>在網頁上，選取 <strong>Load Sample Products</strong>。這會將 10 個產品及其嵌入向量插入資料庫。</p>
+<p>您應該會看到成功訊息，而產品清單現在會顯示如「Wireless Bluetooth Headphones」、「Gaming Laptop」與「Running Shoes」等項目。</p>
+</li>
+<li>
+<p>在 <strong>Find Similar Products</strong> 區段中，從下拉式清單選取 <strong>Wireless Bluetooth Headphones</strong> ，然後選取 <strong>Find Similar</strong>。</p>
+<p>應用程式會使用向量相似度查詢資料庫，並依照與所選項目在語意上的接近程度傳回產品。由於「Noise Cancelling Earbuds」在語意上相似（兩者都是音訊裝置），因此它應該會出現在結果前段。</p>
+</li>
+<li>
+<p>請嘗試選擇不同的產品，並觀察相似產品如何根據所選項目的類別與描述而改變。</p>
+</li>
+</ol>
+<h2 id="add-new-products-and-observe-changes">新增產品並觀察變化</h2>
+<p>在本節中，您將新產品新增到資料庫，並觀察它們如何出現在相似度搜尋結果中。這示範了向量搜尋如何隨著資料變化而調整。</p>
+<ol>
+<li>
+<p>回到顯示 Flask 應用程式的 Web 瀏覽器。</p>
+</li>
+<li>
+<p>在 <strong>Add New Product</strong> 區段中，從下拉式清單選取 <strong>Espresso Machine</strong> ，然後選取 <strong>Add Product</strong>。</p>
+</li>
+<li>
+<p>現在請搜尋與 <strong>Coffee Maker</strong> 相似的產品，方法是在 <strong>Find Similar Products</strong> 下拉式清單中選取它，然後選取 <strong>Find Similar</strong>。</p>
+<p>請注意，「Espresso Machine」現在會以較低的距離分數出現在結果中，因為這兩項產品在語意上相關（家用咖啡器具）。</p>
+</li>
+<li>
+<p>從下拉式清單中新增其餘產品（<strong>Wireless Gaming Mouse</strong> 與 <strong>Fitness Tracker Band</strong>），並觀察它們如何出現在相關產品的相似度搜尋中。</p>
+</li>
+</ol>
+<h2 id="summary">總結</h2>
+<p>在本練習中，您已使用 Azure Database for PostgreSQL 與 pgvector 擴充功能建置產品相似度搜尋應用程式。您部署了使用 Microsoft Entra 驗證的 PostgreSQL Flexible Server、啟用了 pgvector 擴充功能，並建立了一個包含 384 維向量欄位以儲存嵌入向量的 products 資料表。您新增了 HNSW 索引來最佳化相似度查詢，接著使用 Flask Web 應用程式載入範例產品，並利用餘弦距離運算子（<strong>&lt;=&gt;</strong>）執行向量相似度搜尋。此模式示範如何建置建議系統與語意搜尋功能，以根據語意意義而非精確關鍵字比對來尋找相關項目。</p>
+<h2 id="clean-up-resources">清除資源</h2>
+<p>既然您已完成本練習，應刪除所建立的雲端資源，以避免不必要的資源使用。</p>
+<ol>
+<li>
+<p>在 VS Code 終端機中執行下列命令以刪除資源群組及群組中的所有資源。請將 <strong>&lt;rg-name&gt;</strong> 替換為您稍早在練習中選擇的名稱。此命令會在 Azure 中啟動背景工作以刪除資源群組。</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> 刪除資源群組會刪除其中包含的所有資源。如果您為本練習選用了現有的資源群組，則此練習範圍外的任何既有資源也會一併刪除。</p>
+</blockquote>
+<h2 id="troubleshooting">疑難排解</h2>
+<p>如果您在本練習期間遇到問題，請嘗試下列步驟：</p>
+<p><strong>部署失敗</strong></p>
+<ul>
+<li>再次執行部署指令碼並選取選項 <strong>1</strong>。</li>
+<li>如果指令碼偵測到現有的 PostgreSQL 伺服器，會警告您重新部署將永久刪除伺服器及其所有資料。輸入 <code>yes</code> 以確認您要刪除並重新部署伺服器。</li>
+<li>選項 <strong>1</strong> 完成後，選取選項 <strong>2</strong> 以將 <strong>vector</strong> 擴充功能加入伺服器的 <strong>azure.extensions</strong> 允許清單。</li>
+<li>如果 Azure 未在五分鐘內釋出 PostgreSQL 伺服器名稱，請結束部署指令碼，等待五分鐘，然後再次執行指令碼並選取選項 <strong>1</strong> 。</li>
+</ul>
+<p><strong>psql 連線失敗</strong></p>
+<ul>
+<li>確認 <em>.env</em> 與 <em>.env.ps1</em> 檔案都已透過執行部署指令碼選項建立 <strong>4</strong></li>
+<li>確認您已執行 <strong>source .env</strong> （Bash）或 <strong>. ..env.ps1</strong> （PowerShell）以載入環境變數</li>
+<li>存取權杖約在一小時後過期；請再次執行部署指令碼選項 <strong>4</strong> 以產生新的權杖</li>
+<li>執行部署指令碼選項以確認伺服器已就緒 <strong>3</strong></li>
+</ul>
+<p><strong>存取遭拒或驗證錯誤</strong></p>
+<ul>
+<li>選項 <strong>1</strong> 建立伺服器時，會自動設定 Microsoft Entra 系統管理員。如果存取仍遭拒，請執行選項 <strong>3</strong> 以確認系統管理員。如果缺少系統管理員，請執行選項 <strong>1</strong> 並確認您要刪除並重新部署伺服器。</li>
+<li>確認 <strong>PGPASSWORD</strong> 已在您的終端機工作階段中正確設定</li>
+<li>確認您使用正確的 <strong>DB_USER</strong> 值（您的 Azure 帳戶電子郵件）</li>
+</ul>
+<p><strong>Flask 應用程式無法啟動</strong></p>
+<ul>
+<li>確認 Python 虛擬環境已啟用（您應該會在終端機提示字元中看到 <strong>(.venv)</strong> ）</li>
+<li>確認已安裝相依性： <strong>pip install -r requirements.txt</strong></li>
+<li>確認三個路由函式都已正確加入 <em>app.py</em> </li>
+</ul>
+<p><strong>Flask 中的資料庫連線錯誤</strong></p>
+<ul>
+<li>確認執行 Flask 的終端機已載入環境變數</li>
+<li>使用下列工具連線，以確認 products 資料表存在： <strong>psql</strong> 並執行 <strong>\d products</strong></li>
+<li>確認已啟用 pgvector 擴充功能： <strong>CREATE EXTENSION IF NOT EXISTS vector;</strong></li>
+</ul>
+<p><strong>載入後未顯示任何產品</strong></p>
+<ul>
+<li>檢查 Flask 終端機中的錯誤訊息</li>
+<li>確認 <em>sample_products.json</em> 檔案存在於 <em>client</em> 資料夾中</li>
+<li>確認已使用正確的結構描述建立 products 資料表</li>
+</ul>
+<p><strong>Python venv 啟用問題</strong></p>
+<ul>
+<li>在 Linux/macOS 上，請使用： <strong>source .venv/bin/activate</strong></li>
+<li>在 Windows PowerShell 上，請使用： <strong>..venv\Scripts\Activate.ps1</strong></li>
+<li>如果在 Windows 上使用 Git Bash，請使用： <strong>source .venv/Scripts/activate</strong></li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">隱私權 </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">消費者健康隱私權 </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">使用規定 </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">商標 </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    來源
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>

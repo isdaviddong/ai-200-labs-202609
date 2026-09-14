@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>
+        Query logs with KQL |
+        
+        Develop AI Cloud Solutions on Microsoft Azure
+    </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/vs.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="/mslearn-azure-ai/assets/css/style.css?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f">
+</head>
+<body data-spy="scroll" data-target="#linksMenu">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gray">
+        <div class="container d-flex justify-content-between">
+            <!-- <img src="https://github.com/MicrosoftLearning/Jekyll-Theme/raw/master/assets/microsoft-gray.png" alt="Microsoft logo" style="width:100px;height:21px;"/>-->
+            <span class="my-1 title text-black">Develop AI Cloud Solutions on Microsoft Azure</span>
+            <span class="ml-2">
+                <a href="https://microsoftlearning.github.io/mslearn-azure-ai" class="d-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg>
+                    &nbsp;Home
+                </a>
+            </span>
+        </div>
+        <!--
+        <div class="container d-flex justify-content-between">
+            <a class="my-1 title text-azure text-uppercase" href="https://microsoftlearning.github.io/mslearn-azure-ai">
+                Develop AI Cloud Solutions on Microsoft Azure
+            </a>
+            <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="btn btn-sm btn-outline-secondary text-light">
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <span class="ml-2">GitHub</span>
+            </a>
+        </div>
+        -->
+    </nav>
+    <hr color-"gray"/>
+    <div class="container">
+        <main class="row extra-padding">
+            <aside class="col-sm-2">       
+                <nav id="linksMenu" class="toc sticky-top">
+                    <ul class="nav navbar-nav flex-column">
+                    </ul>
+                </nav>         
+            </aside>
+            <hr class="" />
+            <article class="col-sm-10 mb-5">
+                <h1 id="query-logs-with-kql">Query logs with KQL</h1>
+<p>Kusto Query Language (KQL) is the query language used to analyze log data in Application Insights. KQL queries let you filter, aggregate, and join telemetry tables such as requests, dependencies, and exceptions to diagnose application health and performance. The Logs blade in Application Insights provides an interactive query editor with autocomplete, visual results, and time range controls that make it the primary tool for investigating telemetry. Combined with scheduled query alert rules created through the Azure CLI, KQL enables proactive monitoring that notifies your team when failure rates or latency exceed acceptable thresholds.</p>
+<p>In this exercise, you deploy an Application Insights resource, run a Python script that generates sample request, dependency, and exception telemetry using OpenTelemetry, then write KQL queries in the Azure portal Logs blade to investigate application health. You query the requests table to identify failures, join exceptions with requests to correlate errors, analyze dependency latency with percentile calculations, and create an action group and log search alert rule using the Azure CLI.</p>
+<p>Tasks performed in this exercise:</p>
+<ul>
+<li>Download the project starter files</li>
+<li>Create an Application Insights resource</li>
+<li>Run the telemetry generator to create sample data</li>
+<li>Query telemetry with KQL in the Azure portal</li>
+<li>Create an action group and alert rule with the Azure CLI</li>
+</ul>
+<p>This exercise takes approximately <strong>20</strong> minutes to complete.</p>
+<h2 id="before-you-start">Before you start</h2>
+<p>To complete the exercise, you need:</p>
+<ul>
+<li>An Azure subscription. If you don't already have one, you can <a href="https://azure.microsoft.com/">sign up for one</a>.</li>
+<li><a href="https://code.visualstudio.com/">Visual Studio Code</a> on one of the <a href="https://code.visualstudio.com/docs/supporting/requirements#_platforms">supported platforms</a>.</li>
+<li><a href="https://www.python.org/downloads/">Python 3.12</a> or greater.</li>
+<li>The latest version of the <a href="https://learn.microsoft.com/cli/azure/install-azure-cli">Azure CLI</a>.</li>
+</ul>
+<h2 id="download-project-starter-files-and-deploy-application-insights">Download project starter files and deploy Application Insights</h2>
+<p>In this section you download the starter files for the app and use a script to deploy an Application Insights resource to your subscription.</p>
+<ol>
+<li>
+<p>Open a browser and enter the following URL to download the starter file. The file will be saved in your default download location.</p>
+<pre><code>https://github.com/MicrosoftLearning/mslearn-azure-ai/raw/main/downloads/python/analyze-logs-python.zip
+</code></pre></li>
+<li>
+<p>Copy, or move, the file to a location in your system where you want to work on the project. Then unzip the file into a folder.</p>
+</li>
+<li>
+<p>Launch Visual Studio Code (VS Code) and select <strong>File &gt; Open Folder...</strong> in the menu, then choose the folder containing the project files.</p>
+</li>
+<li>
+<p>Open the <em>azdeploy.py</em> deployment script and change the two values at the top of the script to meet your needs, then save your changes. <strong>Note:</strong> Do not change anything else in the script.</p>
+<pre><code>&quot;&lt;your-resource-group-name&gt;&quot; # Resource Group name
+&quot;&lt;your-azure-region&gt;&quot; # Azure region for the resources
+</code></pre></li>
+<li>
+<p>In the menu bar select <strong>Terminal &gt; New Terminal</strong> to open a terminal window in VS Code.</p>
+</li>
+<li>
+<p>Run the following command to login to your Azure account. Answer the prompts to select your Azure account and subscription for the exercise.</p>
+<pre><code>az login
+</code></pre></li>
+<li>
+<p>Run the following commands to ensure your subscription has the necessary resource providers for the exercise.</p>
+<pre><code>az provider register --namespace Microsoft.Insights
+az provider register --namespace Microsoft.OperationalInsights
+</code></pre></li>
+<li>
+<p>Run the following commands to add the Azure CLI extensions used in this exercise. The <strong>application-insights</strong> extension provides the commands the deployment script uses to create and manage the Application Insights resource. The <strong>scheduled-query</strong> extension provides the commands used later to create the log search alert rule.</p>
+<pre><code>az extension add --name application-insights
+az extension add --name scheduled-query
+</code></pre></li>
+<li>
+<p>Run the following command in the terminal to launch the deployment script.</p>
+<pre><code>python azdeploy.py
+</code></pre></li>
+<li>
+<p>When the script is running, enter <strong>1</strong> to launch the <strong>1. Create Application Insights</strong> option.</p>
+<p>This option creates the resource group if it doesn't already exist and creates an Application Insights resource.</p>
+</li>
+<li>
+<p>Enter <strong>2</strong> to run the <strong>2. Assign role</strong> option. This assigns the Monitoring Metrics Publisher role to your account so the app can publish telemetry to Application Insights using Microsoft Entra authentication.</p>
+</li>
+<li>
+<p>Enter <strong>3</strong> to run the <strong>3. Check deployment status</strong> option. Verify the Application Insights resource shows <strong>Succeeded</strong> and the role is assigned before continuing. If the resource is still provisioning, wait a moment and try again.</p>
+</li>
+<li>
+<p>Enter <strong>4</strong> to run the <strong>4. Retrieve connection info</strong> option. This creates the environment variable file with the Application Insights connection string, resource group name, Application Insights name, and resource ID needed by the app and CLI commands.</p>
+</li>
+<li>
+<p>Enter <strong>5</strong> to exit the deployment script.</p>
+</li>
+<li>
+<p>Run the appropriate command to load the environment variables into your terminal session from the file created in a previous step.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .env
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="w"> </span><span class="o">.</span><span class="n">\.env.ps1</span><span class="w">
+</span></code></pre></div></div>
+<blockquote>
+<p><strong>Note:</strong> Keep the terminal open. If you close it and create a new terminal, you need to run this command again to reload the environment variables.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="generate-telemetry-data">Generate telemetry data</h2>
+<p>In this section you set up the Python environment, run the pre-written telemetry generator to create sample request, dependency, and exception data in Application Insights, then wait for the data to arrive before querying it. The generator script uses OpenTelemetry to create spans that map to the <strong>requests</strong>, <strong>dependencies</strong>, and <strong>exceptions</strong> tables in Application Insights.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to navigate to the <em>client</em> directory.</p>
+<pre><code>cd client
+</code></pre></li>
+<li>
+<p>Run the following command to create the Python environment.</p>
+<pre><code>python -m venv .venv
+</code></pre></li>
+<li>
+<p>Run the following command to activate the Python environment. <strong>Note:</strong> On Linux/macOS, use the Bash command. On Windows, use the PowerShell command. If using Git Bash on Windows, use <strong>source .venv/Scripts/activate</strong>.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">source</span> .venv/bin/activate
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">.</span><span class="n">\.venv\Scripts\Activate.ps1</span><span class="w">
+</span></code></pre></div></div>
+</li>
+<li>
+<p>Run the following command to install the dependencies.</p>
+<pre><code>pip install -r requirements.txt
+</code></pre></li>
+<li>
+<p>Run the following command to start the telemetry generator.</p>
+<pre><code>python app.py
+</code></pre></li>
+<li>
+<p>The script generates 15 request spans, 12 dependency spans, and 5 exception spans, then prints a summary. Wait for the script to complete.</p>
+</li>
+<li>
+<p>Run the script two more times to generate additional telemetry data.</p>
+<pre><code>python app.py
+</code></pre></li>
+<li>
+<p>Wait two to three minutes for the telemetry to arrive in Application Insights. Telemetry is batched and sent periodically, so there is a short delay before data appears.</p>
+</li>
+</ol>
+<h2 id="query-telemetry-in-the-azure-portal">Query telemetry in the Azure portal</h2>
+<p>In this section you use the Logs blade in Application Insights to run KQL queries against the telemetry you generated. The Logs blade provides an interactive editor with autocomplete, tabular results, and chart rendering.</p>
+<ol>
+<li>
+<p>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your Application Insights resource in the resource group you created earlier.</p>
+</li>
+<li>
+<p>In the Application Insights resource, select <strong>Logs</strong> in the left navigation under <strong>Monitoring</strong>. Close any query template dialog that appears. <strong>Note:</strong> Be sure to select <strong>KQL mode</strong> in the drop-down selector in the query bar.</p>
+</li>
+</ol>
+<h3 id="query-failed-requests">Query failed requests</h3>
+<ol>
+<li>
+<p>Copy and paste the following query into the query editor and select <strong>Run</strong>. This query filters the <strong>requests</strong> table to only failed requests using the <strong>where</strong> operator, then groups them by service name and HTTP status code with <strong>summarize</strong>. The <strong>count()</strong> aggregation tallies failures for each combination, and <strong>order by</strong> sorts the results so the most frequent failures appear first.</p>
+<pre><code class="language-kusto">requests
+| where success == false
+| summarize failedCount = count() by cloud_RoleName, resultCode
+| order by failedCount desc
+</code></pre></li>
+<li>
+<p>Review the results. You should see rows for the api-gateway, doc-processor, and auth-service services with status codes 500 and 429. The <strong>failedCount</strong> column shows how many failures occurred for each combination.</p>
+</li>
+</ol>
+<h3 id="query-request-volume-and-performance">Query request volume and performance</h3>
+<ol>
+<li>
+<p>Copy and paste the following query into the query editor and select <strong>Run</strong>. This query uses <strong>bin(timestamp, 1h)</strong> to bucket requests into one-hour intervals and groups by service name. For each bucket it calculates the total request count, the average duration with <strong>avg()</strong>, and the 95th-percentile duration with <strong>percentile()</strong>. The 95th percentile shows the response time that 95% of requests completed within, making it useful for detecting tail latency.</p>
+<pre><code class="language-kusto">requests
+| summarize requestCount = count(),
+    avgDuration = avg(duration),
+    p95Duration = percentile(duration, 95)
+    by bin(timestamp, 1h), cloud_RoleName
+| order by timestamp desc
+</code></pre></li>
+<li>
+<p>Review the results. The <strong>p95Duration</strong> column reveals the response time experienced by the slowest five percent of requests. Compare the average duration to the 95th percentile — a large gap highlights services where most requests are fast but a subset experiences significant delays.</p>
+</li>
+</ol>
+<h3 id="join-exceptions-with-requests">Join exceptions with requests</h3>
+<ol>
+<li>
+<p>Copy and paste the following query into the query editor and select <strong>Run</strong>. This query starts from the <strong>exceptions</strong> table and uses <strong>join kind=inner</strong> to match each exception to the request that triggered it via the shared <strong>operation_Id</strong> field. A <strong>project</strong> inside the subquery renames <strong>name</strong> to <strong>requestName</strong> before the join to avoid a column name collision, since both tables have a <strong>name</strong> column. After the join, <strong>summarize</strong> groups the results by request name, exception type, and service, counting how many exceptions each combination produced. The <strong>take 15</strong> operator limits the output to the top 15 rows.</p>
+<pre><code class="language-kusto">exceptions
+| join kind=inner (requests | project requestName = name, operation_Id, cloud_RoleName) on operation_Id
+| summarize exceptionCount = count()
+    by requestName, exceptionType = type, cloud_RoleName
+| order by exceptionCount desc
+| take 15
+</code></pre></li>
+<li>
+<p>Review the results. Each row shows a combination of request name, exception type, and service. This view helps you identify which operations produce the most errors and the exception types involved.</p>
+</li>
+</ol>
+<h3 id="analyze-dependency-latency">Analyze dependency latency</h3>
+<ol>
+<li>
+<p>Copy and paste the following query into the query editor and select <strong>Run</strong>. This query reads the <strong>dependencies</strong> table, which records outbound calls your application makes to databases, APIs, and other services. It groups by <strong>target</strong> (the dependency endpoint) and <strong>type</strong> (such as HTTP or SQL), then calculates the call count, average duration, and the 50th, 95th, and 99th percentile latencies. Comparing multiple percentiles reveals whether slow responses are isolated outliers or a broader pattern.</p>
+<pre><code class="language-kusto">dependencies
+| summarize callCount = count(),
+    avgDuration = avg(duration),
+    p50 = percentile(duration, 50),
+    p95 = percentile(duration, 95),
+    p99 = percentile(duration, 99)
+    by target, type
+| order by p95 desc
+</code></pre></li>
+<li>
+<p>Review the results. A large gap between the p50 and p95 values indicates inconsistent performance where most calls are fast but a notable percentage takes much longer.</p>
+</li>
+</ol>
+<h2 id="create-an-action-group-and-alert-rule">Create an action group and alert rule</h2>
+<p>In this section you use the Azure CLI to create an action group and a log search alert rule that detects when the failure rate exceeds a threshold.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to create an action group with an email notification. The <strong>ALERT_EMAIL</strong> variable was populated from your Azure account when you ran the <strong>Retrieve connection info</strong> option in the deployment script.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az monitor action-group create <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> pipeline-alerts-ag <span class="se">\</span>
+    <span class="nt">--short-name</span> PipeAlert <span class="se">\</span>
+    <span class="nt">--action</span> email oncall-email <span class="nv">$ALERT_EMAIL</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">monitor</span><span class="w"> </span><span class="nx">action-group</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nx">pipeline-alerts-ag</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--short-name</span><span class="w"> </span><span class="nx">PipeAlert</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--action</span><span class="w"> </span><span class="nx">email</span><span class="w"> </span><span class="nx">oncall-email</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">ALERT_EMAIL</span><span class="w">
+</span></code></pre></div></div>
+<p>This command creates an action group named <strong>pipeline-alerts-ag</strong> that sends email notifications when triggered.</p>
+</li>
+<li>
+<p>Run the following command to create a log search alert rule that monitors the Application Insights resource for failed requests. The rule evaluates the query over a five-minute window and fires if more than ten requests fail.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az monitor scheduled-query create <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> high-failure-rate-alert <span class="se">\</span>
+    <span class="nt">--scopes</span> <span class="nv">$APPINSIGHTS_RESOURCE_ID</span> <span class="se">\</span>
+    <span class="nt">--condition</span> <span class="s2">"count 'FailedRequests' &gt; 10"</span> <span class="se">\</span>
+    <span class="nt">--condition-query</span> <span class="nv">FailedRequests</span><span class="o">=</span><span class="s2">"requests | where success == false"</span> <span class="se">\</span>
+    <span class="nt">--evaluation-frequency</span> 5m <span class="se">\</span>
+    <span class="nt">--window-size</span> 5m <span class="se">\</span>
+    <span class="nt">--severity</span> 1 <span class="se">\</span>
+    <span class="nt">--description</span> <span class="s2">"Alert when more than 10 requests fail in a 5-minute window"</span>
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">monitor</span><span class="w"> </span><span class="nx">scheduled-query</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nx">high-failure-rate-alert</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--scopes</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">APPINSIGHTS_RESOURCE_ID</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--condition</span><span class="w"> </span><span class="s2">"count 'FailedRequests' &gt; 10"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--condition-query</span><span class="w"> </span><span class="nx">FailedRequests</span><span class="o">=</span><span class="s2">"requests | where success == false"</span><span class="w"> </span><span class="err">`</span><span class="w">
+    </span><span class="nt">--evaluation-frequency</span><span class="w"> </span><span class="mi">5</span><span class="n">m</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--window-size</span><span class="w"> </span><span class="nx">5m</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--severity</span><span class="w"> </span><span class="nx">1</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--description</span><span class="w"> </span><span class="s2">"Alert when more than 10 requests fail in a 5-minute window"</span><span class="w">
+</span></code></pre></div></div>
+<p>The severity is set to one (Error) to indicate a significant but not outage-level problem. When the alert fires, it triggers the action group which sends an email.</p>
+</li>
+<li>
+<p>Run the following command to verify the alert rule was created and is enabled.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az monitor scheduled-query show <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--name</span> high-failure-rate-alert <span class="se">\</span>
+    <span class="nt">--query</span> <span class="s2">"{Name:name, Severity:severity, Enabled:enabled, Window:windowSize, Frequency:evaluationFrequency, Threshold:condition.failingPeriods}"</span> <span class="se">\</span>
+    <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">monitor</span><span class="w"> </span><span class="nx">scheduled-query</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--name</span><span class="w"> </span><span class="nx">high-failure-rate-alert</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--query</span><span class="w"> </span><span class="s2">"{Name:name, Severity:severity, Enabled:enabled, Window:windowSize, Frequency:evaluationFrequency, Threshold:condition.failingPeriods}"</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>Confirm the <strong>Enabled</strong> column shows <strong>True</strong> and the severity, window, and frequency values match what you specified in the previous step.</p>
+</li>
+<li>
+<p>Run the following command to list all scheduled query alert rules in the resource group.</p>
+<p><strong>Bash</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>az monitor scheduled-query list <span class="se">\</span>
+    <span class="nt">--resource-group</span> <span class="nv">$RESOURCE_GROUP</span> <span class="se">\</span>
+    <span class="nt">--output</span> table
+</code></pre></div></div>
+<p><strong>PowerShell</strong></p>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">az</span><span class="w"> </span><span class="nx">monitor</span><span class="w"> </span><span class="nx">scheduled-query</span><span class="w"> </span><span class="nx">list</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--resource-group</span><span class="w"> </span><span class="nv">$</span><span class="nn">env</span><span class="p">:</span><span class="nv">RESOURCE_GROUP</span><span class="w"> </span><span class="se">`
+</span><span class="w">    </span><span class="nt">--output</span><span class="w"> </span><span class="nx">table</span><span class="w">
+</span></code></pre></div></div>
+<p>You should see one rule named <strong>high-failure-rate-alert</strong>. Because you already generated telemetry with failed requests, the rule begins evaluating immediately on its five-minute cycle. If the number of failed requests in the window exceeds the threshold, Azure Monitor fires the alert and the action group sends an email notification to the email address you specified.</p>
+</li>
+</ol>
+<h2 id="clean-up-resources">Clean up resources</h2>
+<p>Now that you finished the exercise, you should delete the cloud resources you created to avoid unnecessary resource usage.</p>
+<ol>
+<li>
+<p>Run the following command in the VS Code terminal to delete the resource group, and all resources in the group. Replace <strong>&lt;rg-name&gt;</strong> with the name you choose earlier in the exercise. The command will launch a background task in Azure to delete the resource group.</p>
+<pre><code>az group delete --name &lt;rg-name&gt; --no-wait --yes
+</code></pre></li>
+</ol>
+<blockquote>
+<p><strong>CAUTION:</strong> Deleting a resource group deletes all resources contained within it. If you chose an existing resource group for this exercise, any existing resources outside the scope of this exercise will also be deleted.</p>
+</blockquote>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>If you encounter issues while completing this exercise, try the following troubleshooting steps:</p>
+<p><strong>Verify Application Insights deployment</strong></p>
+<ul>
+<li>Navigate to the <a href="https://portal.azure.com">Azure portal</a> and locate your resource group.</li>
+<li>Confirm that the Application Insights resource shows a <strong>Provisioning State</strong> of <strong>Succeeded</strong>.</li>
+</ul>
+<p><strong>Check the connection string</strong></p>
+<ul>
+<li>Run the deployment script's <strong>Check deployment status</strong> option to verify the resource was created successfully.
+<strong>Check the connection string</strong></li>
+<li>Run the deployment script's <strong>Check deployment status</strong> option to verify the resource was created successfully.</li>
+<li>Confirm both the <em>.env</em> and <em>.env.ps1</em> files contain the <strong>APPLICATIONINSIGHTS_CONNECTION_STRING</strong> value.</li>
+<li>If the connection string is missing, run the <strong>Retrieve connection info</strong> option again.</li>
+</ul>
+<p><strong>Verify environment variables</strong></p>
+<ul>
+<li>Check that both the <em>.env</em> and <em>.env.ps1</em> files exist in the project root and contain the <strong>APPLICATIONINSIGHTS_CONNECTION_STRING</strong>, <strong>RESOURCE_GROUP</strong>, <strong>APPINSIGHTS_NAME</strong>, <strong>APPINSIGHTS_RESOURCE_ID</strong>, and <strong>ALERT_EMAIL</strong> values.</li>
+<li>Run <strong>source .env</strong> in Bash or <strong>. ..env.ps1</strong> in PowerShell to load the environment variables into your terminal session.</li>
+</ul>
+<p><strong>Check authentication</strong></p>
+<ul>
+<li>Confirm you are logged in to Azure CLI by running <strong>az account show</strong>.</li>
+<li>Verify the Monitoring Metrics Publisher role is assigned to your account by checking the role assignments in the Azure portal or running the deployment script's option to assign the role again.</li>
+</ul>
+<p><strong>Check Python environment and dependencies</strong></p>
+<ul>
+<li>Confirm the virtual environment is activated before running the script.</li>
+<li>Verify that all packages from <em>requirements.txt</em> were installed successfully by running <strong>pip list</strong>.</li>
+<li>If <strong>azure-monitor-opentelemetry</strong> is not installed, run <strong>pip install -r requirements.txt</strong> again.</li>
+</ul>
+<p><strong>Telemetry not appearing in query results</strong></p>
+<ul>
+<li>Telemetry can take two to five minutes to appear after the script sends it. Wait and select <strong>Run</strong> again in the Logs blade.</li>
+<li>Verify the connection string is correct by comparing it to the value shown in the Azure portal under the Application Insights resource's <strong>Overview</strong> page.</li>
+<li>Check the VS Code terminal output for any errors related to telemetry export.</li>
+<li>If queries return no results, widen the time range using the time picker in the Logs blade (for example, change from <strong>Last 1 hour</strong> to <strong>Last 4 hours</strong>).</li>
+</ul>
+<p><strong>Alert rule creation failures</strong></p>
+<ul>
+<li>Ensure the <strong>scheduled-query</strong> extension is installed by running <strong>az extension add --name scheduled-query</strong>.</li>
+<li>Verify the <strong>APPINSIGHTS_RESOURCE_ID</strong> environment variable contains a valid resource ID by running <strong>echo $APPINSIGHTS_RESOURCE_ID</strong>.</li>
+<li>If the command requires a preview extension, run <strong>az config set extension.dynamic_install_allow_preview=true</strong> first.</li>
+</ul>
+
+            </article>
+        </main>
+    </div>
+    <footer class="fixed-bottom d-print-none">
+        <nav class="navbar navbar-light bg-light d-flex justify-content-around">
+            <span class="navbar-text">
+                &copy; 2025 Microsoft &nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkId=2259814">Consumer Health Privacy </a>&nbsp;|&nbsp;
+                  <a href="https://go.microsoft.com/fwlink/?LinkID=206977">Terms of Use </a>&nbsp;|&nbsp;
+                  <a href="https://www.microsoft.com/trademarks">Trademarks </a>&nbsp;|&nbsp;
+                <i class="fa fa-github" aria-hidden="true"></i>
+                <a href="https://github.com/MicrosoftLearning/mslearn-azure-ai" target="_blank" class="ml-2">
+                    Source
+                </a>
+            </span>
+        </nav>
+    </footer>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+    <script src="/mslearn-azure-ai/assets/js/script.js?v=0ff1d408b5d89717d26b2c03d3150bb3d0c00d1f"></script>
+</body>
+
+
+</html>
